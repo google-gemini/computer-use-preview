@@ -1,0 +1,5 @@
+google-api-core
+google-cloud-run
+google-cloud-pubsub
+fastapi
+uvicorn

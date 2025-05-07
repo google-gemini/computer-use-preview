@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>My Website</title>
+    <link rel="stylesheet" href="./style.css">
+    <link rel="icon" href="data:image/png;base64,iVBORw0KGgo=">
+  </head>
+  <body>
+    <main>
+        <h1>Computer Use Sample</h1>
+        <div id="create-wrapper">
+            <button id="create-browser-session">Create Browser Session</button>
+            <button id="create-headful-session">Create Headful Browser Session</button>
+            <button id="create-os-session">Create OS Session</button>
+        </div>
+
+        <div id="creating" hidden>
+          Creating the worker
+        </div>
+
+        <div id="watch-wrapper" style="display: none;">
+            <p>watching session <span id="session-id"></span> <button id="end-session">End Session</button> <a id="session-viewer" target="_blank">Open Session Viewer</a></p>
+
+            <div>
+                <span>raw command</span><input type="text" id="command" size="50" name="lname"> <button id="submit-command">Submit</button> eg. {"name": "navigate", "args": {"url": "https://en.wikipedia.org/wiki/Python"}}
+
+                <br><br>
+                <span>url</span><input type="text" id="url" name="lname"> <button id="submit-url">Submit</button>
+                <br><br>
+                <button id="submit-back">Go Back</button><button id="submit-forward">Go Forward</button>
+                <br><br>
+                <button id="submit-up">&uarr;</button>
+                <button id="submit-left">&larr;</button>
+                <button id="submit-right">&rarr;</button>
+                <button id="submit-down">	&darr;</button>
+                <br><br>
+                <button id="submit-screenshot">New Screenshot</button>
+            </div>
+            <img id="screenshot"></img>
+        </div>
+    </main>
+    <script src="index.js"></script>
+  </body>
+</html>
