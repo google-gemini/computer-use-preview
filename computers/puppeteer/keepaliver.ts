@@ -15,13 +15,11 @@ export class Keepaliver {
 
   // Keepalive WebSocket Client State
   private keepaliveConnection?: WebSocket | null = null;
-  // isKeepaliveConnecting flag is removed, using keepaliveConnection state and timerId instead
   private reconnectTimerId?: NodeJS.Timeout | null = null; // Timer ID for scheduled reconnect
 
   // For logging running time.
   private startTime: Date;
   private runningTimeTimerId?: NodeJS.Timeout | null = null;
-
   private instanceIdSentInterval = 1000;  // Interval of sending the instance ID through the stream
 
   constructor(httpServer: http.Server, instanceId: string) {
@@ -141,9 +139,9 @@ export class Keepaliver {
     this.startRunningTimeLogging();
 
     // Check if a connection is already active, connecting, or scheduled to reconnect
-    if (this.keepaliveConnection &&
+    if ((this.keepaliveConnection &&
       (this.keepaliveConnection.readyState === WebSocket.OPEN ||
-        this.keepaliveConnection.readyState === WebSocket.CONNECTING) ||
+        this.keepaliveConnection.readyState === WebSocket.CONNECTING)) ||
       this.reconnectTimerId !== null)
       {
         console.log('Keepaliver: Keepalive connection is already active, connecting, or scheduled. Returning OK.');
@@ -249,13 +247,6 @@ export class Keepaliver {
     }, RECONNECT_DELAY_MS);
   }
 
-
-  // Helper methods (unchanged)
-  private isKeepaliveConnectionActive(): boolean {
-    return this.keepaliveConnection !== null &&
-      (this.keepaliveConnection.readyState === WebSocket.OPEN ||
-        this.keepaliveConnection.readyState === WebSocket.CONNECTING);
-  }
 
   async close() {
     console.log('Shutting down Keepaliver...');

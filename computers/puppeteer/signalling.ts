@@ -13,6 +13,7 @@
 // limitations under the License.
 import http from 'http';
 import {PubSub, Message, Subscription} from '@google-cloud/pubsub';
+import {Keepaliver} from './keepaliver';
 
 export interface MessagingChannel {
   subscribe(handler: (message: CommandMessage) => Promise<void>): void;
@@ -50,20 +51,51 @@ class HttpMessage implements CommandMessage {
 export class HttpChannel implements MessagingChannel {
   port: number;
   server?: http.Server;
+  instanceId: string;  // Unique ID for this instance
+  private keepaliver?: Keepaliver;  // For keeping this instance alive.
 
   constructor(port: number) {
     this.port = port;
+    this.instanceId = crypto.randomUUID();
+    console.log(`Instance ID: ${this.instanceId}`);
   }
 
   subscribe(handler: (message: CommandMessage) => Promise<void>) {
+
     this.server = http.createServer(async (req, res) => {
-      const body = await this.getBody(req);
-      console.log(body);
-      const json = JSON.parse(body);
-      const command =  "command" in json ? json.command : json;
-      await handler(new HttpMessage(command, res));
-    }).listen(this.port);
-    console.log(`Listening on port ${this.port}`);
+      console.log(`Received HTTP request: ${req.method} ${req.url}`);
+       if (req.url === '/instance_id') {
+	 await this.keepaliver?.handleInstanceIdRequest(req, res);
+       }
+       else if (req.url === '/keepalive') {
+         await this.keepaliver?.handleKeepaliveRequest(req, res);
+       }
+
+       else {
+	 try {
+           const body = await this.getBody(req);
+           console.log("HTTP Body:", body);
+           const json = JSON.parse(body);
+           // Adjust based on your CommandMessage structure
+           const command = "command" in json ? json.command : json;
+           await handler(new HttpMessage(command, res));
+         } catch (error) {
+           console.error("Error handling HTTP request:", error);
+           if (!res.headersSent) {
+             res.writeHead(500, { 'Content-Type': 'application/json' });
+             res.end(JSON.stringify({ error: 'Internal Server Error' }));
+           }
+         }
+
+       }
+    });
+    // Create the keepaliver
+    this.keepaliver = new Keepaliver(this.server, this.instanceId);
+
+    // Start the HTTP server listening
+    this.server.listen(this.port, () => {
+      console.log(`HTTP server listening on port ${this.port}`);
+    });
   }
 
   async disconnect() {
