@@ -14,13 +14,15 @@ export class Keepaliver {
   private wsServer?: WebSocketServer;
 
   // Keepalive WebSocket Client State
-  private keepaliveConnection?: WebSocket | null = null;
-  private reconnectTimerId?: NodeJS.Timeout | null = null; // Timer ID for scheduled reconnect
+  private keepaliveConnection?: WebSocket | null;
+ // Timer ID for scheduled reconnect
+  private reconnectTimerId?: NodeJS.Timeout | null;
 
   // For logging running time.
   private startTime: Date;
-  private runningTimeTimerId?: NodeJS.Timeout | null = null;
-  private instanceIdSentInterval = 1000;  // Interval of sending the instance ID through the stream
+  private runningTimeTimerId?: NodeJS.Timeout | null;
+// Interval of sending the instance ID through the stream
+  private instanceIdSentInterval = 1000;
 
   constructor(httpServer: http.Server, instanceId: string) {
     this.httpService = httpServer;
@@ -45,7 +47,7 @@ export class Keepaliver {
   }
 
   private startRunningTimeLogging(): void {
-    if (this.runningTimeTimerId !== null) {
+    if (this.runningTimeTimerId) {
       return;
     }
 
@@ -142,7 +144,7 @@ export class Keepaliver {
     if ((this.keepaliveConnection &&
       (this.keepaliveConnection.readyState === WebSocket.OPEN ||
         this.keepaliveConnection.readyState === WebSocket.CONNECTING)) ||
-      this.reconnectTimerId !== null)
+      this.reconnectTimerId)
       {
         console.log('Keepaliver: Keepalive connection is already active, connecting, or scheduled. Returning OK.');
         res.writeHead(200, { 'Content-Type': 'text/plain' });
@@ -184,7 +186,7 @@ export class Keepaliver {
       newConnection.onopen = () => {
         console.log(`Keepaliver: Keepalive WebSocket connected to ${wsTargetUrl}`);
         // Clear any pending reconnect timer on successful connection
-        if (this.reconnectTimerId !== null) {
+        if (this.reconnectTimerId) {
           clearTimeout(this.reconnectTimerId);
           this.reconnectTimerId = null;
           console.log('Keepaliver: Cleared reconnect timer on successful connection.');
@@ -234,7 +236,7 @@ export class Keepaliver {
   // Method to schedule a reconnect attempt after a delay
   private scheduleReconnect(): void {
     // Only schedule if no reconnect is already scheduled
-    if (this.reconnectTimerId !== null) {
+    if (this.reconnectTimerId) {
       console.log(`Keepaliver: Reconnect already scheduled. Skipping.`);
       return;
     }
@@ -255,7 +257,7 @@ export class Keepaliver {
     console.log(`Keepaliver: Final total running time: ${runningTime}`);
 
     // Clear running time logging timer
-    if (this.runningTimeTimerId !== null) {
+    if (this.runningTimeTimerId) {
       clearInterval(this.runningTimeTimerId);
       this.runningTimeTimerId = null;
       console.log('Keepaliver: Cleared running time logging timer.');
@@ -263,7 +265,7 @@ export class Keepaliver {
 
 
     // Clear any pending reconnect timer
-    if (this.reconnectTimerId !== null) {
+    if (this.reconnectTimerId) {
       clearTimeout(this.reconnectTimerId);
       this.reconnectTimerId = null;
       console.log('Keepaliver: Cleared pending reconnect timer.');
