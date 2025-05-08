@@ -38,7 +38,12 @@ class PlaywrightComputer(ComputerUseEnvironment):
     def __enter__(self):
         print("Creating session...")
         self._playwright = sync_playwright().start()
-        self._browser = self._playwright.chromium.launch(headless=False)
+        self._browser = self._playwright.chromium.launch(
+            args=[
+                '--disable-blink-features=AutomationControlled'
+            ],
+            headless=False,
+            )
         self._context = self._browser.new_context(
             viewport={
                 "width": self._screen_size[0],
