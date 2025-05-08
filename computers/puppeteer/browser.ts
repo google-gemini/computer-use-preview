@@ -100,6 +100,7 @@ export class BrowserShell implements ComputerShell {
           await this.page.keyboard.type(c.args.text[i]);
           await new Promise(resolve => setTimeout(resolve, 100));
         }
+        await this.page.keyboard.press('Enter');
         break;
       case 'scroll_document':
         let deltaX = 0;
