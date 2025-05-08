@@ -28,10 +28,12 @@ class PlaywrightComputer(ComputerUseEnvironment):
         screen_size: tuple[int, int],
         initial_url: str = "https://www.google.com",
         search_engine_url: str = "https://www.google.com",
+        highlight_mouse: bool = False,
     ):
         self._initial_url = initial_url
         self._screen_size = screen_size
         self._search_engine_url = search_engine_url
+        self._highlight_mouse = highlight_mouse
 
     def __enter__(self):
         print("Creating session...")
@@ -145,6 +147,8 @@ class PlaywrightComputer(ComputerUseEnvironment):
         return self._screen_size
 
     def highlight_mouse(self, x: int, y: int):
+        if not self._highlight_mouse:
+            return
         self._page.evaluate(
             f"""
         () => {{

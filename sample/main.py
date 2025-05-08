@@ -16,6 +16,7 @@ import argparse
 from cloud_run_env import CloudRunComputer
 from playwright_env import PlaywrightComputer
 from agent import BrowserAgent
+from browserbase_env import BrowserbaseComputer
 
 
 SCREEN_SIZE = (1000, 1000)
@@ -37,7 +38,7 @@ def main() -> int:
     parser.add_argument(
         "--env",
         type=str,
-        choices=("cloud-run", "playwright"),
+        choices=("cloud-run", "playwright", "browserbase"),
         default="cloud-run",
         help="The computer use environment to use.",
     )
@@ -55,6 +56,8 @@ def main() -> int:
             env = CloudRunComputer(api_server=args.api_server, screen_size=SCREEN_SIZE)
         case "playwright":
             env = PlaywrightComputer(screen_size=SCREEN_SIZE, initial_url=args.initial_url)
+        case "browserbase":
+            env = BrowserbaseComputer(screen_size=SCREEN_SIZE)
 
     with env as browser_computer:
         agent = BrowserAgent(
