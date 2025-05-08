@@ -19,14 +19,19 @@ from computer_use_environment import (
 )
 from playwright.sync_api import sync_playwright
 
-GOOGLE_URL = "https://www.google.com"
-
 
 class PlaywrightComputer(ComputerUseEnvironment):
     """Connects to a Cloud Run server and uses Chromium there."""
 
-    def __init__(self,  screen_size: tuple[int, int]):
+    def __init__(
+        self,
+        screen_size: tuple[int, int],
+        initial_url: str = "https://www.google.com",
+        search_engine_url: str = "https://www.google.com",
+    ):
+        self._initial_url = initial_url
         self._screen_size = screen_size
+        self._search_engine_url = search_engine_url
 
     def __enter__(self):
         print("Creating session...")
@@ -34,44 +39,59 @@ class PlaywrightComputer(ComputerUseEnvironment):
         self._browser = self._playwright.chromium.launch(headless=False)
         self._context = self._browser.new_context(
             viewport={
-                'width': self._screen_size[0],
-                'height': self._screen_size[1],
+                "width": self._screen_size[0],
+                "height": self._screen_size[1],
             }
-        ) 
+        )
         self._page = self._context.new_page()
-        self._page.goto(GOOGLE_URL)
+        self._page.goto(self._initial_url)
 
         termcolor.cprint(
-            f"Starting local playwright.",
+            f"Started local playwright.",
             color="green",
             attrs=["bold"],
         )
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        if self._page:
-            self._page.close()
         if self._context:
             self._context.close()
-        self._browser.close()
-        self._playwright.stop()
+        try:
+            self._browser.close()
+        except Exception as e:
+            # Browser was already shut down because of SIGINT or such.
+            if "Browser.close: Connection closed while reading from the driver" in str(
+                e
+            ):
+                pass
+            else:
+                raise
 
+        self._playwright.stop()
 
     def open_web_browser(self) -> EnvState:
         return self.current_state()
 
-    def click_at(self, y, x):
+    def click_at(self, x: int, y: int):
         self._page.mouse.click(x, y)
+        self._page.wait_for_load_state()
+        self.highlight_mouse(x, y)
         return self.current_state()
 
-    def hover_at(self, y, x):
+    def hover_at(self, x: int, y: int):
         self._page.mouse.move(x, y)
+        self._page.wait_for_load_state()
+        self.highlight_mouse(x, y)
         return self.current_state()
 
     def type_text_at(self, x: int, y: int, text: str) -> EnvState:
         self._page.mouse.click(x, y)
+        self._page.wait_for_load_state()
         self._page.keyboard.type(text)
+        self._page.wait_for_load_state()
         self.key_combination(["Enter"])
+        self._page.wait_for_load_state()
+        self.highlight_mouse(x, y)
         return self.current_state()
 
     def scroll_document(self, direction: str) -> EnvState:
@@ -89,17 +109,20 @@ class PlaywrightComputer(ComputerUseEnvironment):
 
     def go_back(self) -> EnvState:
         self._page.go_back()
+        self._page.wait_for_load_state()
         return self.current_state()
 
     def go_forward(self) -> EnvState:
         self._page.go_forward()
+        self._page.wait_for_load_state()
         return self.current_state()
 
     def search(self) -> EnvState:
-        return self.navigate(GOOGLE_URL)
+        return self.navigate(self._search_engine_url)
 
     def navigate(self, url: str) -> EnvState:
         self._page.goto(url)
+        self._page.wait_for_load_state()
         return self.current_state()
 
     def key_combination(self, keys: list[str]) -> EnvState:
@@ -114,8 +137,39 @@ class PlaywrightComputer(ComputerUseEnvironment):
         return self.current_state()
 
     def current_state(self) -> EnvState:
-        screenshot_bytes = self._page.screenshot(type="png")
-        return EnvState(screenshot=screenshot_bytes, url = self._page.url)
+        self._page.wait_for_load_state()
+        screenshot_bytes = self._page.screenshot(type="png", full_page=False)
+        return EnvState(screenshot=screenshot_bytes, url=self._page.url)
 
     def screen_size(self) -> tuple[int, int]:
         return self._screen_size
+
+    def highlight_mouse(self, x: int, y: int):
+        self._page.evaluate(
+            f"""
+        () => {{
+            const element_id = "playwright-feedback-circle";
+            let div = document.getElementById(element_id);
+            if (!div) {{
+                div = document.createElement('div');
+                div.id = element_id;
+                div.style.pointerEvents = 'none';
+                div.style.border = '4px solid red';
+                div.style.borderRadius = '50%';
+                div.style.width = '20px';
+                div.style.height = '20px';
+                div.style.position = 'absolute';
+                div.style.zIndex = '9999';
+                document.body.appendChild(div);
+            }}
+
+            div.hidden = false;
+            div.style.left = {x} - 10 + 'px';
+            div.style.top = {y} - 10 + 'px';
+
+            setTimeout(() => {{
+                div.hidden = true;
+            }}, 2000);
+        }}
+    """
+        )

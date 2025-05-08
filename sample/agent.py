@@ -41,11 +41,12 @@ class BrowserAgent:
         self._browser_computer = browser_computer
         self._query = query
         self._model_name = model_name
-        self.client = genai.Client(
+        self._client = genai.Client(
             api_key=os.environ.get("GEMINI_API_KEY"),
             http_options=types.HttpOptions(
                 api_version="v1alpha",
                 base_url="https://autopush-generativelanguage.sandbox.googleapis.com",
+                timeout=10 * 60 * 1000,
             ),
         )
         self._contents: list[Content] = [
@@ -78,28 +79,22 @@ class BrowserAgent:
             case "open_web_browser":
                 return self._browser_computer.open_web_browser()
             case "click_at":
-                y = action.args["y"]
-                x = action.args["x"]
-                x = self.normalize_x(x)
-                y = self.normalize_y(y)
+                x = self.normalize_x(action.args["x"])
+                y = self.normalize_y(action.args["y"])
                 return self._browser_computer.click_at(
                     x=x,
                     y=y,
                 )
             case "hover_at":
-                y = action.args["y"]
-                x = action.args["x"]
-                x = self.normalize_x(x)
-                y = self.normalize_y(y)
+                x = self.normalize_x(action.args["x"])
+                y = self.normalize_y(action.args["y"])
                 return self._browser_computer.hover_at(
                     x=x,
                     y=y,
                 )
             case "type_text_at":
-                y = action.args["y"]
-                x = action.args["x"]
-                x = self.normalize_x(x)
-                y = self.normalize_y(y)
+                x = self.normalize_x(action.args["x"])
+                y = self.normalize_y(action.args["y"])
                 return self._browser_computer.type_text_at(
                     x=x,
                     y=y,
@@ -141,7 +136,7 @@ class BrowserAgent:
 
     def run_one_iteration(self) -> Literal["COMPLETE", "CONTINUE"]:
         # Generate a response from the model.
-        response = self.client.models.generate_content(
+        response = self._client.models.generate_content(
             model=self._model_name,
             contents=self._contents,
             config=self._generate_content_config,
@@ -166,7 +161,7 @@ class BrowserAgent:
 
         if not function_call:
             print("Agent Loop Complete.")
-            return
+            return "COMPLETE"
 
         termcolor.cprint(
             "Agent Function Call",
@@ -175,6 +170,33 @@ class BrowserAgent:
         )
         print(function_call.model_dump_json())
         print()
+
+        if safety := function_call.args.get('safety_decision'):
+            match safety['decision']:
+                case 'block':
+                    termcolor.cprint(
+                        "Terminating loop due to safety block!",
+                        color="magenta",
+                        attrs=["bold"],
+                    )
+                    print(safety['explanation'])
+                    return "COMPLETE"
+                case 'require_confirmation':
+                    termcolor.cprint(
+                        "Safety service requires explicit confirmation!",
+                        color="magenta",
+                        attrs=["bold"],
+                    )
+                    print(safety['explanation'])
+                    decision = ""
+                    while decision.lower() not in ("y", "n", "ye", "yes", "no"):
+                        decision = input("Do you wish to proceed? [Y]es/[n]o\n")
+                    if decision.lower() in ("n", "no"):
+                        print("Terminating agent loop.")
+                        return "COMPLETE"
+                    print("Proceeding with agent loop.")
+
+
         environment_state = self.handle_action(function_call)
 
         self._contents.append(
@@ -198,6 +220,7 @@ class BrowserAgent:
                 ],
             )
         )
+        return "CONTINUE"
 
     def agent_loop(self):
         while True:
@@ -209,9 +232,4 @@ class BrowserAgent:
         return int(x / 1000 * self._browser_computer.screen_size()[0])
 
     def normalize_y(self, y: int) -> int:
-        # Note: the model measures the y coordinate from the bottom of the screen,
-        # but traditionally image coordinates are measured from the top. We must
-        # invert the y coordinate to get the correct position.
-        return self._browser_computer.screen_size()[1] - int(
-            y / 1000 * self._browser_computer.screen_size()[1]
-        )
+        return int(y / 1000 * self._browser_computer.screen_size()[1])

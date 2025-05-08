@@ -18,7 +18,7 @@ from playwright_env import PlaywrightComputer
 from agent import BrowserAgent
 
 
-SCREEN_SIZE = (1920, 1000)
+SCREEN_SIZE = (1000, 1000)
 
 
 def main() -> int:
@@ -37,9 +37,15 @@ def main() -> int:
     parser.add_argument(
         "--env",
         type=str,
-        choices=('cloud-run', 'playwright'),
-        default='cloud-run',
+        choices=("cloud-run", "playwright"),
+        default="cloud-run",
         help="The computer use environment to use.",
+    )
+    parser.add_argument(
+        "--initial_url",
+        type=str,
+        default="https://www.google.com",
+        help="The inital URL loaded for the computer (currently only works for local playwright).",
     )
     args = parser.parse_args()
 
@@ -48,7 +54,7 @@ def main() -> int:
             assert args.api_server, "--api_server is required for cloud run."
             env = CloudRunComputer(api_server=args.api_server, screen_size=SCREEN_SIZE)
         case "playwright":
-            env = PlaywrightComputer(screen_size=SCREEN_SIZE)
+            env = PlaywrightComputer(screen_size=SCREEN_SIZE, initial_url=args.initial_url)
 
     with env as browser_computer:
         agent = BrowserAgent(
