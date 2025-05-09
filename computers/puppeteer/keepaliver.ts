@@ -15,13 +15,13 @@ export class Keepaliver {
 
   // Keepalive WebSocket Client State
   private keepaliveConnection?: WebSocket | null;
- // Timer ID for scheduled reconnect
+  // Timer ID for scheduled reconnect
   private reconnectTimerId?: NodeJS.Timeout | null;
 
   // For logging running time.
   private startTime: Date;
   private runningTimeTimerId?: NodeJS.Timeout | null;
-// Interval of sending the instance ID through the stream
+  // Interval of sending the instance ID through the stream
   private instanceIdSentInterval = 1000;
 
   constructor(httpServer: http.Server, instanceId: string) {
@@ -166,12 +166,23 @@ export class Keepaliver {
   }
 
   // Method to establish the WebSocket client connection
-  private establishConnection(): void {
+  private async establishConnection(): Promise<void>  {
     const targetUrl = this.getTargetURL();
     if (!targetUrl) {
       console.error('Keepaliver: KEEPALIVE_TARGET_URL environment variable is not set. Cannot establish keepalive connection.');
       // Do NOT schedule reconnect here, as it's a configuration error, not a transient network error.
       return;
+    }
+
+    let token: string | null = null;
+    try {
+      console.log(`Keepaliver: Fetching Identity Token for audience: ${targetUrl} using built-in http.`);
+      token = await this.getIdToken(targetUrl);
+      console.log('Keepaliver: Successfully fetched Identity Token.');
+    } catch (error) {
+      console.error('Keepaliver: Failed to fetch Identity Token:', error);
+      this.scheduleReconnect();
+      throw error;
     }
 
     const wsBaseUrl = this.replaceHTTPWithWS(targetUrl);
@@ -180,7 +191,12 @@ export class Keepaliver {
     console.log(`Keepaliver: Establishing WebSocket connection to ${wsTargetUrl}`);
 
     try {
-      const newConnection = new WebSocket(wsTargetUrl);
+      const newConnection = new WebSocket(wsTargetUrl, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
 
       // Assign event handlers to the new connection instance
       newConnection.onopen = () => {
@@ -327,5 +343,49 @@ export class Keepaliver {
       return 'ws' + urlStr.substring(4);
     }
     return urlStr;
+  }
+
+  private async getIdToken(audience: string): Promise<string> {
+    const metadataServerUrl = 'http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity';
+    const url = new URL(metadataServerUrl);
+    url.searchParams.set('audience', audience);
+
+    // Use http.get for a simpler GET request
+    // Wrap the request in a Promise to use with async/await
+    return new Promise((resolve, reject) => {
+      const req = http.get(url.toString(), {
+        headers: {
+          'Metadata-Flavor': 'Google' // Required header for metadata server
+        }
+      }, (res) => {
+	if (!res.statusCode) {
+	  // Stop processing if status code is unexpectedly missing
+          reject(new Error('Keepaliver: Metadata token response missing status code.'));
+          return;
+        }
+
+        // Check for successful response status codes (2xx)
+        if (res.statusCode < 200 || res.statusCode >= 300) {
+          // Read the response body to include in the error message
+          let rawData = '';
+          res.on('data', (chunk) => { rawData += chunk; });
+          res.on('end', () => {
+            reject(new Error(`Failed to fetch token: ${res.statusCode} ${res.statusMessage} - ${rawData}`));
+          });
+          return;
+        }
+
+        let rawData = '';
+        // Read the data chunks from the response
+        res.on('data', (chunk) => {
+          rawData += chunk;
+        });
+
+        // When the response ends, resolve the promise with the complete data
+        res.on('end', () => {
+          resolve(rawData);
+        });
+      });
+    });
   }
 }
