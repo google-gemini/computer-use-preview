@@ -159,7 +159,7 @@ class PlaywrightComputer(Computer):
         () => {{
             const element_id = "playwright-feedback-circle";
             let div = document.getElementById(element_id);
-            if (!div) {{
+            {{
                 div = document.createElement('div');
                 div.id = element_id;
                 div.style.pointerEvents = 'none';
