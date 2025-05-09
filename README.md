@@ -1,4 +1,4 @@
-# Cloud Run Computer Use Tool
+# Cloud Run Computer Solution
 
 ## Quick Start
 
@@ -7,12 +7,14 @@ This section will guide you through setting up and running the Cloud Run Compute
 ### 1. Installation
 
 **Clone the Repository**
+
 ```bash
 git clone https://github.com/google/cloud-run-computer-solution.git
 cd cloud-run-computer-solution
 ```
 
 **Set up Python Virtual Environment and Install Dependencies**
+
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
@@ -20,6 +22,7 @@ pip install -r requirements.txt
 ```
 
 **Install Playwright and Browser Dependencies**
+
 ```bash
 # Install system dependencies required by Playwright for Chrome
 playwright install-deps chrome
@@ -53,6 +56,7 @@ Replace `YOUR_GEMINI_API_KEY` with your actual key.
 The primary way to use the tool is via the `main.py` script.
 
 **General Command Structure:**
+
 ```bash
 python main.py --query "Go to Google and type 'Hello World' into the search bar" --env <environment> [options]
 ```
@@ -89,6 +93,7 @@ Connects to your Cloud Run API Server for computer use. You must provide the URL
 ```bash
 python main.py --query="Go to Google and type 'Hello World' into the search bar" --api_server="https://your-cloud-run-service-url.run.app/"
 ```
-*   Replace `https://your-cloud-run-service-url.run.app/` with the actual URL of your deployed Cloud Run service.
-*   If `--env` is not specified, it defaults to `cloud-run`, so providing `--api_server` is sufficient to use this mode.
-*   **Note:** When using the Cloud Run environment, the script will print a link to a live stream of screenshots, allowing you to follow the agent's actions in real-time.
+
+* Replace `https://your-cloud-run-service-url.run.app/` with the actual URL of your deployed Cloud Run service.
+* If `--env` is not specified, it defaults to `cloud-run`, so providing `--api_server` is sufficient to use this mode.
+* **Note:** When using the Cloud Run environment, the script will print a link to a live stream of screenshots, allowing you to follow the agent's actions in real-time.
