@@ -25,9 +25,15 @@ from ..computer import (
 class CloudRunComputer(Computer):
     """Connects to a Cloud Run server and uses Chromium there."""
 
-    def __init__(self, api_server: str, screen_size: tuple[int, int]):
+    def __init__(
+        self, api_server: str, screen_size: tuple[int, int], api_key: str | None = None
+    ):
         self._screen_size = screen_size
         self._api_server = api_server
+        self._api_key = api_key
+        self._headers = {}
+        if self._api_key:
+            self._headers = {"X-API-Key": self._api_key}
 
     def __enter__(self):
         print("Creating session...")
@@ -43,6 +49,7 @@ class CloudRunComputer(Computer):
                 # Or after 60 seconds of inactivity.
                 "idle_timeout_seconds": 60,
             },
+            headers=self._headers,
         )
         end_time = time.time()
         termcolor.cprint(
@@ -50,6 +57,15 @@ class CloudRunComputer(Computer):
             color="green",
             attrs=["bold"],
         )
+        if response.status_code != 200:
+            termcolor.cprint(
+                f"Error creating session: {response.status_code} {response.text}",
+                color="red",
+                attrs=["bold"],
+            )
+            raise Exception(
+                f"Error creating session: {response.status_code} {response.text}"
+            )
         self._session_id = response.json()["id"]
         print("Session ready.")
         print(
@@ -58,18 +74,22 @@ class CloudRunComputer(Computer):
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        requests.delete(self._api_server + "sessions/" + self._session_id)
+        requests.delete(
+            self._api_server + "sessions/" + self._session_id, headers=self._headers
+        )
 
     def _run_command(
         self, command: str, args: dict[str, Any] | None = None
     ) -> EnvState:
         print(f"Running command: {command} with args: {args}")
+
         response = requests.post(
             self._api_server + "sessions/" + self._session_id + "/commands",
             json={
                 "name": command,
                 "args": args,
             },
+            headers=self._headers,
         )
         response.raise_for_status()
         screenshot_str: str = response.json()["screenshot"]

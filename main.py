@@ -31,7 +31,12 @@ def main() -> int:
     parser.add_argument(
         "--api_server",
         type=str,
-        help="The URL of the API Server for the cloud run environment.",
+        help="The URL of the API Server for the Cloud Run environment.",
+    )
+    parser.add_argument(
+        "--api_server_key",
+        type=str,
+        help="The API key for the API Server.",
     )
     parser.add_argument(
         "--env",
@@ -48,19 +53,25 @@ def main() -> int:
     )
     parser.add_argument(
         "--highlight_mouse",
-        action='store_true',
+        action="store_true",
         default=False,
-        help="If possible, highlight the location of the mouse."
+        help="If possible, highlight the location of the mouse.",
     )
     args = parser.parse_args()
 
     match args.env:
         case "cloud-run":
             assert args.api_server, "--api_server is required for cloud run."
-            env = CloudRunComputer(api_server=args.api_server, screen_size=SCREEN_SIZE)
+            env = CloudRunComputer(
+                api_server=args.api_server,
+                screen_size=SCREEN_SIZE,
+                api_key=args.api_server_key,
+            )
         case "playwright":
             env = PlaywrightComputer(
-                screen_size=SCREEN_SIZE, initial_url=args.initial_url, highlight_mouse=args.highlight_mouse,
+                screen_size=SCREEN_SIZE,
+                initial_url=args.initial_url,
+                highlight_mouse=args.highlight_mouse,
             )
         case "browserbase":
             env = BrowserbaseComputer(screen_size=SCREEN_SIZE)
