@@ -13,10 +13,8 @@
 # limitations under the License.
 import argparse
 
-from cloud_run_env import CloudRunComputer
-from playwright_env import PlaywrightComputer
 from agent import BrowserAgent
-from browserbase_env import BrowserbaseComputer
+from computers import CloudRunComputer, BrowserbaseComputer, PlaywrightComputer
 
 
 SCREEN_SIZE = (1000, 1000)
@@ -55,7 +53,9 @@ def main() -> int:
             assert args.api_server, "--api_server is required for cloud run."
             env = CloudRunComputer(api_server=args.api_server, screen_size=SCREEN_SIZE)
         case "playwright":
-            env = PlaywrightComputer(screen_size=SCREEN_SIZE, initial_url=args.initial_url)
+            env = PlaywrightComputer(
+                screen_size=SCREEN_SIZE, initial_url=args.initial_url
+            )
         case "browserbase":
             env = BrowserbaseComputer(screen_size=SCREEN_SIZE)
 

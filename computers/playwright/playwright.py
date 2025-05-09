@@ -13,14 +13,14 @@
 # limitations under the License.
 import termcolor
 import time
-from computer_use_environment import (
-    ComputerUseEnvironment,
+from ..computer import (
+    Computer,
     EnvState,
 )
 from playwright.sync_api import sync_playwright
 
 
-class PlaywrightComputer(ComputerUseEnvironment):
+class PlaywrightComputer(Computer):
     """Connects to a Cloud Run server and uses Chromium there."""
 
     def __init__(

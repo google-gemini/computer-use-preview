@@ -25,13 +25,13 @@ from google.genai.types import (
 )
 import base64
 
-import computer_use_environment
+from computers import EnvState, Computer
 
 
 class BrowserAgent:
     def __init__(
         self,
-        browser_computer: computer_use_environment.ComputerUseEnvironment,
+        browser_computer: Computer,
         query: str,
         model_name: Literal[
             "models/gemini-2.5-pro-jarvis"
@@ -71,9 +71,7 @@ class BrowserAgent:
             ],
         )
 
-    def handle_action(
-        self, action: types.FunctionCall
-    ) -> computer_use_environment.EnvState:
+    def handle_action(self, action: types.FunctionCall) -> EnvState:
         """Handles the action and returns the environment state."""
         match action.name:
             case "open_web_browser":
@@ -171,23 +169,23 @@ class BrowserAgent:
         print(function_call.model_dump_json())
         print()
 
-        if safety := function_call.args.get('safety_decision'):
-            match safety['decision']:
-                case 'block':
+        if safety := function_call.args.get("safety_decision"):
+            match safety["decision"]:
+                case "block":
                     termcolor.cprint(
                         "Terminating loop due to safety block!",
                         color="magenta",
                         attrs=["bold"],
                     )
-                    print(safety['explanation'])
+                    print(safety["explanation"])
                     return "COMPLETE"
-                case 'require_confirmation':
+                case "require_confirmation":
                     termcolor.cprint(
                         "Safety service requires explicit confirmation!",
                         color="magenta",
                         attrs=["bold"],
                     )
-                    print(safety['explanation'])
+                    print(safety["explanation"])
                     decision = ""
                     while decision.lower() not in ("y", "n", "ye", "yes", "no"):
                         decision = input("Do you wish to proceed? [Y]es/[n]o\n")
@@ -195,7 +193,6 @@ class BrowserAgent:
                         print("Terminating agent loop.")
                         return "COMPLETE"
                     print("Proceeding with agent loop.")
-
 
         environment_state = self.handle_action(function_call)
 

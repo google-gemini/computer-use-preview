@@ -1,39 +1,43 @@
 import os
 import termcolor
-from playwright_env import PlaywrightComputer
+from ..playwright.playwright import PlaywrightComputer
 import browserbase
 from playwright.sync_api import sync_playwright
 
-class BrowserbaseComputer( PlaywrightComputer):
+
+class BrowserbaseComputer(PlaywrightComputer):
     def __init__(self, screen_size: tuple[int, int]):
         super().__init__(screen_size)
 
     def __enter__(self):
         print("Creating session...")
-        
+
         self._playwright = sync_playwright().start()
-        self._browserbase = browserbase.Browserbase(api_key=os.environ["BROWSERBASE_API_KEY"])
-
-        self._session = self._browserbase.sessions.create(
-            project_id=os.environ["BROWSERBASE_PROJECT_ID"],        
-            browser_settings={
-            "fingerprint": {
-                "screen": {
-                    "maxWidth": 1920,
-                    "maxHeight": 1080,
-                    "minWidth": 1024,
-                    "minHeight": 768,
-                },
-            },
-            "viewport": {
-                "width": self._screen_size[0],
-                "height": self._screen_size[1],
-            },
-        },
-
+        self._browserbase = browserbase.Browserbase(
+            api_key=os.environ["BROWSERBASE_API_KEY"]
         )
 
-        self._browser = self._playwright.chromium.connect_over_cdp(self._session.connect_url)
+        self._session = self._browserbase.sessions.create(
+            project_id=os.environ["BROWSERBASE_PROJECT_ID"],
+            browser_settings={
+                "fingerprint": {
+                    "screen": {
+                        "maxWidth": 1920,
+                        "maxHeight": 1080,
+                        "minWidth": 1024,
+                        "minHeight": 768,
+                    },
+                },
+                "viewport": {
+                    "width": self._screen_size[0],
+                    "height": self._screen_size[1],
+                },
+            },
+        )
+
+        self._browser = self._playwright.chromium.connect_over_cdp(
+            self._session.connect_url
+        )
         self._context = self._browser.contexts[0]
         self._page = self._context.pages[0]
         self._page.goto(self._initial_url)

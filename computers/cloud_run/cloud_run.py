@@ -16,13 +16,13 @@ import termcolor
 import time
 from typing import Any
 import requests
-from computer_use_environment import (
-    ComputerUseEnvironment,
+from ..computer import (
+    Computer,
     EnvState,
 )
 
 
-class CloudRunComputer(ComputerUseEnvironment):
+class CloudRunComputer(Computer):
     """Connects to a Cloud Run server and uses Chromium there."""
 
     def __init__(self, api_server: str, screen_size: tuple[int, int]):

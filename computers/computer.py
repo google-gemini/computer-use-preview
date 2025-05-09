@@ -25,7 +25,7 @@ class EnvState(pydantic.BaseModel):
     url: str
 
 
-class ComputerUseEnvironment(abc.ABC):
+class Computer(abc.ABC):
     """Defines an interface for environments."""
 
     @abc.abstractmethod
