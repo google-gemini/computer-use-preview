@@ -46,6 +46,12 @@ def main() -> int:
         default="https://www.google.com",
         help="The inital URL loaded for the computer (currently only works for local playwright).",
     )
+    parser.add_argument(
+        "--highlight_mouse",
+        action='store_true',
+        default=False,
+        help="If possible, highlight the location of the mouse."
+    )
     args = parser.parse_args()
 
     match args.env:
@@ -54,7 +60,7 @@ def main() -> int:
             env = CloudRunComputer(api_server=args.api_server, screen_size=SCREEN_SIZE)
         case "playwright":
             env = PlaywrightComputer(
-                screen_size=SCREEN_SIZE, initial_url=args.initial_url
+                screen_size=SCREEN_SIZE, initial_url=args.initial_url, highlight_mouse=args.highlight_mouse,
             )
         case "browserbase":
             env = BrowserbaseComputer(screen_size=SCREEN_SIZE)

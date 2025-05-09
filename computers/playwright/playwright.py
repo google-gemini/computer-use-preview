@@ -80,25 +80,25 @@ class PlaywrightComputer(Computer):
         return self.current_state()
 
     def click_at(self, x: int, y: int):
+        self.highlight_mouse(x, y)
         self._page.mouse.click(x, y)
         self._page.wait_for_load_state()
-        self.highlight_mouse(x, y)
         return self.current_state()
 
     def hover_at(self, x: int, y: int):
+        self.highlight_mouse(x, y)
         self._page.mouse.move(x, y)
         self._page.wait_for_load_state()
-        self.highlight_mouse(x, y)
         return self.current_state()
 
     def type_text_at(self, x: int, y: int, text: str) -> EnvState:
+        self.highlight_mouse(x, y)
         self._page.mouse.click(x, y)
         self._page.wait_for_load_state()
         self._page.keyboard.type(text)
         self._page.wait_for_load_state()
         self.key_combination(["Enter"])
         self._page.wait_for_load_state()
-        self.highlight_mouse(x, y)
         return self.current_state()
 
     def scroll_document(self, direction: str) -> EnvState:
@@ -182,3 +182,5 @@ class PlaywrightComputer(Computer):
         }}
     """
         )
+        # Wait a bit for the user to see the cursor.
+        time.sleep(1)
