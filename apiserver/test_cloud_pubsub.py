@@ -1,11 +1,21 @@
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 import asyncio
 import json
-import uuid
-from unittest.mock import MagicMock, AsyncMock, call, ANY
-
 import pytest
+from unittest.mock import MagicMock, AsyncMock, call, ANY
 from google.api_core import exceptions as google_exceptions
-
 from models import Message
 from cloud_pubsub import CloudPubSubManager
 
@@ -40,7 +50,7 @@ def mock_subscriber(mocker):
     )
 
     mock_instance.get_subscription.side_effect = google_exceptions.NotFound("mocked")
-    mock_instance.subscribe.return_value = MagicMock(spec=["cancel"]) 
+    mock_instance.subscribe.return_value = MagicMock(spec=["cancel"])
     mock_instance.close.return_value = None
     mock_instance.create_subscription.return_value = MagicMock()
     mock_instance.delete_subscription.return_value = None
@@ -200,16 +210,16 @@ async def test_publish_starts_subscriber_if_needed(
 @pytest.mark.asyncio
 async def test_publish_message_failure(manager, mock_publisher, mock_subscriber):
     session_id = "session-fail"
-    manager.start_session(session_id) 
-    
+    manager.start_session(session_id)
+
     msg = Message(type="CMD", data={"do": "this"})
-    
+
     pub_error = Exception("Pubsub unavailable")
     mock_publisher.publish.side_effect = pub_error
-    
+
     with pytest.raises(Exception, match="Pubsub unavailable"):
         await manager.publish_message(session_id, msg)
-        
+
     assert msg.id not in manager.pending_messages
 
 
@@ -292,7 +302,7 @@ async def test_stream_screenshots(manager, mock_subscriber):
 
             if not callback_captured.done():
                 callback_captured.set_result(True)
-            return MagicMock(spec=["cancel"]) 
+            return MagicMock(spec=["cancel"])
 
         mock_subscriber.subscribe.side_effect = capture_callback_wrapper
 
