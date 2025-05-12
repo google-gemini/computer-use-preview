@@ -25,8 +25,11 @@ from google.genai.types import (
 )
 import base64
 import time
+from rich.console import Console
 
 from computers import EnvState, Computer
+
+console = Console()
 
 
 class BrowserAgent:
@@ -166,10 +169,13 @@ class BrowserAgent:
 
     def run_one_iteration(self) -> Literal["COMPLETE", "CONTINUE"]:
         # Generate a response from the model.
-        try:
-            response = self.get_model_response()
-        except Exception as e:
-            return "COMPLETE"
+        with console.status(
+            "[white] Generating response from Gemini...", spinner_style=None
+        ):
+            try:
+                response = self.get_model_response()
+            except Exception as e:
+                return "COMPLETE"
 
         # Extract the text and function call from the response.
         candidate = response.candidates[0]
@@ -225,7 +231,8 @@ class BrowserAgent:
                         return "COMPLETE"
                     print("Proceeding with agent loop.")
 
-        environment_state = self.handle_action(function_call)
+        with console.status("Sending command to Computer...", spinner_style=None):
+            environment_state = self.handle_action(function_call)
 
         self._contents.append(
             Content(
