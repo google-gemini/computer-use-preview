@@ -1,0 +1,158 @@
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+substitutions:
+  # Stage type parameters.
+  _ROOT_DIR: '' # e.g. cloud-run-computer-solution/apiserver
+  # Stage type parameters.
+  _IMAGE: '' #e.g. us-docker.pkg.dev/cloudrun/solutions/computer-use/apiserver
+  # Stage type parameters.
+  # Directory where the source code lives
+  _CHECKOUT_DIR: '' # e.g. cloud-run-computer-solution
+  # Human readable name for the source code repo.
+  _REPO_NAME: '' # e.g. cloud-run-computer-solution
+  # The GCS bucket name where license scan results are uploaded to
+  _RESULTS_BUCKET: ''
+  # Additional arguments to be passed to license compliance
+  _EXTRA_LICENSE_COMPLIANCE_ARGS: '-i louhi_ws/.* -s'
+  # Additional arguments to be passed to license scan
+  _EXTRA_LICENSE_SCAN_ARGS: '' # e.g. '--subdir apiserver'
+  # The location of the scan results. Leave the parameter unspecified if you use
+  # Louhi helper's --repo_name argument to push licensescan results.
+  _RESULTS_DIR: '/workspace/louhi_ws/.louhi/licensescan_results'
+
+  # A file to write the tag name into if you want to use a custom tag name
+  # (other than the _LOUHI_TAG_NAME or an arbitrary one chosen by Louhi)
+  _TAG_NAME_FILE: '/workspace/louhi_ws/licensescan_tag_name'
+  # Substitution injected by Louhi (e.g. when using tag trigger)
+  _LOUHI_TAG_NAME: ''
+
+  # Constants
+  _LOUHI_WORKSPACE: 'louhi_ws'
+  # Only tags matching this regex are pushed
+  _IMAGE_REGEX: 'louhi_ws/.*'
+  # Additional arguments to pass to Louhi helper in the format arg_name=arg_value
+  # e.g. repo_name=foo will add the license scan information from the repo with name foo
+  _EXTRA_ARGS: ''
+
+  # Constant
+  _HELPER_ARG_FILE: '/workspace/louhi_ws/louhi_helper_args.properties'
+
+options:
+  machineType: N1_HIGHCPU_32
+
+timeout: 21600s
+
+# Configure ssh key from secret manager
+steps:
+- name: 'gcr.io/cloud-builders/git'
+  secretEnv: ['SSH_KEY']
+  entrypoint: 'bash'
+  args:
+  - -c
+  - |
+    echo "$$SSH_KEY" >> /root/.ssh/id_rsa
+    chmod 400 /root/.ssh/id_rsa
+    ssh-keyscan -t rsa github.com >> /root/.ssh/known_hosts
+  volumes:
+  - name: 'ssh'
+    path: /root/.ssh
+
+# Clone the repo
+- name: 'gcr.io/cloud-builders/git'
+  dir: /workspace/louhi_ws
+  id: 'clone'
+  entrypoint: 'bash'
+  args:
+  - -exc
+  - |
+    git clone git@github.com:google/cloud-run-computer-solution.git
+  volumes:
+  - name: 'ssh'
+    path: /root/.ssh
+
+- name: 'gcr.io/cloud-builders/docker'
+  id: 'build'
+  entrypoint: 'bash'
+  dir: /workspace/louhi_ws
+  args:
+  - -exc
+  - |
+    echo `pwd`
+    ls -al
+    cd ${_ROOT_DIR}
+    docker build . -t louhi_ws/${_IMAGE}
+
+- name: gcr.io/${PROJECT_ID}/licensescan
+  id: license-compliance-all
+  env:
+    - RESULTS_DIR=${_RESULTS_DIR}/${_REPO_NAME}
+  dir: ${_LOUHI_WORKSPACE}/${_CHECKOUT_DIR}
+  entrypoint: bash
+  args:
+    - -c
+    - |
+      set -ex
+
+      # If the _RESULTS_BUCKET substitution is not given, we default to the license scan bucket for the project
+      if [[ -z "${_RESULTS_BUCKET}" ]]; then
+        results_bucket=${PROJECT_ID}-louhi-licensescan
+      else
+      # If the _RESULTS_BUCKET substitution is given, we use that
+        results_bucket=${_RESULTS_BUCKET}
+      fi
+      # If a tag name file is given, use its content as the ref
+      if [[ -f "${_TAG_NAME_FILE}" ]]; then
+        ref=$(cat "${_TAG_NAME_FILE}")
+      # Else if a ref substitution is given, use it
+      elif [[ -n "${_LOUHI_TAG_NAME}" ]]; then
+        ref="${_LOUHI_TAG_NAME}"
+      # Otherwise default to HEAD
+      else
+        ref="HEAD"
+      fi
+
+      # Scans for licenses. Results will be available on GCS, at $_RESULTS_BUCKET/$_REPO_NAME.
+
+      # This can also run other license compliance steps by specifying _EXTRA_LICENSE_COMPLIANCE_ARGS
+      # -i <img_regex>: injects notices into all images matching img_regex
+      # -s: if -i is also specified, injects source bundles into the matching images
+
+      # Pass Licensescan-specific args in _EXTRA_LICENSE_SCAN_ARGS, like --opt-scan-go-mod
+      run_license_compliance.sh \
+        -n '${_REPO_NAME}' \
+        -r "${ref}" \
+        -b "$results_bucket" \
+      ${_EXTRA_LICENSE_COMPLIANCE_ARGS} -- ${_EXTRA_LICENSE_SCAN_ARGS}
+
+- name: gcr.io/louhi-prod-1/louhi-helper-v2
+  entrypoint: bash
+  args:
+  - -c
+  - |
+    set -ex
+    echo 'regex=${_IMAGE_REGEX}' >> ${_HELPER_ARG_FILE}
+    echo 'notify_on_stage_complete' >> ${_HELPER_ARG_FILE}
+    echo '${_EXTRA_ARGS}' >> ${_HELPER_ARG_FILE}
+    cat ${_HELPER_ARG_FILE}
+- name: gcr.io/louhi-prod-1/louhi-helper-v2
+  args:
+  - push_louhi_docker
+  - --args-from
+  - ${_HELPER_ARG_FILE}
+
+availableSecrets:
+  secretManager:
+  - versionName: # e.g. projects/[PROJECT_NUMBER]/secrets/cloud-run-computer-github-key/versions/latest see: https://cloud.google.com/build/docs/access-github-from-build
+    env: 'SSH_KEY'
