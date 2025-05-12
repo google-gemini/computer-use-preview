@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import argparse
+import os
 
 from agent import BrowserAgent
 from computers import CloudRunComputer, BrowserbaseComputer, PlaywrightComputer
@@ -65,7 +66,7 @@ def main() -> int:
             env = CloudRunComputer(
                 api_server=args.api_server,
                 screen_size=SCREEN_SIZE,
-                api_key=args.api_server_key,
+                api_key=args.api_server_key or os.environ.get("API_SERVER_KEY"),
             )
         case "playwright":
             env = PlaywrightComputer(
