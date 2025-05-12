@@ -97,16 +97,22 @@ app = FastAPI(
 @app.post("/sessions")
 async def create_session(session: CreateSessionRequest) -> CreateSessionResponse:
     session_id = str(uuid.uuid4())
-    pubsub_manager.start_session(session_id=session_id)
-    await session_manager.start_worker(
-        session_id=session_id,
-        session_type=session.type,
-        signaling_strategy=signaling_strategy,
-        screen_resolution=session.screen_resolution,
-        job_timeout_seconds=session.timeout_seconds,
-        idle_timeout_seconds=session.idle_timeout_seconds,
-    )
-    return CreateSessionResponse(id=session_id)
+    try:
+        pubsub_manager.start_session(session_id=session_id)
+        await session_manager.start_worker(
+            session_id=session_id,
+            session_type=session.type,
+            signaling_strategy=signaling_strategy,
+            screen_resolution=session.screen_resolution,
+            job_timeout_seconds=session.timeout_seconds,
+            idle_timeout_seconds=session.idle_timeout_seconds,
+        )
+        return CreateSessionResponse(id=session_id)
+    except Exception as e:
+        print(f'Error in session creation: {e} {repr(e)}')
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e))
 
 
 @app.get("/sessions/{session_id}/screenshots")
