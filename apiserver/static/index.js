@@ -54,6 +54,10 @@ const createSession = async function(type) {
         body: JSON.stringify({type}),
       });
     const json = await response.json();
+    if(!response.ok) {
+      alert(`Failed to create a session: ${JSON.stringify(json)}`);
+      return;
+    }
     const sessionId = json.id;
     console.log(json);
     creatingEl.hidden = true;
