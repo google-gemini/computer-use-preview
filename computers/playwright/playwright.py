@@ -158,19 +158,16 @@ class PlaywrightComputer(Computer):
             f"""
         () => {{
             const element_id = "playwright-feedback-circle";
-            let div = document.getElementById(element_id);
-            if (!div) {{
-                div = document.createElement('div');
-                div.id = element_id;
-                div.style.pointerEvents = 'none';
-                div.style.border = '4px solid red';
-                div.style.borderRadius = '50%';
-                div.style.width = '20px';
-                div.style.height = '20px';
-                div.style.position = 'absolute';
-                div.style.zIndex = '9999';
-                document.body.appendChild(div);
-            }}
+            const div = document.createElement('div');
+            div.id = element_id;
+            div.style.pointerEvents = 'none';
+            div.style.border = '4px solid red';
+            div.style.borderRadius = '50%';
+            div.style.width = '20px';
+            div.style.height = '20px';
+            div.style.position = 'absolute';
+            div.style.zIndex = '9999';
+            document.body.appendChild(div);
 
             div.hidden = false;
             div.style.left = {x} - 10 + 'px';
