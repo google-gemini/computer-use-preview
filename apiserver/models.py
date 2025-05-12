@@ -12,11 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import json
-from typing import Annotated
-from pydantic import BaseModel, Field, AfterValidator
+from pydantic import BaseModel, Field
 import uuid
 import asyncio
-import re
 from enum import Enum
 from commands import CommandModel
 
@@ -34,25 +32,21 @@ class SessionType(str, Enum):
 
 class CreateSessionRequest(BaseModel):
     type: SessionType = Field(
-        title = "The type of computer to use.",
-        default = SessionType.browser
+        title="The type of computer to use.", default=SessionType.browser
     )
     screen_resolution: str = Field(
-        title = "The screen resolution specified in the format of WxH or WxHxD",
-        examples=["1000x1000","1280x1024x8"],
-        default="1920x1000x16"
+        title="The screen resolution specified in the format of WxH or WxHxD",
+        examples=["1000x1000", "1280x1024x8"],
+        default="1920x1000x16",
     )
     timeout_seconds: int = Field(
         title="The maximum session duration in seconds.",
         examples=[600],
-        default = 60 * 60 * 24  # 24 hours
+        default=60 * 60 * 24,  # 24 hours
     )
     idle_timeout_seconds: int = Field(
-        title="The idle timeout in seconds.",
-        examples=[60],
-        default = 60 * 60  # 1 hour
+        title="The idle timeout in seconds.", examples=[60], default=60 * 60  # 1 hour
     )
-
 
 
 class CreateSessionResponse(BaseModel):
