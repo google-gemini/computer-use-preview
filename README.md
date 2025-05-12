@@ -2,7 +2,7 @@
 
 ## Quick Start
 
-This section will guide you through setting up and running the Cloud Run Computer Use Tool. Follow these steps to get started.
+This section will guide you through setting up and running the Cloud Run Computer Use Solution. Follow these steps to get started.
 
 ### 1. Installation
 
@@ -73,7 +73,9 @@ Runs the agent using a Chrome browser instance controlled locally by Playwright.
 ```bash
 python main.py --query="Go to Google and type 'Hello World' into the search bar" --env="playwright"
 ```
+
 You can also specify an initial URL for the Playwright environment:
+
 ```bash
 python main.py --query="Go to Google and type 'Hello World' into the search bar" --env="playwright" --initial_url="https://www.google.com/search?q=latest+AI+news"
 ```
@@ -92,15 +94,16 @@ Connects to an [API Server](./apiserver/) deployed on Cloud Run for computer use
 
 1. Deploy the API server:
 
-    ```bash
-    gcloud run deploy computer-use-api --image=us-docker.pkg.dev/cloud-run/solutions/computer-use/api-server:latest
-    ```
+```bash
+gcloud run deploy computer-use-api --image=us-docker.pkg.dev/cloud-run/solutions/computer-use/api-server:latest
+```
+
 2. Run the sample against your Cloud Run API server:
     
-    ```bash
-    python main.py --query="Go to Google and type 'Hello World' into the search bar" --api_server="https://your-cloud-run-service-url.run.app/"
-    ```
+```bash
+python main.py --query="Go to Google and type 'Hello World' into the search bar" --api_server="https://your-cloud-run-service-url.run.app/"
+```
 
-    * Replace `https://your-cloud-run-service-url.run.app/` with the actual URL of your deployed Cloud Run service.
-    * If `--env` is not specified, it defaults to `cloud-run`, so providing `--api_server` is sufficient to use this mode.
-    * **Note:** When using the Cloud Run environment, the script will print a link to a live stream of screenshots, allowing you to follow the agent's actions in real-time.
+* Replace `https://your-cloud-run-service-url.run.app/` with the actual URL of your deployed Cloud Run service.
+* If `--env` is not specified, it defaults to `cloud-run`, so providing `--api_server` is sufficient to use this mode.
+* **Note:** When using the Cloud Run environment, the script will print a link to a live stream of screenshots, allowing you to follow the agent's actions in real-time.
