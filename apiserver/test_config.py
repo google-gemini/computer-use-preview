@@ -28,7 +28,7 @@ class TestConfig(unittest.TestCase):
         )
         self.assertEqual(config.cmd_timeout, 10)
         self.assertEqual(config.project_id, "")
-        self.assertEqual(config.job_name, "")
+        self.assertEqual(config.job_name, None)
 
     @patch.dict(
         os.environ,
