@@ -24,6 +24,7 @@ from google.genai.types import (
     FunctionResponse,
 )
 import base64
+import time
 
 from computers import EnvState, Computer
 
@@ -117,6 +118,37 @@ class BrowserAgent:
             case _:
                 raise ValueError(f"Unsupported function: {action}")
 
+    def get_model_response(
+        self, max_retries=5, base_delay_s=1
+    ) -> types.GenerateContentResponse:
+        for attempt in range(max_retries):
+            try:
+                response = self._client.models.generate_content(
+                    model=self._model_name,
+                    contents=self._contents,
+                    config=self._generate_content_config,
+                )
+                return response  # Return response on success
+            except Exception as e:
+                print(e)
+                if attempt < max_retries - 1:
+                    delay = base_delay_s * (2**attempt)
+                    message = (
+                        f"Generating content failed on attempt {attempt + 1}. "
+                        f"Retrying in {delay} seconds...\n"
+                    )
+                    termcolor.cprint(
+                        message,
+                        color="yellow",
+                    )
+                    time.sleep(delay)
+                else:
+                    termcolor.cprint(
+                        f"Generating content failed after {max_retries} attempts.\n",
+                        color="red",
+                    )
+                    raise
+
     def get_text(self, candidate: Candidate) -> str | None:
         """Extracts the text from the candidate."""
         text = []
@@ -134,11 +166,10 @@ class BrowserAgent:
 
     def run_one_iteration(self) -> Literal["COMPLETE", "CONTINUE"]:
         # Generate a response from the model.
-        response = self._client.models.generate_content(
-            model=self._model_name,
-            contents=self._contents,
-            config=self._generate_content_config,
-        )
+        try:
+            response = self.get_model_response()
+        except Exception as e:
+            return "COMPLETE"
 
         # Extract the text and function call from the response.
         candidate = response.candidates[0]
@@ -163,7 +194,7 @@ class BrowserAgent:
 
         termcolor.cprint(
             "Agent Function Call",
-            color="yellow",
+            color="cyan",
             attrs=["bold"],
         )
         print(function_call.model_dump_json())
