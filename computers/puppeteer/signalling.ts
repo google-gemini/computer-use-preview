@@ -12,8 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 import http from 'http';
-import {PubSub, Message, Subscription} from '@google-cloud/pubsub';
-import {Keepaliver} from './keepaliver';
+import { PubSub, Message, Subscription } from '@google-cloud/pubsub';
 
 export interface MessagingChannel {
   subscribe(handler: (message: CommandMessage) => Promise<void>): void;
@@ -22,14 +21,14 @@ export interface MessagingChannel {
 
 export interface CommandMessage {
   id: string;
-  command: string|Record<string, any>;
+  command: string | Record<string, any>;
   publishScreenshot(screenshot: string, sessionID: string, url: string): Promise<void>;
   publishError(error: string): Promise<void>;
 }
 
 class HttpMessage implements CommandMessage {
   id: string;
-  command: string|Record<string, any>;
+  command: string | Record<string, any>;
   private res: http.ServerResponse<http.IncomingMessage>;
 
   constructor(command: string, res: http.ServerResponse<http.IncomingMessage>) {
@@ -52,7 +51,6 @@ export class HttpChannel implements MessagingChannel {
   port: number;
   server?: http.Server;
   instanceId: string;  // Unique ID for this instance
-  private keepaliver?: Keepaliver;  // For keeping this instance alive.
 
   constructor(port: number) {
     this.port = port;
@@ -61,36 +59,22 @@ export class HttpChannel implements MessagingChannel {
   }
 
   subscribe(handler: (message: CommandMessage) => Promise<void>) {
-
     this.server = http.createServer(async (req, res) => {
-      console.log(`Received HTTP request: ${req.method} ${req.url}`);
-       if (req.url === '/instance_id') {
-	 await this.keepaliver?.handleInstanceIdRequest(req, res);
-       }
-       else if (req.url === '/keepalive') {
-         await this.keepaliver?.handleKeepaliveRequest(req, res);
-       }
-
-       else {
-	 try {
-           const body = await this.getBody(req);
-           console.log("HTTP Body:", body);
-           const json = JSON.parse(body);
-           // Adjust based on your CommandMessage structure
-           const command = "command" in json ? json.command : json;
-           await handler(new HttpMessage(command, res));
-         } catch (error) {
-           console.error("Error handling HTTP request:", error);
-           if (!res.headersSent) {
-             res.writeHead(500, { 'Content-Type': 'application/json' });
-             res.end(JSON.stringify({ error: 'Internal Server Error' }));
-           }
-         }
-
-       }
+      try {
+        const body = await this.getBody(req);
+        console.log("HTTP Body:", body);
+        const json = JSON.parse(body);
+        // Adjust based on your CommandMessage structure
+        const command = "command" in json ? json.command : json;
+        await handler(new HttpMessage(command, res));
+      } catch (error) {
+        console.error("Error handling HTTP request:", error);
+        if (!res.headersSent) {
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Internal Server Error' }));
+        }
+      }
     });
-    // Create the keepaliver
-    this.keepaliver = new Keepaliver(this.server, this.instanceId);
 
     // Start the HTTP server listening
     this.server.listen(this.port, () => {
@@ -120,7 +104,7 @@ export class HttpChannel implements MessagingChannel {
 
 class PubSubMessage implements CommandMessage {
   id: string;
-  command: string|Record<string, any>;
+  command: string | Record<string, any>;
   pubsub: PubSub;
   screenshotsTopic: string;
 
@@ -132,14 +116,14 @@ class PubSubMessage implements CommandMessage {
   }
   async publishScreenshot(screenshot: string, sessionID: string, url: string): Promise<void> {
     console.log("publishing screenshot for", this.id, "to topic", this.screenshotsTopic);
-    const json = {id: this.id, session_id: sessionID, screenshot, url};
-    await this.pubsub.topic(this.screenshotsTopic).publishMessage({json});
+    const json = { id: this.id, session_id: sessionID, screenshot, url };
+    await this.pubsub.topic(this.screenshotsTopic).publishMessage({ json });
   }
 
   async publishError(error: string): Promise<void> {
     console.log("publishing error for: ", this.id);
-    const json = {id: this.id, error};
-    await this.pubsub.topic(this.screenshotsTopic).publishMessage({json});
+    const json = { id: this.id, error };
+    await this.pubsub.topic(this.screenshotsTopic).publishMessage({ json });
   }
 }
 
@@ -151,10 +135,10 @@ export class PubSubChannel implements MessagingChannel {
   subscription: Subscription | null;
   interval: NodeJS.Timeout | null;
 
-  constructor(config: {projectId: string, commandsTopic: string, screenshotsTopic: string, subscriptionName: string}){
+  constructor(config: { projectId: string, commandsTopic: string, screenshotsTopic: string, subscriptionName: string }) {
     this.commandsTopic = config.commandsTopic;
     this.screenshotsTopic = config.screenshotsTopic;
-    this.pubsub = new PubSub({projectId: config.projectId});
+    this.pubsub = new PubSub({ projectId: config.projectId });
     this.subscriptionName = config.subscriptionName;
     this.subscription = null
     this.interval = null
@@ -171,24 +155,22 @@ export class PubSubChannel implements MessagingChannel {
       console.log(`Subscription ${subscription.name} created`);
 
       subscription.on('message', (msg: Message) => {
-          msg.ack();
-          const data = JSON.parse(msg.data.toString());
-          const c = new PubSubMessage(data.command, data.id, this.pubsub, this.screenshotsTopic);
-          handler(c);
+        msg.ack();
+        const data = JSON.parse(msg.data.toString());
+        const c = new PubSubMessage(data.command, data.id, this.pubsub, this.screenshotsTopic);
+        handler(c);
       });
     });
-    
-
     //hack to keep the process running
-    this.interval = setInterval(() => {}, 1 << 30);
+    this.interval = setInterval(() => { }, 1 << 30);
   }
 
   async disconnect() {
-    if(this.subscription){
-        await this.subscription.close();
+    if (this.subscription) {
+      await this.subscription.close();
     }
-    if(this.interval){
-        clearInterval(this.interval);
+    if (this.interval) {
+      clearInterval(this.interval);
     }
   }
 }
