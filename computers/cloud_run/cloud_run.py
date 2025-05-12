@@ -16,6 +16,7 @@ import termcolor
 import time
 from typing import Any
 import requests
+from urllib.parse import urljoin
 from ..computer import (
     Computer,
     EnvState,
@@ -39,8 +40,9 @@ class CloudRunComputer(Computer):
         print("Creating session...")
         start_time = time.time()
         screen_resolution = f"{self._screen_size[0]}x{self._screen_size[1]}"
+        sessions_url = urljoin(self._api_server, "sessions")
         response = requests.post(
-            self._api_server + "sessions",
+            sessions_url,
             json={
                 "type": "browser",
                 "screen_resolution": screen_resolution,
@@ -68,23 +70,26 @@ class CloudRunComputer(Computer):
             )
         self._session_id = response.json()["id"]
         print("Session ready.")
-        print(
-            f"Follow along at: {self._api_server}session.html?session_id={self._session_id}"
+        # Use urljoin for robust URL construction
+        session_viewer_url = urljoin(
+            self._api_server, f"session.html?session_id={self._session_id}"
         )
+        print(f"Follow along at: {session_viewer_url}")
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        requests.delete(
-            self._api_server + "sessions/" + self._session_id, headers=self._headers
-        )
+        # Use urljoin for robust URL construction
+        session_url = urljoin(self._api_server, "sessions/" + self._session_id)
+        requests.delete(session_url, headers=self._headers)
 
     def _run_command(
         self, command: str, args: dict[str, Any] | None = None
     ) -> EnvState:
         print(f"Running command: {command} with args: {args}")
 
+        url = urljoin(self._api_server, f"sessions/{self._session_id}/commands")
         response = requests.post(
-            self._api_server + "sessions/" + self._session_id + "/commands",
+            url,
             json={
                 "name": command,
                 "args": args,
