@@ -3,3 +3,6 @@ google-cloud-run
 google-cloud-pubsub
 fastapi
 uvicorn
+pytest
+pytest-asyncio
+pytest-mock
