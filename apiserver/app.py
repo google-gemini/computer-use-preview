@@ -131,9 +131,9 @@ async def create_command(
     session_id: Annotated[str, Path(description="The UUID of the session.")],
     command: CreateCommandRequest,
 ) -> CreateCommandResponse:
-    print("command: " + command.to_string())
-    message = Message(type="command", data=command.to_string())
-
+    command_data_dict = command.model_dump()
+    print(f"command data: {command_data_dict}")
+    message = Message(type="command", data=command_data_dict)
     await pubsub_manager.publish_message(session_id=session_id, message=message)
     try:
         screenshot = await message.get_screenshot(timeout=config.cmd_timeout)
