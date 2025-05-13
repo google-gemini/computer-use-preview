@@ -31,92 +31,104 @@ from commands import (
 class TestCommands(unittest.TestCase):
 
     def test_navigate(self):
-        command = CommandModel.model_validate(
-            {"name": "navigate", "args": {"url": "foo"}}
-        )
+        function_call = {"name": "navigate", "args": {"url": "foo"}}
+        command = CommandModel.model_validate(function_call)
         self.assertIsInstance(command.root, Navigate)
-        self.assertEqual(command.to_string(), "navigate(url: foo)")
+        self.assertEqual(command.model_dump(), function_call)
 
     def test_click_at(self):
-        command = CommandModel.model_validate(
-            {"name": "click_at", "args": {"y": 1, "x": 2}}
-        )
+        function_call = {"name": "click_at", "args": {"y": 1, "x": 2}}
+        command = CommandModel.model_validate(function_call)
         self.assertIsInstance(command.root, ClickAt)
-        self.assertEqual(command.to_string(), "click_at(y: 1, x: 2)")
+        self.assertEqual(command.model_dump(), function_call)
 
     def test_hover_at(self):
-        command = CommandModel.model_validate(
-            {"name": "hover_at", "args": {"y": 1, "x": 2}}
-        )
+        function_call = {"name": "hover_at", "args": {"y": 1, "x": 2}}
+        command = CommandModel.model_validate(function_call)
         self.assertIsInstance(command.root, HoverAt)
-        self.assertEqual(command.to_string(), "hover_at(y: 1, x: 2)")
+        self.assertEqual(command.model_dump(), function_call)
 
     def test_type_text_at(self):
+        function_call = {
+            "name": "type_text_at",
+            "args": {"y": 1, "x": 2, "text": "one"},
+        }
         command = CommandModel.model_validate(
-            {
-                "name": "type_text_at",
-                "args": {"y": 1, "x": 2, "text": "one"},
-            }
+            function_call,
         )
         self.assertIsInstance(command.root, TypeTextAt)
         self.assertEqual(
-            command.to_string(),
-            "type_text_at(y: 1, x: 2, text: one)",
+            command.model_dump(),
+            {
+                "name": "type_text_at",
+                "args": {"y": 1, "x": 2, "text": "one"},
+            },
         )
 
     def test_scroll_document(self):
+        function_call = {
+            "name": "scroll_document",
+            "args": {"direction": "up"},
+        }
         command = CommandModel.model_validate(
-            {"name": "scroll_document", "args": {"direction": "up"}}
+            function_call,
         )
         self.assertIsInstance(command.root, ScrollDocument)
-        self.assertEqual(command.to_string(), "scroll_document(direction: up)")
+        self.assertEqual(command.model_dump(), function_call)
 
     def test_go_back(self):
-        command = CommandModel.model_validate({"name": "go_back", "args": {}})
+        function_call = {"name": "go_back", "args": {}}
+        command = CommandModel.model_validate(function_call)
         self.assertIsInstance(command.root, GoBack)
-        self.assertEqual(command.to_string(), "go_back()")
+        self.assertEqual(command.model_dump(), function_call)
 
     def test_go_back_no_args(self):
-        command = CommandModel.model_validate({"name": "go_back"})
+        function_call = {"name": "go_back"}
+        command = CommandModel.model_validate(function_call)
         self.assertIsInstance(command.root, GoBack)
-        self.assertEqual(command.to_string(), "go_back()")
+        self.assertEqual(command.model_dump(), {"name": "go_back", "args": None})
 
     def test_go_forward(self):
-        command = CommandModel.model_validate({"name": "go_forward", "args": {}})
+        function_call = {"name": "go_forward", "args": {}}
+        command = CommandModel.model_validate(function_call)
         self.assertIsInstance(command.root, GoForward)
-        self.assertEqual(command.to_string(), "go_forward()")
+        self.assertEqual(command.model_dump(), function_call)
 
-    def test_go_forward(self):
-        command = CommandModel.model_validate({"name": "go_forward"})
+    def test_go_forward_no_args(self):
+        function_call = {"name": "go_forward"}
+        command = CommandModel.model_validate(function_call)
         self.assertIsInstance(command.root, GoForward)
-        self.assertEqual(command.to_string(), "go_forward()")
+        self.assertEqual(command.model_dump(), {"name": "go_forward", "args": None})
 
     def test_search(self):
-        command = CommandModel.model_validate({"name": "search", "args": {}})
+        function_call = {"name": "search", "args": {}}
+        command = CommandModel.model_validate(function_call)
         self.assertIsInstance(command.root, Search)
-        self.assertEqual(command.to_string(), "search()")
+        self.assertEqual(command.model_dump(), function_call)
 
     def test_wait5_seconds(self):
-        command = CommandModel.model_validate({"name": "wait_5_seconds", "args": {}})
+        function_call = {"name": "wait_5_seconds", "args": {}}
+        command = CommandModel.model_validate(function_call)
         self.assertIsInstance(command.root, Wait5Seconds)
-        self.assertEqual(command.to_string(), "wait_5_seconds()")
+        self.assertEqual(command.model_dump(), function_call)
 
     def test_key_combination(self):
-        command = CommandModel.model_validate(
-            {"name": "key_combination", "args": {"keys": "control+c"}}
-        )
+        function_call = {"name": "key_combination", "args": {"keys": "control+c"}}
+        command = CommandModel.model_validate(function_call)
         self.assertIsInstance(command.root, KeyCombination)
-        self.assertEqual(command.to_string(), "key_combination(keys: control+c)")
+        self.assertEqual(command.model_dump(), function_call)
 
     def test_screenshot(self):
-        command = CommandModel.model_validate({"name": "screenshot", "args": {}})
+        function_call = {"name": "screenshot", "args": {}}
+        command = CommandModel.model_validate(function_call)
         self.assertIsInstance(command.root, Screenshot)
-        self.assertEqual(command.to_string(), "screenshot()")
+        self.assertEqual(command.model_dump(), function_call)
 
     def test_screenshot_without_args(self):
-        command = CommandModel.model_validate({"name": "screenshot"})
+        function_call = {"name": "screenshot"}
+        command = CommandModel.model_validate(function_call)
         self.assertIsInstance(command.root, Screenshot)
-        self.assertEqual(command.to_string(), "screenshot()")
+        self.assertEqual(command.model_dump(), {"name": "screenshot", "args": None})
 
 
 if __name__ == "__main__":

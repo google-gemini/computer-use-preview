@@ -16,31 +16,21 @@ from typing import Annotated, Literal, Optional, Union
 
 
 class EmptyJson(BaseModel):
-    def to_string(self) -> str:
-        return ""
+    pass
 
 
 class NavigateArgs(BaseModel):
     url: str
-
-    def to_string(self) -> str:
-        return f"url: {self.url}"
 
 
 class ClickAtArgs(BaseModel):
     y: int
     x: int
 
-    def to_string(self) -> str:
-        return f"y: {self.y}, x: {self.x}"
-
 
 class HoverAtArgs(BaseModel):
     y: int
     x: int
-
-    def to_string(self) -> str:
-        return f"y: {self.y}, x: {self.x}"
 
 
 class TypeTextAtArgs(BaseModel):
@@ -48,22 +38,13 @@ class TypeTextAtArgs(BaseModel):
     x: int
     text: str
 
-    def to_string(self) -> str:
-        return f"y: {self.y}, x: {self.x}, text: {self.text}"
-
 
 class ScrollDocumentArgs(BaseModel):
     direction: Literal["up"] | Literal["down"]
 
-    def to_string(self) -> str:
-        return f"direction: {self.direction}"
-
 
 class KeyCombinationArgs(BaseModel):
     keys: str
-
-    def to_string(self) -> str:
-        return f"keys: {self.keys}"
 
 
 class OpenWebBrowser(BaseModel):
@@ -147,11 +128,3 @@ Command = Annotated[
 
 class CommandModel(RootModel):
     root: Command
-
-    def to_string(self) -> str:
-        if self.root.args is None:
-            return f"{self.root.name}()"
-
-        return "{name}({args})".format(
-            name=self.root.name, args=self.root.args.to_string()
-        )
