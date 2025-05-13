@@ -38,10 +38,9 @@ class BrowserAgent:
         browser_computer: Computer,
         query: str,
         model_name: Literal[
-            "models/gemini-2.5-pro-jarvis"
-        ] = "models/gemini-2.5-pro-jarvis",
+            "models/gemini-2.5-pro-computer-use"
+        ] = "models/gemini-2.5-pro-computer-use",
     ):
-        assert "jarvis" in model_name
         self._browser_computer = browser_computer
         self._query = query
         self._model_name = model_name
