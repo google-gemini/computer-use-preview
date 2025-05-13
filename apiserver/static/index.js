@@ -153,3 +153,10 @@ document.getElementById("create-headful-session").onclick = async function(e) {
   console.log("creating headful browser session");
   await createSession("headful");
 };
+
+document.addEventListener('DOMContentLoaded', function() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const apiKey = urlParams.get('api_key');
+
+  document.getElementById('api-key').value = apiKey;
+});
