@@ -14,6 +14,7 @@
 const sessionIdEl = document.getElementById("screenshot");
 const urlParams = new URLSearchParams(window.location.search);
 const sessionId = urlParams.get('session_id');
+const apiKey = urlParams.get('api_key');
 console.log(`Starting session viewer for ${sessionId}`);
 
 const updateScreenshot = async () => {
@@ -21,6 +22,7 @@ const updateScreenshot = async () => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'X-API-Key': apiKey,
       },
       body: JSON.stringify({name: 'screenshot'}),
     });

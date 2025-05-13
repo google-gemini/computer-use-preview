@@ -13,11 +13,14 @@
 // limitations under the License.
 const imgEl = document.getElementById("screenshot");
 
+const getAPIKey = () => document.getElementById('api-key').value
+
 const sendCommand = async (sessionId, command) => {
     const response = await fetch(`/sessions/${sessionId}/commands`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'X-API-Key': getAPIKey(),
         },
         body: JSON.stringify(command),
       });
@@ -35,7 +38,10 @@ const sendCommand = async (sessionId, command) => {
 
 const deleteSession = async(sessionId) => {
     const response = await fetch(`/sessions/${sessionId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: {
+          'X-API-Key': getAPIKey(),
+        }
       });
     const json = await response.json();
     console.log(json);
@@ -50,6 +56,7 @@ const createSession = async function(type) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'X-API-Key': getAPIKey(),
         },
         body: JSON.stringify({type}),
       });
@@ -66,7 +73,7 @@ const createSession = async function(type) {
     const sessionIdEl = document.getElementById("session-id");
     sessionIdEl.innerHTML = sessionId;
     const sessionViewerEl = document.getElementById("session-viewer");
-    sessionViewerEl.href = `session.html?session_id=${sessionId}`;
+    sessionViewerEl.href = `session.html?session_id=${sessionId}&api_key=${getAPIKey()}`;
     // const es = new EventSource(`/sessions/${sessionId}/messages`);
     // es.addEventListener('screenshot', async (event) => {
     //     document.getElementById("screenshot").src = "data:image/png;base64," + event.data;
