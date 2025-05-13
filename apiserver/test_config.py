@@ -24,11 +24,11 @@ class TestConfig(unittest.TestCase):
         self.assertFalse(config.use_pubsub)
         self.assertEqual(
             config.job_image,
-            "us-east1-docker.pkg.dev/mattrobertsonfb/computer-use/puppeteer:latest",
+            "us-docker.pkg.dev/cloudrun/solutions/computer-use/puppeteer:latest",
         )
         self.assertEqual(config.cmd_timeout, 10)
         self.assertEqual(config.project_id, "")
-        self.assertEqual(config.job_name, "")
+        self.assertEqual(config.job_name, None)
 
     @patch.dict(
         os.environ,

@@ -13,11 +13,10 @@
 # limitations under the License.
 # cloud_pubsub.py (New or replacing existing pubsub.py)
 import json
-import os
 from google.cloud import pubsub_v1
 from pubsub import BaseManager
 from google.api_core import exceptions as google_exceptions
-from models import Message  # Use the updated Message class
+from models import Message
 import uuid
 from fastapi import Request
 from typing import Callable, Any

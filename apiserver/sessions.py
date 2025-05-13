@@ -14,7 +14,6 @@
 import asyncio
 from google.cloud import run_v2
 from google.api_core.exceptions import NotFound
-import os
 import subprocess
 from typing import List, Tuple
 from models import SessionType, SignalingStrategy
@@ -25,7 +24,7 @@ class SessionManager:
 
     config: Config
 
-    def __init__(self, config):
+    def __init__(self, config: Config) -> None:
         """
         Initializes the SessionManager.
 
@@ -58,7 +57,7 @@ class SessionManager:
                 session_type=session_type,
                 signaling_strategy=signaling_strategy,
                 screen_resolution=screen_resolution,
-                idle_timeout_seconds=idle_timeout_seconds
+                idle_timeout_seconds=idle_timeout_seconds,
             )
 
     def _create_local_worker(
@@ -71,7 +70,13 @@ class SessionManager:
     ) -> None:
         print("creating local process worker")
         extra_flags = self._docker_env_flags(
-            self._env_vars(session_id, session_type, signaling_strategy, screen_resolution, idle_timeout_seconds)
+            self._env_vars(
+                session_id,
+                session_type,
+                signaling_strategy,
+                screen_resolution,
+                idle_timeout_seconds,
+            )
         )
 
         if signaling_strategy == SignalingStrategy.PUBSUB:
@@ -174,13 +179,15 @@ class SessionManager:
 
         # Set the environment variables.
         env_vars = self._env_vars(
-            session_id, session_type, signaling_strategy, screen_resolution, idle_timeout_seconds
+            session_id,
+            session_type,
+            signaling_strategy,
+            screen_resolution,
+            idle_timeout_seconds,
         )
         keys = set(map(lambda x: x[0], env_vars))
-        # Remove any existing env vars that are in the new set.
-        job.template.template.containers[0].env = [
-            x for x in job.template.template.containers[0].env if not x.name in keys
-        ]
+        # Clear the entire env list.
+        job.template.template.containers[0].env = []
         for env in env_vars:
             job.template.template.containers[0].env.append(
                 run_v2.EnvVar(
