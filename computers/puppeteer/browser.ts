@@ -255,12 +255,6 @@ export class OsShell implements ComputerShell {
     return "";
   }
 
-  async doubleClick(x: number, y: number): Promise<void> {
-    const {stdout, stderr} = await execAsync(`xdotool mousemove ${x} ${y} click --repeat 2 1`);
-    console.log(stdout);
-    console.log(stderr);
-  }
-
   async screenshot(): Promise<string> {
     const {stdout, stderr} = await execAsync("scrot --pointer - | base64 -w 0");
     return stdout;
