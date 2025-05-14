@@ -85,4 +85,9 @@ describe('#parseCommand() with JSON commands', function () {
     assert.equal(command.name, 'screenshot');
   });
 
+  it('parses JSON string', () => {
+    const command = parseCommand('{ "name": "key_combination", "args": { "keys": "Space" } }');
+    assert.equal(command.name, 'key_combination');
+    assert.deepEqual(command.args.keys, 'Space');
+  });
 });
