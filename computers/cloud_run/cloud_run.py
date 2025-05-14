@@ -74,6 +74,8 @@ class CloudRunComputer(Computer):
         session_viewer_url = urljoin(
             self._api_server, f"session.html?session_id={self._session_id}"
         )
+        if self._api_key:
+            session_viewer_url += f"&api_key={self._api_key}"
         print(f"Follow along at: {session_viewer_url}")
         return self
 
