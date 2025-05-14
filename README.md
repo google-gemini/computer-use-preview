@@ -127,7 +127,7 @@ The `main.py` script is the command-line interface (CLI) for running the browser
 ### Environment Variables
 
 | Variable | Description | Required |
-|-|-|-|-|
+|-|-|-|
 | GEMINI_API_KEY | Your API key for the Gemini model. | Yes |
 | API_SERVER_KEY | The API key for your deployed Cloud Run API server, if it's configured to require one. Can also be provided via the `--api_server_key` argument. | Conditionally (if API server requires it and not passed via CLI) |
 
