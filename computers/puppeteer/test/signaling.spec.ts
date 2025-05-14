@@ -13,9 +13,9 @@
 // limitations under the License.
 import { CommandMessage, HttpChannel, PubSubChannel } from '../signalling';
 import { strict as assert } from 'node:assert';
-import Sinon, { spy, fake, stub, createStubInstance } from 'sinon'
+import Sinon, { spy, stub, createStubInstance } from 'sinon'
 import http from 'node:http'
-import { Message, PubSub, Subscription, Topic } from '@google-cloud/pubsub';
+import { Subscription, Topic } from '@google-cloud/pubsub';
 
 describe("HttpChannel", function () {
     let channel: HttpChannel
@@ -70,7 +70,7 @@ describe("PubSubChannel", function () {
                 subscriptionName: "test"
             })
             const closeStub = stub()
-            channel.subscription = createStubInstance( Subscription, {
+            channel.subscription = createStubInstance(Subscription, {
                 close: closeStub()
             });
             channel.disconnect()
@@ -104,22 +104,51 @@ describe("PubSubChannel", function () {
             const sub = new Subscription(channel.pubsub, "sub")
             const msg = {
                 ack: spy(),
-                data: Buffer.from(JSON.stringify({command: { "click": "x"}}))
+                data: Buffer.from(JSON.stringify({ command: { "click": "x" } }))
             }
-            const eventHandler = stub(sub, "on").withArgs("message", Sinon.match.func)
-            const topic = createStubInstance(Topic, { })
-            stub(channel.pubsub, "topic").withArgs("cmd-topic").returns(topic)
-            topic.createSubscription.withArgs("sub").resolves([sub])
-            await channel.subscribe(handler);
+            // Stub the 'on' method on the subscription instance
+            const eventHandler = stub(sub, "on").withArgs("message", Sinon.match.func);
+            const topic = createStubInstance(Topic, {});
+            stub(channel.pubsub, "topic").withArgs("cmd-topic").returns(topic);
 
-            sub.emit("message", msg)
-            eventHandler.callArgOnWith(1, "message", msg)
+            // Use a Promise to control when the subscription creation callback is invoked.
+            let subscriptionCreatedPromiseResolve: (value?: unknown) => void;
+            const subscriptionCreatedPromise = new Promise(resolve => {
+                subscriptionCreatedPromiseResolve = resolve;
+            });
+
+            (topic.createSubscription as Sinon.SinonStub)
+                .withArgs("sub", Sinon.match.any) // Match name and any options/callback
+                .callsFake(async (name: string, optionsOrCallback?: any, callback?: any) => {
+                    let actualCallback: Function;
+                    // Determine which argument is the callback
+                    if (typeof optionsOrCallback === 'function') {
+                        actualCallback = optionsOrCallback;
+                    } else if (typeof callback === 'function') {
+                        actualCallback = callback;
+                    } else {
+                        throw new Error('Callback not found in createSubscription arguments');
+                    }
+
+                    // Simulate the asynchronous nature, then call the actual callback
+                    await Promise.resolve(); // Ensure callback is invoked in a microtask
+                    actualCallback(null, sub); // Call the PubSub library's callback
+                    subscriptionCreatedPromiseResolve(); // Signal that the subscription is "ready"
+                    return [sub]; // Return value for the promise if used
+                });
+
+            channel.subscribe(handler);
+
+            // Wait for the subscription to be "created" and its 'on' handler to be set up.
+            await subscriptionCreatedPromise;
+
+            // Now that the 'on' handler is theoretically set up,
+            // we can call the argument of the stubbed 'on' method.
+            eventHandler.callArgWith(1, msg);
+
 
             assert.ok(typeof message!.command === "object")
             assert.equal("x", message!.command["click"])
         })
     });
 });
-
-
-
