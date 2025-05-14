@@ -109,6 +109,28 @@ python main.py --query="Go to Google and type 'Hello World' into the search bar"
 - If `--env` is not specified, it defaults to `cloud-run`, so providing `--api_server` is sufficient to use this mode.
 - **Note:** When using the Cloud Run environment, the script will print a link to a live stream of screenshots, allowing you to follow the agent's actions in real-time.
 
+## Agent CLI
+
+The `main.py` script is the command-line interface (CLI) for running the browser agent.
+
+### Command-Line Arguments
+
+| Argument | Description | Required | Default | Supported Environment(s) |
+|-|-|-|-|-|
+| `--query` | The natural language query for the browser agent to execute. | Yes | N/A | All |
+| `--env` | The computer use environment to use. Must be one of the following: `cloud-run`, `playwright`, or `browserbase` | No | `cloud-run` | All |
+| `--api_server` | The URL of the API Server. | Yes if --env is `cloud-run` | N/A | `cloud-run` |
+| `--api_server_key` | The API key for the API Server. If not provided, the script will try to use the `API_SERVER_KEY` environment variable. | No | None (tries `API_SERVER_KEY` env var) | `cloud-run` |
+| `--initial_url` | The initial URL to load when the browser starts. | No | https://www.google.com | `playwright` |
+| `--highlight_mouse` | If specified, the agent will attempt to highlight the mouse cursor's position in the screenshots. This is useful for visual debugging. | No | False (not highlighted) | `playwright` |
+
+### Environment Variables
+
+| Variable | Description | Required |
+|-|-|-|-|
+| GEMINI_API_KEY | Your API key for the Gemini model. | Yes |
+| API_SERVER_KEY | The API key for your deployed Cloud Run API server, if it's configured to require one. Can also be provided via the `--api_server_key` argument. | Conditionally (if API server requires it and not passed via CLI) |
+
 ## Computers
 
 ### Interface
