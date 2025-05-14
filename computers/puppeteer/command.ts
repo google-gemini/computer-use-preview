@@ -120,8 +120,11 @@ export type Command = OpenWebBrowser
   | Screenshot
   | ShutDown;
 
-export const parseCommand = (input: Record<string, any>): Command => {
+export const parseCommand = (input: string | Record<string, any>): Command => {
   try {
+    if (typeof input === "string") {
+      input = JSON.parse(input);
+    }
     return input as Command;
   } catch (e) {
     throw new Error("Failed to parse command: " + e);
