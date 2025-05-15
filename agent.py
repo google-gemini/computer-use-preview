@@ -26,6 +26,7 @@ from google.genai.types import (
 import base64
 import time
 from rich.console import Console
+from rich.table import Table
 
 from computers import EnvState, Computer
 
@@ -168,9 +169,7 @@ class BrowserAgent:
 
     def run_one_iteration(self) -> Literal["COMPLETE", "CONTINUE"]:
         # Generate a response from the model.
-        with console.status(
-            "[white] Generating response from Gemini...", spinner_style=None
-        ):
+        with console.status("Generating response from Gemini...", spinner_style=None):
             try:
                 response = self.get_model_response()
             except Exception as e:
@@ -178,31 +177,30 @@ class BrowserAgent:
 
         # Extract the text and function call from the response.
         candidate = response.candidates[0]
-        text = self.get_text(candidate)
+        reasoning = self.get_text(candidate)
         function_call = self.get_function_call(candidate)
 
         # Append the model turn.
         self._contents.append(candidate.content)
 
-        if text:
-            termcolor.cprint(
-                "Agent Reasoning",
-                color="magenta",
-                attrs=["bold"],
-            )
-            print(text)
-            print()
-
         if not function_call:
-            print("Agent Loop Complete.")
+            print(f"Agent Loop Complete: {reasoning}")
             return "COMPLETE"
 
-        termcolor.cprint(
-            "Agent Function Call",
-            color="cyan",
-            attrs=["bold"],
+        # Print the function call and any reasoning.
+        function_call_str = f"Name: {function_call.name}"
+        if function_call.args:
+            function_call_str += f"\nArgs:"
+            for key, value in function_call.args.items():
+                function_call_str += f"\n  {key}: {value}"
+        table = Table(expand=True)
+        table.add_column("Gemini Reasoning", header_style="magenta", ratio=1)
+        table.add_column("Function Call", header_style="cyan", ratio=1)
+        table.add_row(
+            reasoning,
+            function_call_str,
         )
-        print(function_call.model_dump_json())
+        console.print(table)
         print()
 
         if safety := function_call.args.get("safety_decision"):
@@ -210,7 +208,7 @@ class BrowserAgent:
                 case "block":
                     termcolor.cprint(
                         "Terminating loop due to safety block!",
-                        color="magenta",
+                        color="yellow",
                         attrs=["bold"],
                     )
                     print(safety["explanation"])
@@ -218,7 +216,7 @@ class BrowserAgent:
                 case "require_confirmation":
                     termcolor.cprint(
                         "Safety service requires explicit confirmation!",
-                        color="magenta",
+                        color="yellow",
                         attrs=["bold"],
                     )
                     print(safety["explanation"])
@@ -228,7 +226,7 @@ class BrowserAgent:
                     if decision.lower() in ("n", "no"):
                         print("Terminating agent loop.")
                         return "COMPLETE"
-                    print("Proceeding with agent loop.")
+                    print("Proceeding with agent loop.\n")
 
         with console.status("Sending command to Computer...", spinner_style=None):
             environment_state = self.handle_action(function_call)

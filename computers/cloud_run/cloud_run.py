@@ -21,6 +21,9 @@ from ..computer import (
     Computer,
     EnvState,
 )
+from rich.console import Console
+
+console = Console()
 
 
 class CloudRunComputer(Computer):
@@ -37,22 +40,22 @@ class CloudRunComputer(Computer):
             self._headers = {"X-API-Key": self._api_key}
 
     def __enter__(self):
-        print("Creating session...")
-        start_time = time.time()
         screen_resolution = f"{self._screen_size[0]}x{self._screen_size[1]}"
         sessions_url = urljoin(self._api_server, "sessions")
-        response = requests.post(
-            sessions_url,
-            json={
-                "type": "browser",
-                "screen_resolution": screen_resolution,
-                # Erase the VM after 600 seconds of total runtime.
-                "timeout_seconds": 600,
-                # Or after 60 seconds of inactivity.
-                "idle_timeout_seconds": 60,
-            },
-            headers=self._headers,
-        )
+        start_time = time.time()
+        with console.status("Creating session...", spinner_style=None):
+            response = requests.post(
+                sessions_url,
+                json={
+                    "type": "browser",
+                    "screen_resolution": screen_resolution,
+                    # Erase the VM after 600 seconds of total runtime.
+                    "timeout_seconds": 600,
+                    # Or after 60 seconds of inactivity.
+                    "idle_timeout_seconds": 60,
+                },
+                headers=self._headers,
+            )
         end_time = time.time()
         termcolor.cprint(
             f"Session created in {end_time - start_time:.2f} seconds.",
@@ -69,7 +72,6 @@ class CloudRunComputer(Computer):
                 f"Error creating session: {response.status_code} {response.text}"
             )
         self._session_id = response.json()["id"]
-        print("Session ready.")
         # Use urljoin for robust URL construction
         session_viewer_url = urljoin(
             self._api_server, f"session.html?session_id={self._session_id}"
@@ -87,8 +89,6 @@ class CloudRunComputer(Computer):
     def _run_command(
         self, command: str, args: dict[str, Any] | None = None
     ) -> EnvState:
-        print(f"Running command: {command} with args: {args}")
-
         url = urljoin(self._api_server, f"sessions/{self._session_id}/commands")
         response = requests.post(
             url,
