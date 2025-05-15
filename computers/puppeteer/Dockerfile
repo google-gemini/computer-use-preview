@@ -19,7 +19,7 @@ RUN export DEBIAN_FRONTEND=noninteractive && apt-get update && apt-get install -
     wget \
 # Install Node.js
 && mkdir -p /usr/local/nodejs && \
-    wget -qO- https://nodejs.org/download/release/latest-v22.x/node-v22.15.0-linux-x64.tar.gz | tar xvz -C /usr/local/nodejs --strip-components=1 && \
+    wget -qO- https://nodejs.org/download/release/v22.15.1/node-v22.15.1-linux-x64.tar.gz | tar xvz -C /usr/local/nodejs --strip-components=1 && \
     cp --symbolic-link /usr/local/nodejs/bin/* /usr/bin && \
     ln -s /usr/local/nodejs/include/node /usr/include/node && \
     ln -s /usr/local/nodejs/lib/node_modules /usr/lib/node_modules \
