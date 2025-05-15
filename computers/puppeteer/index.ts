@@ -36,6 +36,7 @@ const IDLE_TIMEOUT = timestring(process.env.IDLE_TIMEOUT || "1h", 'ms');
 const HEADFULCHROME = (process.env.HEADFULCHROME ?? '').toLowerCase() === 'true';
 const FULLOS = (process.env.FULLOS ?? '').toLowerCase() === 'true';
 const SCREEN_RESOLUTION = parseResolution();
+const LANG = process.env.LANG ?? 'en-US,en';
 
 let isReady = false;
 
@@ -75,7 +76,7 @@ const getSignallingChannel = (): MessagingChannel => {
 
 (async () => {
   console.log("creating puppeteer worker");
-  
+
   const channel = getSignallingChannel();
 
   let idleTimer: NodeJS.Timeout;
@@ -145,9 +146,9 @@ const getSignallingChannel = (): MessagingChannel => {
       }
     }
   });
-  browserShell = FULLOS ? await OsShell.init() : await BrowserShell.init(!HEADFULCHROME, SCREEN_RESOLUTION); 
+  browserShell = FULLOS ? await OsShell.init() : await BrowserShell.init(!HEADFULCHROME, SCREEN_RESOLUTION, LANG);
 
-  
+
 
   isReady = true;
   console.log('Worker is ready.');
