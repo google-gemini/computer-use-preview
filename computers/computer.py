@@ -29,22 +29,22 @@ class Computer(abc.ABC):
     """Defines an interface for environments."""
 
     @abc.abstractmethod
-    def screen_size() -> tuple[int, int]:
+    def screen_size(self) -> tuple[int, int]:
         """Returns the screen size of the environment."""
 
     @abc.abstractmethod
-    def open_web_browser() -> EnvState:
+    def open_web_browser(self) -> EnvState:
         """Opens the web browser."""
 
     @abc.abstractmethod
-    def click_at(y: int, x: int) -> EnvState:
+    def click_at(self, y: int, x: int) -> EnvState:
         """Clicks at a specific y (0-999), x (0-999) coordinate on the webpage.
 
         The 'x' and 'y' values are scaled to the height and width of the screen.
         """
 
     @abc.abstractmethod
-    def hover_at(y: int, x: int) -> EnvState:
+    def hover_at(self, y: int, x: int) -> EnvState:
         """Hovers at a specific y (0-999), x (0-999) coordinate on the webpage.
 
         May be used to explore sub-menus that appear on hover.
@@ -52,7 +52,7 @@ class Computer(abc.ABC):
         """
 
     @abc.abstractmethod
-    def type_text_at(y: int, x: int, text: str) -> EnvState:
+    def type_text_at(self, y: int, x: int, text: str) -> EnvState:
         """Types text at a specific y (0-999), x (0-999) coordinate.
 
         The system automatically presses ENTER after typing.
@@ -60,23 +60,23 @@ class Computer(abc.ABC):
         """
 
     @abc.abstractmethod
-    def scroll_document(direction: str) -> EnvState:
+    def scroll_document(self, direction: str) -> EnvState:
         """Scrolls the entire webpage "up" or "down" based on direction."""
 
     @abc.abstractmethod
-    def wait_5_seconds() -> EnvState:
+    def wait_5_seconds(self) -> EnvState:
         """Waits for 5 seconds to allow unfinished webpage processes to complete."""
 
     @abc.abstractmethod
-    def go_back() -> EnvState:
+    def go_back(self) -> EnvState:
         """Navigates back to the previous webpage in the browser history."""
 
     @abc.abstractmethod
-    def go_forward() -> EnvState:
+    def go_forward(self) -> EnvState:
         """Navigates forward to the next webpage in the browser history."""
 
     @abc.abstractmethod
-    def search() -> EnvState:
+    def search(self) -> EnvState:
         """Directly jumps to a search engine home page.
 
         Used when you need to start with a search. For example, this is used when
@@ -85,13 +85,13 @@ class Computer(abc.ABC):
         """
 
     @abc.abstractmethod
-    def navigate(url: str) -> EnvState:
+    def navigate(self, url: str) -> EnvState:
         """Navigates directly to a specified URL."""
 
     @abc.abstractmethod
-    def key_combination(keys: list[str]) -> EnvState:
+    def key_combination(self, keys: list[str]) -> EnvState:
         """Presses keyboard keys and combinations, such as "control+c" or "enter"."""
 
     @abc.abstractmethod
-    def current_state() -> EnvState:
+    def current_state(self) -> EnvState:
         """Returns the current state of the current webpage."""

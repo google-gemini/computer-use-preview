@@ -183,7 +183,7 @@ class BrowserAgent:
         # Append the model turn.
         self._contents.append(candidate.content)
 
-        if not function_call:
+        if not function_call or not function_call.name:
             print(f"Agent Loop Complete: {reasoning}")
             return "COMPLETE"
 

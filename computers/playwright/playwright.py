@@ -145,6 +145,9 @@ class PlaywrightComputer(Computer):
 
     def current_state(self) -> EnvState:
         self._page.wait_for_load_state()
+        # Even if Playwright reports the page as loaded, it may not be so.
+        # Add a manual sleep to make sure the page has finished rendering.
+        time.sleep(0.5)
         screenshot_bytes = self._page.screenshot(type="png", full_page=False)
         return EnvState(screenshot=screenshot_bytes, url=self._page.url)
 
