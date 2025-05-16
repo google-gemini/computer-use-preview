@@ -30,6 +30,7 @@ from models import CreateCommandRequest, CreateCommandResponse
 from models import DeleteSessionResponse
 from models import Message
 from models import SignalingStrategy
+from commands import Command
 import uuid
 import os
 import uvicorn
@@ -85,6 +86,16 @@ async def check_api_key(api_key: str | None = Security(api_key_header)):
     )
 
 
+def get_command_timeout(
+    command: Command, base_timeout: int, key_delay: float = 0.1
+) -> int:
+    """Calculate the timeout for a command based on its type and arguments."""
+    if command.name == "type_text_at":
+        text_length = len(command.args.text)
+        return base_timeout + (text_length * key_delay)
+    return base_timeout
+
+
 app = FastAPI(
     title="Cloud Run Computer Use Tool",
     description=description,
@@ -109,10 +120,10 @@ async def create_session(session: CreateSessionRequest) -> CreateSessionResponse
         )
         return CreateSessionResponse(id=session_id)
     except Exception as e:
-        print(f'Error in session creation: {e} {repr(e)}')
+        print(f"Error in session creation: {e} {repr(e)}")
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e))
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
 
 
 @app.get("/sessions/{session_id}/screenshots")
@@ -129,14 +140,19 @@ def get_screenshot(
 @app.post("/sessions/{session_id}/commands")
 async def create_command(
     session_id: Annotated[str, Path(description="The UUID of the session.")],
-    command: CreateCommandRequest,
+    create_command_request: CreateCommandRequest,
 ) -> CreateCommandResponse:
-    command_data_dict = command.model_dump()
+    command_data_dict = create_command_request.model_dump()
     print(f"command data: {command_data_dict}")
     message = Message(type="command", data=command_data_dict)
-    await pubsub_manager.publish_message(session_id=session_id, message=message)
+    timeout = get_command_timeout(
+        command=create_command_request.root, base_timeout=config.cmd_timeout
+    )
+    await pubsub_manager.publish_message(
+        session_id=session_id, message=message, timeout=timeout
+    )
     try:
-        screenshot = await message.get_screenshot(timeout=config.cmd_timeout)
+        screenshot = await message.get_screenshot(timeout=timeout)
         url = await message.get_url()
     except asyncio.TimeoutError as err:
         print(err)
@@ -158,7 +174,9 @@ async def delete_session(
     session_id: Annotated[str, Path(description="The UUID of the session.")],
 ) -> DeleteSessionResponse:
     await pubsub_manager.publish_message(
-        session_id=session_id, message=Message(type="command", data="shut_down")
+        session_id=session_id,
+        message=Message(type="command", data="shut_down"),
+        timeout=config.cmd_timeout,
     )
     pubsub_manager.end_session(session_id=session_id)
     return DeleteSessionResponse(id=session_id)
@@ -169,4 +187,4 @@ app.mount("/", StaticFiles(directory="static", html=True), name="static")
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", "8000"))
-    uvicorn.run("app:app", host='0.0.0.0', port=port, log_level="info")
+    uvicorn.run("app:app", host="0.0.0.0", port=port, log_level="info")

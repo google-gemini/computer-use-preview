@@ -14,6 +14,7 @@
 import asyncio
 import json
 import pytest
+import re
 from unittest.mock import MagicMock, AsyncMock, call, ANY
 from google.api_core import exceptions as google_exceptions
 from models import Message
@@ -170,7 +171,7 @@ async def test_publish_message_success(manager, mock_publisher, mock_subscriber)
     msg = Message(type="CMD", data={"do": "this"})
     assert msg.id not in manager.pending_messages
 
-    await manager.publish_message(session_id, msg)
+    await manager.publish_message(session_id, msg, timeout=10)
 
     assert msg.id in manager.pending_messages
 
@@ -197,7 +198,7 @@ async def test_publish_starts_subscriber_if_needed(
 
     msg = Message(type="CMD", data={"do": "this"})
 
-    await manager.publish_message(session_id, msg)
+    await manager.publish_message(session_id, msg, timeout=10)
 
     assert session_id in manager.subscribers
 
@@ -218,7 +219,7 @@ async def test_publish_message_failure(manager, mock_publisher, mock_subscriber)
     mock_publisher.publish.side_effect = pub_error
 
     with pytest.raises(Exception, match="Pubsub unavailable"):
-        await manager.publish_message(session_id, msg)
+        await manager.publish_message(session_id, msg, timeout=10)
 
     assert msg.id not in manager.pending_messages
 
@@ -342,3 +343,35 @@ async def test_stream_screenshots(manager, mock_subscriber):
                 await anext_task
             except asyncio.CancelledError:
                 pass
+
+
+@pytest.mark.asyncio
+async def test_publish_message_future_result_timeout(
+    manager, mock_publisher, mock_subscriber
+):
+    """
+    Tests that a timeout during publish_future.result() raises TimeoutError
+    and cleans up the pending message.
+    """
+    session_id = "session-timeout-on-result"
+    manager.start_session(session_id)
+
+    msg = Message(type="CMD", data={"action": "wait_too_long"})
+
+    manager.publisher.publish.return_value.result.side_effect = (
+        google_exceptions.DeadlineExceeded("Mocked future.result() timeout")
+    )
+
+    with pytest.raises(
+        google_exceptions.DeadlineExceeded,
+        match=re.escape("504 Mocked future.result() timeout"),
+    ):
+        await manager.publish_message(session_id, msg, timeout=5)
+
+    assert msg.id not in manager.pending_messages
+    manager.publisher.publish.assert_called_once_with(
+        manager.command_topic_path(session_id),
+        data=msg.json().encode("utf-8"),
+        message_id=msg.id,
+    )
+    manager.publisher.publish.return_value.result.assert_called_once_with(timeout=5)
