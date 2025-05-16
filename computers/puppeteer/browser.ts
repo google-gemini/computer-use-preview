@@ -59,14 +59,15 @@ export class BrowserShell implements ComputerShell {
     }
   }
 
-  static async init(headless: boolean, resolution: ScreenResolution): Promise<BrowserShell> {
+  static async init(headless: boolean, resolution: ScreenResolution, lang: string): Promise<BrowserShell> {
     console.log(`launching puppeteer with headless=${headless}`);
     const b = await puppeteer.launch({
       executablePath: '/usr/bin/google-chrome-stable',
       args: [
         '--no-sandbox',
         '--disable-gpu',
-        '--disable-blink-features=AutomationControlled'
+        '--disable-blink-features=AutomationControlled',
+        `--lang=${lang}`
       ],
       ignoreDefaultArgs: ['--enable-automation'],
       headless,
@@ -190,7 +191,7 @@ export class BrowserShell implements ComputerShell {
 }
 
 export class OsShell implements ComputerShell {
-  
+
   constructor() {}
 
   static async init(): Promise<OsShell> {
