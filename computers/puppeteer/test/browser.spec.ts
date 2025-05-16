@@ -130,7 +130,7 @@ describe("BrowserShell", () => {
         const resolution: ScreenResolution = { width: 1920, height: 1080 };
 
         it("should launch puppeteer with correct options for headless mode", async () => {
-            await BrowserShell.init(true, resolution);
+            await BrowserShell.init(true, resolution, "bn-BD,bn");
             expect(puppeteerLaunchStub.calledOnce).to.be.true;
             expect(puppeteerLaunchStub.firstCall.args[0]).to.deep.include({
                 executablePath: "/usr/bin/google-chrome-stable",
@@ -140,6 +140,7 @@ describe("BrowserShell", () => {
                 "--no-sandbox",
                 "--disable-gpu",
                 "--disable-blink-features=AutomationControlled",
+                "--lang=bn-BD,bn"
             ]);
             expect(
                 puppeteerLaunchStub.firstCall.args[0].ignoreDefaultArgs
