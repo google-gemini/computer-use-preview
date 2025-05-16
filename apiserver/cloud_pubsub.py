@@ -160,7 +160,9 @@ class CloudPubSubManager(BaseManager):
         finally:
             message.ack()
 
-    async def publish_message(self, session_id: str, message: Message) -> None:
+    async def publish_message(
+        self, session_id: str, message: Message, timeout: int
+    ) -> None:
         # This is to reconnect in case the subscriber is not listening on this instance
         if session_id not in self.subscribers:
             print("no active subscribers on this host, starting a new one")
@@ -177,7 +179,7 @@ class CloudPubSubManager(BaseManager):
             publish_future = self.publisher.publish(
                 topic_path, data=data_bytes, **attributes
             )
-            publish_future.result(timeout=10)
+            publish_future.result(timeout=timeout)
             print(f"Published command message {message.id} to {topic_path}")
         except Exception as e:
             print(f"Failed to publish message {message.id} to {topic_path}: {e}")

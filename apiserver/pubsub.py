@@ -53,7 +53,9 @@ class DevManager(BaseManager):
         self.pending_messages = dict()
         self.streaming_listeners = dict()
 
-    async def publish_message(self, session_id: str, message: Message) -> None:
+    async def publish_message(
+        self, session_id: str, message: Message, timeout: int = None
+    ) -> None:
         result = subprocess.run(
             ["docker", "exec", session_id, "run-command", f"{message.json()}"],
             stdout=subprocess.PIPE,
