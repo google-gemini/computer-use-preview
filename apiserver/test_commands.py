@@ -25,6 +25,7 @@ from commands import (
     Wait5Seconds,
     KeyCombination,
     Screenshot,
+    Shutdown,
 )
 
 
@@ -129,6 +130,18 @@ class TestCommands(unittest.TestCase):
         command = CommandModel.model_validate(function_call)
         self.assertIsInstance(command.root, Screenshot)
         self.assertEqual(command.model_dump(), {"name": "screenshot", "args": None})
+
+    def test_shutdown(self):
+        function_call = {"name": "shutdown", "args": {}}
+        command = CommandModel.model_validate(function_call)
+        self.assertIsInstance(command.root, Shutdown)
+        self.assertEqual(command.model_dump(), function_call)
+
+    def test_shutdown_without_args(self):
+        function_call = {"name": "shutdown"}
+        command = CommandModel.model_validate(function_call)
+        self.assertIsInstance(command.root, Shutdown)
+        self.assertEqual(command.model_dump(), {"name": "shutdown", "args": None})
 
 
 if __name__ == "__main__":

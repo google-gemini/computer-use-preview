@@ -76,7 +76,7 @@ class DevManager(BaseManager):
     async def start(self) -> None:
         pass
 
-    async def shut_down(self) -> None:
+    async def shutdown(self) -> None:
         pass
 
     def start_session(self, session_id: str) -> None:

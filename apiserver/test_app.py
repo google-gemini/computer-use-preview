@@ -64,7 +64,7 @@ def mock_pubsub_manager_instance():
     """Provides a mock PubSubManager instance."""
     mpsm = AsyncMock()
     mpsm.start = AsyncMock()
-    mpsm.shut_down = AsyncMock()
+    mpsm.shutdown = AsyncMock()
     mpsm.start_session = MagicMock()
     mpsm.end_session = MagicMock()
     mpsm.publish_message = AsyncMock()
@@ -89,7 +89,7 @@ def client(
     ), patch.object(app_module, "pubsub_manager", mock_pubsub_manager_instance):
 
         mock_pubsub_manager_instance.start.reset_mock()
-        mock_pubsub_manager_instance.shut_down.reset_mock()
+        mock_pubsub_manager_instance.shutdown.reset_mock()
 
         from fastapi.testclient import (
             TestClient as FastAPIClient,
@@ -101,7 +101,7 @@ def client(
             yield c
 
         mock_pubsub_manager_instance.start.assert_awaited_once()
-        mock_pubsub_manager_instance.shut_down.assert_awaited_once()
+        mock_pubsub_manager_instance.shutdown.assert_awaited_once()
 
 
 def test_get_command_timeout_standard_command():
@@ -493,7 +493,9 @@ def test_delete_session_success(
         assert response.status_code == status.HTTP_200_OK
         assert response.json()["id"] == session_id
 
-        MockedMessageClass.assert_called_once_with(type="command", data="shut_down")
+        MockedMessageClass.assert_called_once_with(
+            type="command", data={"name": "shutdown", "args": None}
+        )
 
         mock_pubsub_manager_instance.publish_message.assert_awaited_once_with(
             session_id=session_id,
@@ -522,6 +524,8 @@ def test_delete_session_publish_fails(
 
         client.delete(f"/sessions/{session_id}")
 
-    MockedMessageClass.assert_called_once_with(type="command", data="shut_down")
+    MockedMessageClass.assert_called_once_with(
+        type="command", data={"name": "shutdown", "args": None}
+    )
     mock_pubsub_manager_instance.publish_message.assert_awaited_once()
     mock_pubsub_manager_instance.end_session.assert_not_called()

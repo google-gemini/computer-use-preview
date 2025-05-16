@@ -11,7 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-import { parseCommand } from '../command';
+import { parseCommand, Shutdown } from '../command';
 import { strict as assert } from 'node:assert';
 
 describe('#parseCommand() with JSON commands', function () {
@@ -83,6 +83,11 @@ describe('#parseCommand() with JSON commands', function () {
   it('parses screenshot()', () => {
     const command = parseCommand({ "name": "screenshot" });
     assert.equal(command.name, 'screenshot');
+  });
+
+  it('parses shutdown()', () => {
+    const command = parseCommand({ "name": "shutdown" });
+    assert.equal(command.name, 'shutdown');
   });
 
   it('parses JSON string', () => {

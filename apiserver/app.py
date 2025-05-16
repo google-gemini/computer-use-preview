@@ -53,7 +53,7 @@ else:
 async def lifespan(app: FastAPI):
     await pubsub_manager.start()
     yield
-    await pubsub_manager.shut_down()
+    await pubsub_manager.shutdown()
 
 
 description = """
@@ -175,7 +175,7 @@ async def delete_session(
 ) -> DeleteSessionResponse:
     await pubsub_manager.publish_message(
         session_id=session_id,
-        message=Message(type="command", data="shut_down"),
+        message=Message(type="command", data={"name": "shutdown", "args": None}),
         timeout=config.cmd_timeout,
     )
     pubsub_manager.end_session(session_id=session_id)

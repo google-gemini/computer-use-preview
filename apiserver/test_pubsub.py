@@ -203,7 +203,7 @@ def test_dev_manager_end_session(mock_subprocess_run, dev_manager):
 @pytest.mark.asyncio
 async def test_dev_manager_start_and_shutdown_do_nothing(dev_manager):
     await dev_manager.start()
-    await dev_manager.shut_down()
+    await dev_manager.shutdown()
     dev_manager.start_session("some-id")
 
 
