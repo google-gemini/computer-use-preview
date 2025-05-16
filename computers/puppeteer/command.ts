@@ -121,88 +121,12 @@ export type Command = OpenWebBrowser
   | ShutDown;
 
 export const parseCommand = (input: string | Record<string, any>): Command => {
-  if (typeof input !== "string") {
+  try {
+    if (typeof input === "string") {
+      input = JSON.parse(input);
+    }
     return input as Command;
+  } catch (e) {
+    throw new Error("Failed to parse command: " + e);
   }
-  const params = extractParams(input);
-  const name = extractName(input);
-
-  if (name === 'open_web_browser') {
-    return { name: 'open_web_browser' };
-  }
-  if (name === 'click_at') {
-    let { x, y } = extractCoords(params);
-    return { name: 'click_at', args: { x, y } };
-  }
-  if (name === 'hover_at') {
-    const { x, y } = extractCoords(params);
-    return { name: 'hover_at', args: { x, y } };
-  }
-  if (name === 'type_text_at') {
-    const { x, y } = extractCoords(params);
-    return { name: 'type_text_at', args: { x, y, text: assertParam(params, "text") } };
-  }
-  if (name === 'scroll_document') {
-    return { name: 'scroll_document', args: { direction: assertParam(params, "direction") } };
-  }
-  if (name === 'wait_5_seconds') {
-    return { name: 'wait_5_seconds' };
-  }
-  if (name === 'go_back') {
-    return { name: 'go_back' };
-  }
-  if (name === 'go_forward') {
-    return { name: 'go_forward' };
-  }
-  if (name === 'search') {
-    return { name: 'search' };
-  }
-  if (name === 'navigate') {
-    return { name: 'navigate', args: { url: assertParam(params, 'url') as string } };
-  }
-  if (name === 'key_combination') {
-    return { name: 'key_combination', args: { keys: assertParam(params, "keys") } };
-  }
-  if (name === 'screenshot') {
-    return { name: 'screenshot' };
-  }
-  if (name === 'shut_down') {
-    return { name: 'shut_down' };
-  }
-  throw "Unexpected command: " + input;
-};
-
-const extractName = (text: string): string => {
-  const match = text.trim().match(/^[^(]+/);
-  if (match !== null) {
-    return match[0];
-  }
-  return "";
-};
-
-const extractParams = (text: string): Map<string, string> => {
-  const params = new Map<string, string>();
-  const match = text.trim().match(/\(([^)]+)/);
-  if (match === null || match.length != 2) {
-    return params;
-  }
-  match[1].split(", ").forEach(param => {
-    const [key, ...value] = param.split(":");
-    params.set(key.trim(), value.join(":").trim());
-  });
-  return params;
-}
-
-const extractCoords = (params: Map<string, string>): { x: number, y: number } => {
-  const x = parseInt(assertParam(params, 'x'), 10);
-  const y = parseInt(assertParam(params, 'y'), 10);
-  return { x, y };
-};
-
-const assertParam = (params: Map<string, string>, key: string): string => {
-  const val = params.get(key);
-  if (!val) {
-    throw "Missing param: " + key;
-  }
-  return val;
 };
