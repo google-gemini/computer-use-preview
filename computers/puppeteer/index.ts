@@ -120,7 +120,7 @@ const getSignallingChannel = (): MessagingChannel => {
 
     const command = parseCommand(message.command);
     console.log(command);
-    if (command.name === 'shut_down') {
+    if (command.name === 'shutdown') {
       console.log("received shutdown command");
       isReady = false;
       if (idleTimer) {

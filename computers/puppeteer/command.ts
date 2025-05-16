@@ -101,8 +101,8 @@ export interface Screenshot {
 }
 
 // Worker specific command
-export interface ShutDown {
-  name: "shut_down"
+export interface Shutdown {
+  name: "shutdown"
   args?: {}
 }
 
@@ -118,7 +118,7 @@ export type Command = OpenWebBrowser
   | Navigate
   | KeyCombination
   | Screenshot
-  | ShutDown;
+  | Shutdown;
 
 export const parseCommand = (input: string | Record<string, any>): Command => {
   try {

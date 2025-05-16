@@ -129,7 +129,7 @@ class CloudPubSubManager(BaseManager):
         self._delete_topic(topic_path=self.command_topic_path(session_id=session_id))
         self._delete_topic(topic_path=self.screenshot_topic_path(session_id=session_id))
 
-    def shut_down(self) -> None:
+    def shutdown(self) -> None:
         for subscriber in self.subscribers.values():
             subscriber.close()
         self.subscribers.clear()

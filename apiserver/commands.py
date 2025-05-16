@@ -107,6 +107,11 @@ class Screenshot(BaseModel):
     args: Optional[EmptyJson] = Field(None)
 
 
+class Shutdown(BaseModel):
+    name: Literal["shutdown"]
+    args: Optional[EmptyJson] = Field(None)
+
+
 Command = Annotated[
     Union[
         OpenWebBrowser,
@@ -121,6 +126,7 @@ Command = Annotated[
         Wait5Seconds,
         KeyCombination,
         Screenshot,
+        Shutdown,
     ],
     Field(discriminator="name"),
 ]

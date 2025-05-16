@@ -65,7 +65,7 @@ def manager(mock_publisher):
     mgr = CloudPubSubManager(project_id="test-project")
     mgr.publisher = mock_publisher
     yield mgr
-    mgr.shut_down()
+    mgr.shutdown()
 
 
 @pytest.fixture
