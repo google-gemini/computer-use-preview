@@ -151,7 +151,7 @@ describe("BrowserShell", () => {
         });
 
         it("should launch puppeteer with headless false for headful mode", async () => {
-            await BrowserShell.init(false, resolution);
+            await BrowserShell.init(false, resolution, 'en-US');
             expect(puppeteerLaunchStub.calledOnce).to.be.true;
             expect(puppeteerLaunchStub.firstCall.args[0]).to.deep.include({
                 headless: false,
@@ -159,7 +159,7 @@ describe("BrowserShell", () => {
         });
 
         it("should return a BrowserShell instance correctly initialized", async () => {
-            const shell = await BrowserShell.init(true, resolution);
+            const shell = await BrowserShell.init(true, resolution, 'en-US');
             expect(shell).to.be.instanceOf(BrowserShell);
             expect(shell.browser).to.equal(mockBrowser);
             expect(shell.page).to.equal(mockPage);
