@@ -1,16 +1,16 @@
-# Cloud Run Computer Solution
+# Computer Use Experimental Solution
 
 ## Quick Start
 
-This section will guide you through setting up and running the Cloud Run Computer Use Solution. Follow these steps to get started.
+This section will guide you through setting up and running the Computer Use Experimental Solution. Follow these steps to get started.
 
 ### 1. Installation
 
 **Clone the Repository**
 
 ```bash
-git clone https://github.com/google/cloud-run-computer-solution.git
-cd cloud-run-computer-solution
+git clone https://github.com/google/computer-use-solution-exp.git
+cd computer-use-solution-exp
 ```
 
 **Set up Python Virtual Environment and Install Dependencies**
