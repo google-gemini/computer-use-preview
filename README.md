@@ -83,7 +83,7 @@ python main.py --query="Go to Google and type 'Hello World' into the search bar"
 
 **Browserbase**
 
-Runs the agent using Browserbase as the browser backend. Ensure your Browserbase environment and any necessary authentications (e.g., API keys via environment variables expected by `BrowserbaseComputer`) are set up.
+Runs the agent using Browserbase as the browser backend. Ensure your the proper Browserbase environment variables are set:`BROWSERBASE_API_KEY` and `BROWSERBASE_PROJECT_ID`.
 
 ```bash
 python main.py --query="Go to Google and type 'Hello World' into the search bar" --env="browserbase"
@@ -92,20 +92,20 @@ python main.py --query="Go to Google and type 'Hello World' into the search bar"
 **Cloud Run**
 
 Connects to an [API Server](./apiserver/) deployed on Cloud Run for computer use.
+You should use the simple one-click deploy setup from AI Studio to obtain the API server address, as well as the API server key.
 
-1. Deploy the API server:
 
-```bash
-gcloud run deploy computer-use-api --image=us-docker.pkg.dev/cloud-run/solutions/computer-use/api-server:latest
-```
-
-2. Run the sample against your Cloud Run API server:
+1. Run the sample code against your Cloud Run API server:
 
 ```bash
-python main.py --query="Go to Google and type 'Hello World' into the search bar" --api_server="https://your-cloud-run-service-url.run.app/"
+python main.py \
+  --query="Go to Google and type 'Hello World' into the search bar" \
+  --api_server="https://your-cloud-run-service-url.run.app/" \
+  --api_server_key="your_api_server_key"
 ```
 
 - Replace `https://your-cloud-run-service-url.run.app/` with the actual URL of your deployed Cloud Run service.
+- Replace `your_api_server_key` with the actual API server key.
 - If `--env` is not specified, it defaults to `cloud-run`, so providing `--api_server` is sufficient to use this mode.
 - **Note:** When using the Cloud Run environment, the script will print a link to a live stream of screenshots, allowing you to follow the agent's actions in real-time.
 
@@ -153,3 +153,16 @@ The following table outlines the browser interaction commands supported by the s
 | navigate | Navigates the browser directly to the specified URL. | url: str | `{"name": "navigate", "args": {"url": "https://www.wikipedia.org"}}` |
 | scroll_document | Scrolls the entire webpage "up" or "down". | direction: str ("up" or "down") | `{"name": "scroll_document", "args": {"direction": "down"}}` |
 
+
+
+## Advanced Topics
+
+
+### Cloud Run
+
+Besides the AIS Cloud Run integration, you can also manually deploy the Cloud Run API server yourself:
+
+
+```bash
+gcloud run deploy computer-use-api --image=us-docker.pkg.dev/cloud-run/solutions/computer-use/api-server:latest
+```
