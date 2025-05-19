@@ -13,7 +13,10 @@
 # limitations under the License.
 # cloud_pubsub.py (New or replacing existing pubsub.py)
 import json
+import time
+import logging
 from google.cloud import pubsub_v1
+from google.cloud.pubsub_v1.publisher.futures import Future
 from pubsub import BaseManager
 from google.api_core import exceptions as google_exceptions
 from models import Message
@@ -42,17 +45,17 @@ class CloudPubSubManager(BaseManager):
     def _create_topic(self, topic_path: str) -> None:
         try:
             self.publisher.get_topic(request={"topic": topic_path})
-            print(f"Topic '{topic_path}' already exists.")
+            logging.warning(f"Topic '{topic_path}' already exists.")
         except google_exceptions.NotFound:
             topic = self.publisher.create_topic(request={"name": topic_path})
-            print(f"Created topic: {topic.name}")
+            logging.info(f"Created topic: {topic.name}")
 
     def _delete_topic(self, topic_path: str) -> None:
         try:
             self.publisher.delete_topic(request={"topic": topic_path})
-            print(f"Deleted topic: {topic_path}")
+            logging.info(f"Deleted topic: {topic_path}")
         except google_exceptions.NotFound:
-            print(f"Topic not found: {topic_path}")
+            logging.warning(f"Topic not found: {topic_path}")
 
     def _create_subscription(
         self,
@@ -62,20 +65,20 @@ class CloudPubSubManager(BaseManager):
     ) -> None:
         try:
             subscriber.get_subscription(subscription=subscription_path)
-            print(f"Successfully subscribed to {subscription_path}")
+            logging.info(f"Successfully subscribed to {subscription_path}")
         except google_exceptions.NotFound:
-            print(f"Subscription not found: {subscription_path}. Creating...")
+            logging.info(f"Subscription not found: {subscription_path}. Creating...")
             subscriber.create_subscription(name=subscription_path, topic=topic_path)
-            print(f"Created subscription: {subscription_path}")
+            logging.info(f"Created subscription: {subscription_path}")
 
     def _delete_subscription(
         self, subscriber: pubsub_v1.SubscriberClient, subscription_path: str
     ) -> None:
         try:
             subscriber.delete_subscription(subscription=subscription_path)
-            print(f"Successfully deleted subscription {subscription_path}")
+            logging.info(f"Successfully deleted subscription {subscription_path}")
         except google_exceptions.NotFound:
-            print(f"Subscription not found: {subscription_path}")
+            logging.warning(f"Subscription not found: {subscription_path}")
 
     def command_topic_path(self, session_id: str) -> str:
         return f"projects/{self.project_id}/topics/commands-{session_id}"
@@ -87,7 +90,7 @@ class CloudPubSubManager(BaseManager):
         return f"projects/{self.project_id}/subscriptions/screenshots-{subscription_id}"
 
     def start_session(self, session_id: str) -> None:
-        print("starting the pubsub session")
+        logging.info("Starting the Pub/Sub session")
         self._create_topic(topic_path=self.command_topic_path(session_id=session_id))
 
         screenshots_topic_path = self.screenshot_topic_path(session_id=session_id)
@@ -100,15 +103,14 @@ class CloudPubSubManager(BaseManager):
         handler: Callable[[Any, pubsub_v1.subscriber.message.Message], None],
     ) -> pubsub_v1.SubscriberClient:
         topic_path = self.screenshot_topic_path(session_id=session_id)
-        print("starting a new subscriber")
+        logging.info("Starting a new subscriber")
         self.subscribers[session_id] = pubsub_v1.SubscriberClient()
 
         subscription_id = str(uuid.uuid4())
         subscription_path = self.subscription_path(subscription_id=subscription_id)
 
-        print(
-            "creating subscripion path: " + subscription_path,
-            " on topic path: " + topic_path,
+        logging.info(
+            f"Creating subscripion path: {subscription_path} on topic path: {topic_path}"
         )
         self._create_subscription(
             subscriber=self.subscribers[session_id],
@@ -116,7 +118,7 @@ class CloudPubSubManager(BaseManager):
             topic_path=topic_path,
         )
 
-        print("subscripion path: " + subscription_path, "created")
+        logging.info(f"Subscripion path: {subscription_path} created")
         self.subscribers[session_id].subscribe(subscription_path, callback=handler)
         return self.subscribers[session_id]
 
@@ -124,7 +126,7 @@ class CloudPubSubManager(BaseManager):
         if session_id in self.subscribers:
             subcriber = self.subscribers[session_id]
             subcriber.close()
-            print("ended subscription")
+            logging.info("Ended subscription")
             del self.subscribers[session_id]
         self._delete_topic(topic_path=self.command_topic_path(session_id=session_id))
         self._delete_topic(topic_path=self.screenshot_topic_path(session_id=session_id))
@@ -137,7 +139,7 @@ class CloudPubSubManager(BaseManager):
     def _screenshot_handler(
         self, message: pubsub_v1.subscriber.message.Message
     ) -> None:
-        print("screenshot event")
+        logging.info("Screenshot event")
         try:
             data_str = message.data.decode("utf-8")
             parsed_data = json.loads(data_str)
@@ -145,7 +147,7 @@ class CloudPubSubManager(BaseManager):
 
             if id in self.pending_messages:
                 if "error" in parsed_data:
-                    print("error: " + parsed_data["error"])
+                    logging.error(f"Error: {parsed_data['error']}")
                     self.pending_messages[id].set_screenshot(None)
                 else:
                     self.pending_messages[id].set_screenshot(
@@ -154,9 +156,11 @@ class CloudPubSubManager(BaseManager):
                 del self.pending_messages[id]
 
             else:
-                print(f"Received screenshot for unknown or already processed ID: {id}")
+                logging.warning(
+                    f"Received screenshot for unknown or already processed ID: {id}"
+                )
         except Exception as e:
-            print(f"Error processing screenshot message: {e}")
+            logging.error(f"Error processing screenshot message: {e}")
         finally:
             message.ack()
 
@@ -165,7 +169,7 @@ class CloudPubSubManager(BaseManager):
     ) -> None:
         # This is to reconnect in case the subscriber is not listening on this instance
         if session_id not in self.subscribers:
-            print("no active subscribers on this host, starting a new one")
+            logging.info("No active subscribers on this host, starting a new one")
             self.start_session(session_id=session_id)
 
         topic_path = self.command_topic_path(session_id=session_id)
@@ -176,13 +180,19 @@ class CloudPubSubManager(BaseManager):
         try:
             self.pending_messages[message.id] = message
 
-            publish_future = self.publisher.publish(
+            logging.info(f"Publishing message {message.id} to {topic_path}")
+            start_time = time.time()
+            publish_future: Future = self.publisher.publish(
                 topic_path, data=data_bytes, **attributes
             )
             publish_future.result(timeout=timeout)
-            print(f"Published command message {message.id} to {topic_path}")
+            logging.info(
+                f"Published message {message.id} to {topic_path} in {time.time() - start_time:.2f} seconds"
+            )
         except Exception as e:
-            print(f"Failed to publish message {message.id} to {topic_path}: {e}")
+            logging.error(
+                f"Failed to publish message {message.id} to {topic_path}: {e}"
+            )
             self.pending_messages.pop(message.id, None)
             raise
 
@@ -202,7 +212,7 @@ class CloudPubSubManager(BaseManager):
 
         while True:
             if await request.is_disconnected():
-                print(
+                logging.info(
                     "Disconnecting streaming subscriber since the request is not disconnected"
                 )
                 subscriber.close()

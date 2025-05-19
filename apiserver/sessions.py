@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import asyncio
+import logging
 from google.cloud import run_v2
 from google.api_core.exceptions import NotFound
 import subprocess
@@ -68,7 +69,7 @@ class SessionManager:
         screen_resolution: str,
         idle_timeout_seconds: int,
     ) -> None:
-        print("creating local process worker")
+        logging.info("Creating local process worker")
         extra_flags = self._docker_env_flags(
             self._env_vars(
                 session_id,
@@ -101,7 +102,7 @@ class SessionManager:
         job_timeout_seconds: int,
         idle_timeout_seconds: int,
     ) -> None:
-        print(f"creating job worker {self.config.job_name}")
+        logging.info(f"Creating job worker {self.config.job_name}")
         client = run_v2.JobsAsyncClient()
         try:
             # Fetch the current job:
@@ -124,18 +125,10 @@ class SessionManager:
                 job=job,
             )
             operation = await client.update_job(request=request)
-            while True:
-                await asyncio.sleep(0.5)
-                print("checking if done")
-                done = await operation.done()
-                if done:
-                    break
-
-            print("getting the response")
             response = await operation.result()
-            print(response.latest_created_execution)
+            logging.info(response.latest_created_execution)
         except NotFound:
-            print("Job does not exist, creating it...")
+            logging.info("Job does not exist, creating it...")
             job = self._configure_job(
                 job=run_v2.Job(),
                 session_id=session_id,
@@ -151,7 +144,7 @@ class SessionManager:
             )
             operation = await client.create_job(request=request)
             response = await operation.result()
-            print(response.latest_created_execution)
+            logging.info(response.latest_created_execution)
 
     def _configure_job(
         self,

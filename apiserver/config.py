@@ -13,6 +13,7 @@
 # limitations under the License.
 import os
 import urllib.request
+import logging
 from typing import Any, Callable
 
 
@@ -63,9 +64,9 @@ class Config:
             try:
                 with urllib.request.urlopen(req) as response:
                     project_id = response.read().decode("utf-8")
-                    print(f"fetched the project ID: {project_id}")
+                    logging.info(f"Fetched the project ID: {project_id}")
             except urllib.error.URLError as e:
-                print(f"Error fetching project ID from metadata server: {e}")
+                logging.error(f"Error fetching project ID from metadata server: {e}")
         return project_id
 
     @staticmethod
@@ -81,8 +82,8 @@ class Config:
         try:
             with urllib.request.urlopen(req) as response:
                 region = response.read().decode("utf-8").split("/regions/")[1]
-                print(f"fetched the region: {region}")
+                logging.info(f"Fetched the region: {region}")
                 return f"projects/{project_id}/locations/{region}/jobs/computer-use-job"
         except urllib.error.URLError as e:
-            print(f"Error fetching region from metadata server: {e}")
+            logging.error(f"Error fetching region from metadata server: {e}")
             return ""

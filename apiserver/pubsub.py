@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import json
+import logging
 from fastapi import Request
 import subprocess
 from models import Message
@@ -71,7 +72,7 @@ class DevManager(BaseManager):
 
     def end_session(self, session_id: str) -> None:
         result = subprocess.run(["docker", "stop", session_id], stdout=subprocess.PIPE)
-        print(result)
+        logging.info(result)
 
     async def start(self) -> None:
         pass

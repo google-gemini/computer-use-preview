@@ -406,7 +406,7 @@ def test_create_command_timeout_on_get_screenshot(
             f"/sessions/{session_id}/commands", json=command_payload_for_request
         )
         assert response.status_code == status.HTTP_408_REQUEST_TIMEOUT
-        assert "command timed out" in response.json()["detail"]
+        assert "Command timed out" in response.json()["detail"]
         MockedMessageClass.assert_called_once_with(
             type="command", data=expected_message_data
         )
@@ -437,7 +437,7 @@ def test_create_command_screenshot_is_none(
             f"/sessions/{session_id}/commands", json=command_payload_for_request
         )
         assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
-        assert "command failed" in response.json()["detail"]
+        assert "Command failed" in response.json()["detail"]
         MockedMessageClass.assert_called_once_with(
             type="command", data=expected_message_data
         )

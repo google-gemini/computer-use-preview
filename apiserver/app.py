@@ -16,6 +16,9 @@
 Provides the REST API for integrating with the Computer Use API.
 """
 import asyncio
+import logging
+import time
+import google.cloud.logging
 from fastapi.security import APIKeyHeader
 from fastapi import FastAPI, HTTPException, status, Path, Security, Depends, Request
 from fastapi.responses import StreamingResponse
@@ -37,11 +40,13 @@ import uvicorn
 import secrets
 from config import Config
 
+client = google.cloud.logging.Client()
+client.setup_logging()
 
 config = Config()
 session_manager = SessionManager(config=config)
 if config.use_pubsub:
-    print(f"using PubSub signalling in {config.project_id}")
+    logging.info(f"Using PubSub signalling in {config.project_id}")
     pubsub_manager = CloudPubSubManager(project_id=config.project_id)
     signaling_strategy = SignalingStrategy.PUBSUB
 else:
@@ -120,7 +125,7 @@ async def create_session(session: CreateSessionRequest) -> CreateSessionResponse
         )
         return CreateSessionResponse(id=session_id)
     except Exception as e:
-        print(f"Error in session creation: {e} {repr(e)}")
+        logging.error(f"Error in session creation: {e} {repr(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
         )
@@ -143,7 +148,7 @@ async def create_command(
     create_command_request: CreateCommandRequest,
 ) -> CreateCommandResponse:
     command_data_dict = create_command_request.model_dump()
-    print(f"command data: {command_data_dict}")
+    logging.info(f"Command data: {command_data_dict}")
     message = Message(type="command", data=command_data_dict)
     timeout = get_command_timeout(
         command=create_command_request.root, base_timeout=config.cmd_timeout
@@ -151,19 +156,23 @@ async def create_command(
     await pubsub_manager.publish_message(
         session_id=session_id, message=message, timeout=timeout
     )
+    start_time = time.time()
     try:
         screenshot = await message.get_screenshot(timeout=timeout)
-        url = await message.get_url()
+        url = await message.get_url(timeout=timeout)
+        logging.info(
+            f"Command {message.id} took {time.time() - start_time:.2f} seconds"
+        )
     except asyncio.TimeoutError as err:
-        print(err)
+        logging.error(f"Command {message.id} timed out: {err}")
         raise HTTPException(
             status_code=status.HTTP_408_REQUEST_TIMEOUT,
-            detail="command timed out, the worker may not be responsive",
+            detail="Command timed out, the worker may not be responsive",
         ) from err
 
     if screenshot is None:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="command failed"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Command failed"
         )
 
     return CreateCommandResponse(id=message.id, screenshot=screenshot, url=url)

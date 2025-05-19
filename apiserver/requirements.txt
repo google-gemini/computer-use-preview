@@ -2,6 +2,7 @@ google-api-core
 google-cloud-run
 google-cloud-pubsub
 google-api-core
+google-cloud-logging
 fastapi
 uvicorn
 pytest
