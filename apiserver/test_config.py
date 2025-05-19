@@ -26,7 +26,7 @@ class TestConfig(unittest.TestCase):
             config.job_image,
             "us-docker.pkg.dev/cloudrun/solutions/computer-use/puppeteer:latest",
         )
-        self.assertEqual(config.cmd_timeout, 10)
+        self.assertEqual(config.cmd_timeout, 60)
         self.assertEqual(config.project_id, "")
         self.assertEqual(config.job_name, None)
 

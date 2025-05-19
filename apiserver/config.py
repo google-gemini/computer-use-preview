@@ -38,7 +38,7 @@ class Config:
             "JOB_IMAGE",
             "us-docker.pkg.dev/cloudrun/solutions/computer-use/puppeteer:latest",
         )
-        self.cmd_timeout = int(os.environ.get("CMD_TIMEOUT", "10"))
+        self.cmd_timeout = int(os.environ.get("CMD_TIMEOUT", "60"))
         self.project_id = Config._get_project_id(self.on_cloud_run)
         self.job_name = Config._get_job_name(
             on_cloud_run=self.on_cloud_run, project_id=self.project_id
