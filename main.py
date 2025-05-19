@@ -18,7 +18,7 @@ from agent import BrowserAgent
 from computers import CloudRunComputer, BrowserbaseComputer, PlaywrightComputer
 
 
-SCREEN_SIZE = (1000, 1000)
+SCREEN_SIZE = (1920, 1080)
 
 
 def main() -> int:
