@@ -83,7 +83,7 @@ python main.py --query="Go to Google and type 'Hello World' into the search bar"
 
 **Browserbase**
 
-Runs the agent using Browserbase as the browser backend. Ensure your the proper Browserbase environment variables are set:`BROWSERBASE_API_KEY` and `BROWSERBASE_PROJECT_ID`.
+Runs the agent using Browserbase as the browser backend. Ensure the proper Browserbase environment variables are set:`BROWSERBASE_API_KEY` and `BROWSERBASE_PROJECT_ID`.
 
 ```bash
 python main.py --query="Go to Google and type 'Hello World' into the search bar" --env="browserbase"
