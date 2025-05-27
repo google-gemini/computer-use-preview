@@ -5,46 +5,79 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>My Website</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
     <link rel="stylesheet" href="./style.css">
     <link rel="icon" href="data:image/png;base64,iVBORw0KGgo=">
   </head>
   <body>
-    <main>
-        <h1>Computer Use Sample</h1>
+    <main class="container mt-4">
+        <h1 class="mb-4">Computer Use Sample</h1>
+        
         <div id="create-wrapper">
-            <div style="margin: 1em 0;">
-              <input id="api-key" size="50" placeholder="API Key"/>
+            <div class="mb-3">
+              <input id="api-key" class="form-control" placeholder="Enter your API Key"/>
             </div>
-            <button id="create-browser-session">Create Browser Session</button>
-            <button id="create-headful-session">Create Headful Browser Session</button>
-            <button id="create-os-session">Create OS Session</button>
+            <button id="create-browser-session" class="btn btn-primary me-2 mb-2">Create Browser Session</button>
+            <button id="create-headful-session" class="btn btn-secondary me-2 mb-2">Create Headful Browser Session</button>
+            <button id="create-os-session" class="btn btn-secondary mb-2">Create OS Session</button>
         </div>
 
-        <div id="creating" hidden>
-          Creating the worker
+        <div id="creating" class="alert alert-info mt-3" hidden>
+          Creating the worker...
         </div>
 
-        <div id="watch-wrapper" style="display: none;">
-            <p>watching session <span id="session-id"></span> <button id="end-session">End Session</button> <a id="session-viewer" target="_blank">Open Session Viewer</a></p>
-
-            <div>
-                <span>raw command</span><input type="text" id="command" size="50" name="lname"> <button id="submit-command">Submit</button> eg. {"name": "navigate", "args": {"url": "https://en.wikipedia.org/wiki/Python"}}
-
-                <br><br>
-                <span>url</span><input type="text" id="url" name="lname"> <button id="submit-url">Submit</button>
-                <br><br>
-                <button id="submit-back">Go Back</button><button id="submit-forward">Go Forward</button>
-                <br><br>
-                <button id="submit-up">&uarr;</button>
-                <button id="submit-left">&larr;</button>
-                <button id="submit-right">&rarr;</button>
-                <button id="submit-down">	&darr;</button>
-                <br><br>
-                <button id="submit-screenshot">New Screenshot</button>
+        <div id="watch-wrapper" style="display: none;" class="mt-4 p-3 border rounded">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4 class="mb-0">Watching session: <span id="session-id" class="fw-bold"></span></h4>
+                <div>
+                    <a id="session-viewer" target="_blank" class="btn btn-outline-info btn-sm me-2">Open Session Viewer</a>
+                    <button id="end-session" class="btn btn-danger btn-sm">End Session</button>
+                </div>
             </div>
-            <img id="screenshot"></img>
+            
+            <div class="mb-3">
+                <div class="input-group">
+                    <span class="input-group-text">Raw Command</span>
+                    <input type="text" id="command" class="form-control" aria-describedby="commandHelp" placeholder='eg. {"name": "navigate", "args": {"url": "https://..."}}'>
+                    <button id="submit-command" class="btn btn-outline-primary">Submit</button>
+                </div>
+                <div id="commandHelp" class="form-text">
+                    Example: {"name": "navigate", "args": {"url": "https://en.wikipedia.org/wiki/Python"}}
+                </div>
+            </div>
+
+            <div class="input-group mb-3">
+                <span class="input-group-text">URL</span>
+                <input type="text" id="url" class="form-control" placeholder="https://example.com">
+                <button id="submit-url" class="btn btn-outline-primary">Submit</button>
+            </div>
+            
+            <div class="mb-3">
+                <button id="submit-back" class="btn btn-outline-secondary me-2">« Go Back</button>
+                <button id="submit-forward" class="btn btn-outline-secondary">Go Forward »</button>
+            </div>
+            
+            <div class="mb-3 text-center">
+                <div>
+                    <button id="submit-up" title="Scroll Up" class="btn btn-outline-secondary">↑ Up</button>
+                </div>
+                <div class="mt-1">
+                    <button id="submit-left" title="Scroll Left" class="btn btn-outline-secondary me-1">← Left</button>
+                    <button id="submit-down" title="Scroll Down" class="btn btn-outline-secondary me-1">↓ Down</button>
+                    <button id="submit-right" title="Scroll Right" class="btn btn-outline-secondary">Right →</button>
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <button id="submit-screenshot" class="btn btn-info">New Screenshot</button>
+            </div>
+
+            <div class="text-center">
+                <img id="screenshot" class="img-fluid border rounded shadow-sm" style="cursor:pointer;"></img>
+            </div>
         </div>
     </main>
     <script src="index.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
   </body>
 </html>

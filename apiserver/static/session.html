@@ -5,14 +5,38 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Session Viewer</title>
-    <link rel="stylesheet" href="./style.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+    <link rel="stylesheet" href="./style.css"> 
     <link rel="icon" href="data:image/png;base64,iVBORw0KGgo=">
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+        }
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #f8f9fa; /* A light background */
+            padding: 1rem; /* Add some padding around the image */
+        }
+        main {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #screenshot.img-fluid {
+            max-height: calc(100vh - 2rem); /* Max height considering body padding */
+            object-fit: contain; /* Scale image down to fit within bounds, preserving aspect ratio */
+            box-shadow: 0 0.5rem 1rem rgba(0,0,0,.15); /* Soft shadow for depth */
+        }
+    </style>
   </head>
   <body>
-    <main>
-        <div>
-            <img id="screenshot"></img>
-        </div>
+    <main role="main">
+        <img id="screenshot" class="img-fluid"></img>
     </main>
     <script src="session.js"></script>
   </body>
