@@ -38,13 +38,13 @@ playwright install chrome
 You need a Gemini API key to use the agent:
 
 ```bash
-export GEMINI_API_KEY="YOUR_GEMINI_API_KEY"
+export GOOGLE_API_KEY="YOUR_GEMINI_API_KEY"
 ```
 
 Or to add this to your virtual environment:
 
 ```bash
-echo 'export GEMINI_API_KEY="YOUR_GEMINI_API_KEY"' >> .venv/bin/activate
+echo 'export GOOGLE_API_KEY="YOUR_GEMINI_API_KEY"' >> .venv/bin/activate
 # After editing, you'll need to deactivate and reactivate your virtual
 # environment if it's already active:
 deactivate
@@ -58,17 +58,17 @@ Replace `YOUR_GEMINI_API_KEY` with your actual key.
 You need to explicitly use Vertex AI, then provide project and location to use the agent:
 
 ```bash
-export USE_VERTEXAI=true
-export VERTEXAI_PROJECT="YOUR_PROJECT_ID"
-export VERTEXAI_LOCATION="YOUR_LOCATION"
+export GOOGLE_GENAI_USE_VERTEXAI=True
+export GOOGLE_CLOUD_PROJECT="YOUR_PROJECT_ID"
+export GOOGLE_CLOUD_LOCATION="YOUR_LOCATION"
 ```
 
 Or to add this to your virtual environment:
 
 ```bash
-echo 'export USE_VERTEXAI=true' >> .venv/bin/activate
-echo 'export VERTEXAI_PROJECT="your-project-id"' >> .venv/bin/activate
-echo 'export VERTEXAI_LOCATION="your-location"' >> .venv/bin/activate
+echo 'export GOOGLE_GENAI_USE_VERTEXAI=true' >> .venv/bin/activate
+echo 'export GOOGLE_CLOUD_PROJECT="your-project-id"' >> .venv/bin/activate
+echo 'export GOOGLE_CLOUD_LOCATION="your-location"' >> .venv/bin/activate
 # After editing, you'll need to deactivate and reactivate your virtual
 # environment if it's already active:
 deactivate
