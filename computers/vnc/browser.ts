@@ -284,7 +284,7 @@ export class OsShell implements ComputerShell {
   }
 
   async screenshot(): Promise<string> {
-    const {stdout, stderr} = await execAsync("scrot --pointer - | base64 -w 0");
+    const {stdout, stderr} = await execAsync("scrot --pointer - | base64 -w 0", {maxBuffer: 6 * 1024 * 1024});
     return stdout;
   }
 }
