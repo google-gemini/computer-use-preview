@@ -6,7 +6,7 @@ WORKDIR /usr/src/app
 # We don't need the standalone Chromium
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 ENV DISPLAY=:99
-ENV SCREEN_RESOLUTION=1920x1000x16
+ENV SCREEN_RESOLUTION=1280x720x16
 
 # Install OS packages
 RUN export DEBIAN_FRONTEND=noninteractive && apt-get update && apt-get install -yq --no-install-recommends \

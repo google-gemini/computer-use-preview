@@ -35,8 +35,10 @@ docker stop vnc-computer
 | `navigate(url: str)`                          | Navigate to a URL               | `{"name":"navigate", "args":{"url": "https://google.com"}}` |
 | `click_at(x: int, y: int)`                    | Click at coordinates            | `{"name":"click_at", "args":{"x": 100, "y": 200}}`                  |
 | `hover_at(x: int, y: int)`                    | Hover at coordinates            | `{"name":"hover_at", "args":{"x": 50, "y": 300}}`                   |
-| `type_text_at(y: int, x: int, text: str, clear_existing_text: bool)` | Type text at coordinates        | `{"name":"type_text_at", "args":{"x": 150, "y": 75, "text": "Hello"}}` |
-| `scroll_document(direction: str)`             | Scroll document                 | `{"name":"scroll_document", "args":{"direction": "down"}}`       |
+| `type_text_at(y: int, x: int, text: str)`     | Type text at coordinates        | `{"name":"type_text_at", "args":{"x": 150, "y": 75, "text": "Hello"}}` |
+| `type_text(text: str)`                        | Type text in focused element    | `{"name":"type_text", "args":{"text": "user@place.com"}}` |
+| `press_enter()`                               | Press enter in focused element  | `{"name":"press_enter"}` |
+| `scroll_document(direction: str)`             | Scroll document up/down/left/right | `{"name":"scroll_document", "args":{"direction": "down"}}`       |
 | `go_back()`                                   | Go back                         | `{"name":"go_back"}`                               |
 | `go_forward()`                                | Go forward                      | `{"name":"go_forward"}`                            |
 | `search()`                                    | Search                          | `{"name":"search"}`                                |

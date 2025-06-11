@@ -46,6 +46,20 @@ export interface TypeTextAt {
   }
 }
 
+// type_text(text: str)
+export interface TypeText {
+  name: "type_text";
+  args: {
+    text: string;
+  }
+}
+
+// press_enter(text: str)
+export interface PressEnter {
+  name: "press_enter";
+  args?: {}
+}
+
 // scroll_document(direction: str)
 export interface ScrollDocument {
   name: "scroll_document";
@@ -110,6 +124,8 @@ export type Command = OpenWebBrowser
   | ClickAt
   | HoverAt
   | TypeTextAt
+  | TypeText
+  | PressEnter
   | ScrollDocument
   | Wait5Seconds
   | GoBack
@@ -141,6 +157,12 @@ export const parseCommand = (input: string | Record<string, any>): Command => {
   if (name === 'type_text_at') {
     const { x, y } = extractCoords(params);
     return { name: 'type_text_at', args: { x, y, text: assertParam(params, "text") } };
+  }
+  if (name === 'type_text') {
+    return { name: 'type_text', args: { text: assertParam(params, "text") } };
+  }
+  if (name === 'press_enter') {
+    return { name: 'press_enter' };
   }
   if (name === 'scroll_document') {
     return { name: 'scroll_document', args: { direction: assertParam(params, "direction") } };

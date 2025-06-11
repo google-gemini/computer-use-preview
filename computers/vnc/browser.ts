@@ -73,6 +73,7 @@ export class BrowserShell implements ComputerShell {
       ],
       ignoreDefaultArgs: ['--enable-automation'],
       headless,
+      protocolTimeout: 900000,
     });
     console.log('puppeteer ready');
     return new BrowserShell(b, headless);
@@ -104,20 +105,30 @@ export class BrowserShell implements ComputerShell {
         }
         await page.keyboard.press('Enter');
         break;
+      case 'type_text':
+        for (let i = 0; i < c.args.text.length; i++) {
+          await page.keyboard.type(c.args.text[i]);
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+        break;
+      case 'press_enter':
+        await page.keyboard.press('Enter');
+        break;
       case 'scroll_document':
         let deltaX = 0;
         let deltaY = 0;
+        let offset = 400;
         if (c.args.direction === 'left') {
-          deltaX = -900;
+          deltaX = -offset;
         }
         if (c.args.direction === 'right') {
-          deltaX = 900;
+          deltaX = offset;
         }
         if (c.args.direction === 'up') {
-          deltaY = -900;
+          deltaY = -offset;
         }
         if (c.args.direction === 'down') {
-          deltaY = 900;
+          deltaY = offset;
         }
         await page.mouse.wheel({deltaY, deltaX});
         break;
