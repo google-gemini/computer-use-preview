@@ -18,6 +18,54 @@ from ..computer import (
     EnvState,
 )
 from playwright.sync_api import sync_playwright
+from typing import Literal
+
+# Define a mapping from the user-friendly key names to Playwright's expected key names.
+# Playwright is generally good with case-insensitivity for these, but it's best to be canonical.
+# See: https://playwright.dev/docs/api/class-keyboard#keyboard-press
+# Keys like 'a', 'b', '1', '$' are passed directly.
+PLAYWRIGHT_KEY_MAP = {
+    "backspace": "Backspace",
+    "tab": "Tab",
+    "return": "Enter",  # Playwright uses 'Enter'
+    "enter": "Enter",
+    "shift": "Shift",
+    "control": "Control",  # Or 'ControlOrMeta' for cross-platform Ctrl/Cmd
+    "alt": "Alt",
+    "escape": "Escape",
+    "space": "Space",  # Can also just be " "
+    "pageup": "PageUp",
+    "pagedown": "PageDown",
+    "end": "End",
+    "home": "Home",
+    "left": "ArrowLeft",
+    "up": "ArrowUp",
+    "right": "ArrowRight",
+    "down": "ArrowDown",
+    "insert": "Insert",
+    "delete": "Delete",
+    "semicolon": ";",  # For actual character ';'
+    "equals": "=",  # For actual character '='
+    "multiply": "Multiply",  # NumpadMultiply
+    "add": "Add",  # NumpadAdd
+    "separator": "Separator",  # Numpad specific
+    "subtract": "Subtract",  # NumpadSubtract, or just '-' for character
+    "decimal": "Decimal",  # NumpadDecimal, or just '.' for character
+    "divide": "Divide",  # NumpadDivide, or just '/' for character
+    "f1": "F1",
+    "f2": "F2",
+    "f3": "F3",
+    "f4": "F4",
+    "f5": "F5",
+    "f6": "F6",
+    "f7": "F7",
+    "f8": "F8",
+    "f9": "F9",
+    "f10": "F10",
+    "f11": "F11",
+    "f12": "F12",
+    "command": "Meta",  # 'Meta' is Command on macOS, Windows key on Windows
+}
 
 
 class PlaywrightComputer(Computer):
@@ -91,23 +139,85 @@ class PlaywrightComputer(Computer):
         self._page.wait_for_load_state()
         return self.current_state()
 
-    def type_text_at(self, x: int, y: int, text: str) -> EnvState:
+    def type_text_at(
+        self,
+        x: int,
+        y: int,
+        text: str,
+        press_enter: bool = True,
+        clear_before_typing: bool = True,
+    ) -> EnvState:
         self.highlight_mouse(x, y)
         self._page.mouse.click(x, y)
         self._page.wait_for_load_state()
+
+        if clear_before_typing:
+            self.key_combination(["Control", "A"])
+            self.key_combination(["Delete"])
+
         self._page.keyboard.type(text)
         self._page.wait_for_load_state()
-        self.key_combination(["Enter"])
+
+        if press_enter:
+            self.key_combination(["Enter"])
         self._page.wait_for_load_state()
         return self.current_state()
 
-    def scroll_document(self, direction: str) -> EnvState:
-        if direction.lower() == "down":
+    def _horizontal_document_scroll(
+        self, direction: Literal["left", "right"]
+    ) -> EnvState:
+        # Scroll by 50% of the viewport size.
+        horizontal_scroll_amount = self.screen_size()[0] // 2
+        if direction == "left":
+            sign = "-"
+        else:
+            sign = ""
+        scroll_argument = f"{sign}{horizontal_scroll_amount}"
+        # Scroll using JS.
+        self._page.evaluate(f"window.scrollBy({scroll_argument}, 0); ")
+        self._page.wait_for_load_state()
+        return self.current_state()
+
+    def scroll_document(
+        self, direction: Literal["up", "down", "left", "right"]
+    ) -> EnvState:
+        if direction == "down":
             return self.key_combination(["PageDown"])
-        elif direction.lower() == "up":
+        elif direction == "up":
             return self.key_combination(["PageUp"])
+        elif direction in ("left", "right"):
+            return self._horizontal_document_scroll(direction)
         else:
             raise ValueError("Unsupported direction: ", direction)
+
+    def scroll_at(
+        self,
+        x: int,
+        y: int,
+        direction: Literal["up", "down", "left", "right"],
+        magnitude: int,
+    ) -> EnvState:
+        self.highlight_mouse(x, y)
+
+        self._page.mouse.move(x, y)
+        self._page.wait_for_load_state()
+
+        dx = 0
+        dy = 0
+        if direction == "up":
+            dy = -magnitude
+        elif direction == "down":
+            dy = magnitude
+        elif direction == "left":
+            dx = -magnitude
+        elif direction == "right":
+            dx = magnitude
+        else:
+            raise ValueError("Unsupported direction: ", direction)
+
+        self._page.mouse.wheel(dx, dy)
+        self._page.wait_for_load_state()
+        return self.current_state()
 
     def wait_5_seconds(self) -> EnvState:
         time.sleep(5)
@@ -132,6 +242,9 @@ class PlaywrightComputer(Computer):
         return self.current_state()
 
     def key_combination(self, keys: list[str]) -> EnvState:
+        # Normalize all keys to the Playwright compatible version.
+        keys = [PLAYWRIGHT_KEY_MAP.get(k.lower(), k) for k in keys]
+
         for key in keys[:-1]:
             self._page.keyboard.down(key)
 
@@ -140,6 +253,21 @@ class PlaywrightComputer(Computer):
         for key in reversed(keys[:-1]):
             self._page.keyboard.up(key)
 
+        return self.current_state()
+
+    def drag_and_drop(
+        self, x: int, y: int, destination_x: int, destination_y: int
+    ) -> EnvState:
+        self.highlight_mouse(x, y)
+        self._page.mouse.move(x, y)
+        self._page.wait_for_load_state()
+        self._page.mouse.down()
+        self._page.wait_for_load_state()
+
+        self.highlight_mouse(destination_x, destination_y)
+        self._page.mouse.move(destination_x, destination_y)
+        self._page.wait_for_load_state()
+        self._page.mouse.up()
         return self.current_state()
 
     def current_state(self) -> EnvState:
@@ -167,7 +295,7 @@ class PlaywrightComputer(Computer):
             div.style.borderRadius = '50%';
             div.style.width = '20px';
             div.style.height = '20px';
-            div.style.position = 'absolute';
+            div.style.position = 'fixed';
             div.style.zIndex = '9999';
             document.body.appendChild(div);
 

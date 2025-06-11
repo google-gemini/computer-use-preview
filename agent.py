@@ -39,8 +39,8 @@ class BrowserAgent:
         browser_computer: Computer,
         query: str,
         model_name: Literal[
-            "computer-use-exp"
-        ] = "computer-use-exp",
+            "computer-use-exp-6-11"
+        ] = "computer-use-exp-6-11",
     ):
         self._browser_computer = browser_computer
         self._query = query
@@ -50,6 +50,10 @@ class BrowserAgent:
             vertexai=os.environ.get("USE_VERTEXAI", "0").lower() in ["true", "1"],
             project=os.environ.get("VERTEXAI_PROJECT"),
             location=os.environ.get("VERTEXAI_LOCATION"),
+            http_options=types.HttpOptions(
+                api_version="v1alpha",
+                base_url="https://generativelanguage.googleapis.com",
+                )
         )
         self._contents: list[Content] = [
             Content(
@@ -94,13 +98,32 @@ class BrowserAgent:
         elif action.name == "type_text_at":
             x = self.normalize_x(action.args["x"])
             y = self.normalize_y(action.args["y"])
+            press_enter = action.args.get("press_enter", True)
+            clear_before_typing = action.args.get("clear_before_typing", True)
             return self._browser_computer.type_text_at(
                 x=x,
                 y=y,
                 text=action.args["text"],
+                press_enter=press_enter,
+                clear_before_typing=clear_before_typing,
             )
         elif action.name == "scroll_document":
             return self._browser_computer.scroll_document(action.args["direction"])
+        elif action.name == "scroll_at":
+            x = self.normalize_x(action.args["x"])
+            y = self.normalize_y(action.args["y"])
+            magnitude = action.args.get("magnitude", 200)
+            direction = action.args["direction"]
+
+            if direction in ("up", "down"):
+                magnitude = self.normalize_y(magnitude)
+            elif direction in ("left", "right"):
+                magnitude = self.normalize_x(magnitude)
+            else:
+                raise ValueError("Unknown direction: ", direction)
+            return self._browser_computer.scroll_at(
+                x=x, y=y, direction=direction, magnitude=magnitude
+            )
         elif action.name == "wait_5_seconds":
             return self._browser_computer.wait_5_seconds()
         elif action.name == "go_back":
@@ -114,6 +137,17 @@ class BrowserAgent:
         elif action.name == "key_combination":
             return self._browser_computer.key_combination(
                 action.args["keys"].split("+")
+            )
+        elif action.name == "drag_and_drop":
+            x = self.normalize_x(action.args["x"])
+            y = self.normalize_y(action.args["y"])
+            destination_x = self.normalize_x(action.args["destination_x"])
+            destination_y = self.normalize_y(action.args["destination_y"])
+            return self._browser_computer.drag_and_drop(
+                x=x,
+                y=y,
+                destination_x=destination_x,
+                destination_y=destination_y,
             )
         else:
             raise ValueError(f"Unsupported function: {action}")
