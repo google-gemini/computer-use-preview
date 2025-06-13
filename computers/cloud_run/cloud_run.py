@@ -14,7 +14,7 @@
 import base64
 import termcolor
 import time
-from typing import Any, Optional
+from typing import Any, Optional, Literal
 import requests
 from urllib.parse import urljoin
 from ..computer import (
@@ -110,24 +110,45 @@ class CloudRunComputer(Computer):
     def open_web_browser(self) -> EnvState:
         return self._run_command("open_web_browser")
 
-    def click_at(self, y, x):
+    def click_at(self, x: int, y: int) -> EnvState:
         return self._run_command("click_at", args={"x": x, "y": y})
 
-    def hover_at(self, y, x):
+    def hover_at(self, x: int, y: int) -> EnvState:
         return self._run_command("hover_at", args={"x": x, "y": y})
 
-    def type_text_at(self, x: int, y: int, text: str) -> EnvState:
+    def type_text_at(
+        self,
+        x: int,
+        y: int,
+        text: str,
+        press_enter: bool,
+        clear_before_typing: bool,
+    ) -> EnvState:
         return self._run_command(
             "type_text_at",
             args={
                 "x": x,
                 "y": y,
                 "text": text,
+                "press_enter": press_enter,
+                "clear_before_typing": clear_before_typing,
             },
         )
 
     def scroll_document(self, direction: str) -> EnvState:
         return self._run_command("scroll_document", args={"direction": direction})
+
+    def scroll_at(
+        self,
+        x: int,
+        y: int,
+        direction: Literal["up", "down", "left", "right"],
+        magnitude: int,
+    ) -> EnvState:
+        return self._run_command(
+            "scroll_at",
+            args={"x": x, "y": y, "direction": direction, "magnitude": magnitude},
+        )
 
     def wait_5_seconds(self) -> EnvState:
         return self._run_command("wait_5_seconds")
@@ -146,6 +167,19 @@ class CloudRunComputer(Computer):
 
     def key_combination(self, keys: list[str]) -> EnvState:
         return self._run_command("key_combination", args={"keys": "+".join(keys)})
+
+    def drag_and_drop(
+        self, x: int, y: int, destination_x: int, destination_y: int
+    ) -> EnvState:
+        return self._run_command(
+            "drag_and_drop",
+            args={
+                "x": x,
+                "y": y,
+                "destination_x": destination_x,
+                "destination_y": destination_y,
+            },
+        )
 
     def current_state(self) -> EnvState:
         return self._run_command("screenshot")

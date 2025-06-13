@@ -15,6 +15,8 @@ const mockPage = {
         click: sinon.stub(),
         move: sinon.stub(),
         wheel: sinon.stub(),
+        down: sinon.stub(),
+        up: sinon.stub(),
     },
     keyboard: {
         type: sinon.stub(),
@@ -29,6 +31,7 @@ const mockPage = {
     url: sinon.stub(),
     screenshot: sinon.stub(),
     close: sinon.stub(),
+    viewport: sinon.stub()
 } as unknown as Page;
 
 const mockBrowser = {
@@ -71,6 +74,8 @@ describe("BrowserShell", () => {
             mockPage.mouse.click,
             mockPage.mouse.move,
             mockPage.mouse.wheel,
+            mockPage.mouse.down,
+            mockPage.mouse.up,
             mockPage.keyboard.type,
             mockPage.keyboard.press,
             mockPage.keyboard.down,
@@ -90,6 +95,8 @@ describe("BrowserShell", () => {
         (mockPage.mouse.click as SinonStub).resolves(undefined);
         (mockPage.mouse.move as SinonStub).resolves(undefined);
         (mockPage.mouse.wheel as SinonStub).resolves(undefined);
+        (mockPage.mouse.down as SinonStub).resolves(undefined);
+        (mockPage.mouse.up as SinonStub).resolves(undefined);
         (mockPage.keyboard.type as SinonStub).resolves(undefined);
         (mockPage.keyboard.press as SinonStub).resolves(undefined);
         (mockPage.keyboard.down as SinonStub).resolves(undefined);
@@ -208,56 +215,96 @@ describe("BrowserShell", () => {
         it("should handle type_text_at with delays and Enter press", async () => {
             const command: Command = {
                 name: "type_text_at",
-                args: { x: 50, y: 60, text: "hi" },
+                args: {
+                    x: 50,
+                    y: 60,
+                    text: "hi",
+                    press_enter: true,
+                    clear_before_typing: false,
+                },
             };
 
-            // Start the command. It will execute synchronously until the first await.
-            const runPromise = browserShell.runCommand(command);
-
-            await Promise.resolve();
+            const commandPromise = browserShell.runCommand(command);
+            await clock.runAllAsync();
+            await commandPromise;
 
             expect(
-                (mockPage.mouse.click as SinonStub).calledOnceWith(50, 60),
-                "mouse.click should be called once"
-            ).to.be.true;
-            expect(
-                (mockPage.keyboard.type as SinonStub).callCount,
-                "keyboard.type call count after first char"
-            ).to.equal(1);
-            expect(
-                (mockPage.keyboard.type as SinonStub).firstCall.args[0],
-                "first char typed"
-            ).to.equal("h");
-
-            // Advance clock by 100ms for the delay after the first character.
-            // This will allow the SUT to proceed to type the second character.
-            await clock.tickAsync(100);
-            await Promise.resolve(); // Yield again for safety, allowing SUT to process after timer.
-
-            // 4. The second character 'i' should have been typed.
-            // 5. The code is now paused at the second `await new Promise(resolve => setTimeout(resolve, 100))`.
-            expect(
-                (mockPage.keyboard.type as SinonStub).callCount,
-                "keyboard.type call count after second char"
-            ).to.equal(2);
-            expect(
-                (mockPage.keyboard.type as SinonStub).secondCall.args[0],
-                "second char typed"
-            ).to.equal("i");
-
-            // Advance clock by 100ms for the delay after the second character.
-            // This will allow the SUT to proceed to press 'Enter'.
-            await clock.tickAsync(100);
-            await Promise.resolve(); // Yield again.
-
-            // 6. 'Enter' key should have been pressed.
-            expect(
-                (mockPage.keyboard.press as SinonStub).calledOnceWith("Enter"),
-                "Enter key should be pressed"
+                (mockPage.mouse.click as SinonStub).calledOnceWith(50, 60)
             ).to.be.true;
 
-            // 7. Ensure the whole command promise resolves.
-            await runPromise;
+            const pressStub = mockPage.keyboard.press as SinonStub;
+            expect(pressStub.calledOnceWith("Enter")).to.be.true;
+
+            const typeStub = mockPage.keyboard.type as SinonStub;
+            expect(typeStub.callCount).to.equal(2);
+            expect(typeStub.getCall(0).args[0]).to.equal("h");
+            expect(typeStub.getCall(1).args[0]).to.equal("i");
+        });
+
+        it("should handle type_text_at with clearing and no enter", async () => {
+            const command: Command = {
+                name: "type_text_at",
+                args: {
+                    x: 50,
+                    y: 60,
+                    text: "hi",
+                    press_enter: false,
+                    clear_before_typing: true,
+                },
+            };
+
+            const commandPromise = browserShell.runCommand(command);
+            await clock.runAllAsync();
+            await commandPromise;
+
+            expect(
+                (mockPage.mouse.click as SinonStub).calledOnceWith(50, 60)
+            ).to.be.true;
+
+            const downStub = mockPage.keyboard.down as SinonStub;
+            expect(downStub.calledOnceWith("Control")).to.be.true;
+
+            const upStub = mockPage.keyboard.up as SinonStub;
+            expect(upStub.calledOnceWith("Control")).to.be.true;
+
+            const pressStub = mockPage.keyboard.press as SinonStub;
+            expect(pressStub.callCount).to.equal(2);
+            expect(pressStub.getCall(0).args[0]).to.equal("a");
+            expect(pressStub.getCall(1).args[0]).to.equal("Backspace");
+            expect(pressStub.neverCalledWith("Enter")).to.be.true;
+
+            const typeStub = mockPage.keyboard.type as SinonStub;
+            expect(typeStub.callCount).to.equal(2);
+            expect(typeStub.getCall(0).args[0]).to.equal("h");
+            expect(typeStub.getCall(1).args[0]).to.equal("i");
+        });
+
+        it("should handle scroll_at", async () => {
+            const command: Command = {
+                name: "scroll_at",
+                args: { x: 100, y: 200, direction: "up", magnitude: 50 },
+            };
+            await browserShell.runCommand(command);
+            expect((mockPage.mouse.move as SinonStub).calledOnceWith(100, 200)).to.be
+                .true;
+            expect(
+                (mockPage.mouse.wheel as SinonStub).calledOnceWith({
+                    deltaY: -50,
+                    deltaX: 0,
+                })
+            ).to.be.true;
+        });
+
+        it("should handle drag_and_drop", async () => {
+            const command: Command = {
+                name: "drag_and_drop",
+                args: { x: 10, y: 20, destination_x: 30, destination_y: 40 },
+            };
+            await browserShell.runCommand(command);
+            expect((mockPage.mouse.move as SinonStub).calledWith(10, 20)).to.be.true;
+            expect((mockPage.mouse.down as SinonStub).calledOnce).to.be.true;
+            expect((mockPage.mouse.move as SinonStub).calledWith(30, 40)).to.be.true;
+            expect((mockPage.mouse.up as SinonStub).calledOnce).to.be.true;
         });
 
         it("should handle scroll_document (down)", async () => {
@@ -267,10 +314,7 @@ describe("BrowserShell", () => {
             };
             await browserShell.runCommand(command);
             expect(
-                (mockPage.mouse.wheel as SinonStub).calledOnceWith({
-                    deltaY: 900,
-                    deltaX: 0,
-                })
+                (mockPage.keyboard.press as SinonStub).calledOnceWith("PageDown")
             ).to.be.true;
         });
 
@@ -281,10 +325,7 @@ describe("BrowserShell", () => {
             };
             await browserShell.runCommand(command);
             expect(
-                (mockPage.mouse.wheel as SinonStub).calledOnceWith({
-                    deltaY: -900,
-                    deltaX: 0,
-                })
+                (mockPage.keyboard.press as SinonStub).calledOnceWith("PageUp")
             ).to.be.true;
         });
         it("should handle scroll_document (left)", async () => {
@@ -292,11 +333,12 @@ describe("BrowserShell", () => {
                 name: "scroll_document",
                 args: { direction: "left" },
             };
+            // Set viewport width to simulate left scroll
+            (mockPage.viewport as SinonStub).returns({ width: 1000, height: 1000 });
             await browserShell.runCommand(command);
             expect(
                 (mockPage.mouse.wheel as SinonStub).calledOnceWith({
-                    deltaY: 0,
-                    deltaX: -900,
+                    deltaX: -500,
                 })
             ).to.be.true;
         });
@@ -306,11 +348,12 @@ describe("BrowserShell", () => {
                 name: "scroll_document",
                 args: { direction: "right" },
             };
+            // Set viewport width to simulate right scroll
+            (mockPage.viewport as SinonStub).returns({ width: 1000, height: 1000 });
             await browserShell.runCommand(command);
             expect(
                 (mockPage.mouse.wheel as SinonStub).calledOnceWith({
-                    deltaY: 0,
-                    deltaX: 900,
+                    deltaX: 500,
                 })
             ).to.be.true;
         });
@@ -494,10 +537,7 @@ describe("BrowserShell", () => {
             await browserShell.runCommand(command);
             expect(osShellRunCommandStub.notCalled).to.be.true;
             expect(
-                (mockPage.mouse.wheel as SinonStub).calledOnceWith({
-                    deltaY: 900,
-                    deltaX: 0,
-                })
+                (mockPage.keyboard.press as SinonStub).calledOnceWith("PageDown")
             ).to.be.true;
         });
     });

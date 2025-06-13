@@ -35,17 +35,37 @@ describe('#parseCommand() with JSON commands', function () {
     assert.equal(command.args.y, 3);
   });
 
-  it('parses type_text_at(y: int, x: int, text: str, clear_existing_text: bool)', () => {
-    const command = parseCommand({ "name": "type_text_at", "args": { "x": 4, "y": 3, "text": "banana fofana", "clear_existing_text": true } });
+  it('parses type_text_at(x: int, y: int, text: str, press_enter: bool, clear_before_typing: bool)', () => {
+    const command = parseCommand({ "name": "type_text_at", "args": { "x": 4, "y": 3, "text": "banana fofana", "press_enter": true, "clear_before_typing": false } });
     assert.equal(command.name, 'type_text_at');
     assert.equal(command.args.x, 4);
     assert.equal(command.args.y, 3);
+    assert.equal(command.args.press_enter, true);
+    assert.equal(command.args.clear_before_typing, false);
   });
 
   it('parses scroll_document(direction: str)', () => {
     const command = parseCommand({ "name": "scroll_document", "args": { "direction": "left" } });
     assert.equal(command.name, 'scroll_document');
     assert.equal(command.args.direction, 'left');
+  });
+
+  it('parses scroll_at(x: int, y: int, direction: str, magnitude: int)', () => {
+    const command = parseCommand({ "name": "scroll_at", "args": { "x": 1, "y": 2, "direction": "up", "magnitude": 10 } });
+    assert.equal(command.name, 'scroll_at');
+    assert.equal(command.args.x, 1);
+    assert.equal(command.args.y, 2);
+    assert.equal(command.args.direction, 'up');
+    assert.equal(command.args.magnitude, 10);
+  });
+
+  it('parses drag_and_drop(x: int, y: int, destination_x: int, destination_y: int)', () => {
+    const command = parseCommand({ "name": "drag_and_drop", "args": { "x": 1, "y": 2, "destination_x": 3, "destination_y": 4 } });
+    assert.equal(command.name, 'drag_and_drop');
+    assert.equal(command.args.x, 1);
+    assert.equal(command.args.y, 2);
+    assert.equal(command.args.destination_x, 3);
+    assert.equal(command.args.destination_y, 4);
   });
 
   it('parses go_back()', () => {

@@ -114,7 +114,12 @@ def test_get_command_timeout_standard_command():
 
 def test_get_command_timeout_type_text_at_command():
     text = "hello"
-    command = TypeTextAt(name="type_text_at", args=TypeTextAtArgs(y=0, x=0, text=text))
+    command = TypeTextAt(
+        name="type_text_at",
+        args=TypeTextAtArgs(
+            y=0, x=0, text=text, press_enter=False, clear_before_typing=True
+        ),
+    )
     base_timeout = 10
     key_delay = 0.1
     expected_timeout = base_timeout + (len(text) * key_delay)
@@ -124,7 +129,12 @@ def test_get_command_timeout_type_text_at_command():
 
 def test_get_command_timeout_type_text_at_command_zero_delay():
     text = "world"
-    command = TypeTextAt(name="type_text_at", args=TypeTextAtArgs(y=0, x=0, text=text))
+    command = TypeTextAt(
+        name="type_text_at",
+        args=TypeTextAtArgs(
+            y=0, x=0, text=text, press_enter=False, clear_before_typing=True
+        ),
+    )
     base_timeout = 20
     key_delay = 0.0
     expected_timeout = base_timeout
