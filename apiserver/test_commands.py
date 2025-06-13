@@ -19,6 +19,8 @@ from commands import (
     HoverAt,
     TypeTextAt,
     ScrollDocument,
+    ScrollAt,
+    DragAndDrop,
     GoBack,
     GoForward,
     Search,
@@ -38,13 +40,13 @@ class TestCommands(unittest.TestCase):
         self.assertEqual(command.model_dump(), function_call)
 
     def test_click_at(self):
-        function_call = {"name": "click_at", "args": {"y": 1, "x": 2}}
+        function_call = {"name": "click_at", "args": {"x": 2, "y": 1}}
         command = CommandModel.model_validate(function_call)
         self.assertIsInstance(command.root, ClickAt)
         self.assertEqual(command.model_dump(), function_call)
 
     def test_hover_at(self):
-        function_call = {"name": "hover_at", "args": {"y": 1, "x": 2}}
+        function_call = {"name": "hover_at", "args": {"x": 2, "y": 1}}
         command = CommandModel.model_validate(function_call)
         self.assertIsInstance(command.root, HoverAt)
         self.assertEqual(command.model_dump(), function_call)
@@ -52,7 +54,13 @@ class TestCommands(unittest.TestCase):
     def test_type_text_at(self):
         function_call = {
             "name": "type_text_at",
-            "args": {"y": 1, "x": 2, "text": "one"},
+            "args": {
+                "x": 2,
+                "y": 1,
+                "text": "one",
+                "press_enter": True,
+                "clear_before_typing": False,
+            },
         }
         command = CommandModel.model_validate(
             function_call,
@@ -62,7 +70,13 @@ class TestCommands(unittest.TestCase):
             command.model_dump(),
             {
                 "name": "type_text_at",
-                "args": {"y": 1, "x": 2, "text": "one"},
+                "args": {
+                    "x": 2,
+                    "y": 1,
+                    "text": "one",
+                    "press_enter": True,
+                    "clear_before_typing": False,
+                },
             },
         )
 
@@ -75,6 +89,58 @@ class TestCommands(unittest.TestCase):
             function_call,
         )
         self.assertIsInstance(command.root, ScrollDocument)
+        self.assertEqual(command.model_dump(), function_call)
+
+        function_call = {
+            "name": "scroll_document",
+            "args": {"direction": "down"},
+        }
+        command = CommandModel.model_validate(
+            function_call,
+        )
+        self.assertIsInstance(command.root, ScrollDocument)
+        self.assertEqual(command.model_dump(), function_call)
+
+        function_call = {
+            "name": "scroll_document",
+            "args": {"direction": "left"},
+        }
+        command = CommandModel.model_validate(
+            function_call,
+        )
+        self.assertIsInstance(command.root, ScrollDocument)
+        self.assertEqual(command.model_dump(), function_call)
+
+        function_call = {
+            "name": "scroll_document",
+            "args": {"direction": "right"},
+        }
+        command = CommandModel.model_validate(
+            function_call,
+        )
+        self.assertIsInstance(command.root, ScrollDocument)
+        self.assertEqual(command.model_dump(), function_call)
+
+    def test_scroll_at(self):
+        function_call = {
+            "name": "scroll_at",
+            "args": {"x": 1, "y": 2, "direction": "up", "magnitude": 10},
+        }
+        command = CommandModel.model_validate(
+            function_call,
+        )
+        self.assertIsInstance(command.root, ScrollAt)
+        self.assertEqual(command.model_dump(), function_call)
+
+    def test_drag_and_drop(self):
+        function_call = {
+            "name": "drag_and_drop",
+            "args": {"x": 1, "y": 2, "destination_x": 3, "destination_y": 4},
+        }
+        command = CommandModel.model_validate(
+            function_call,
+        )
+        self.assertIsInstance(command.root, DragAndDrop)
         self.assertEqual(command.model_dump(), function_call)
 
     def test_go_back(self):

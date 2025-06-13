@@ -24,23 +24,39 @@ class NavigateArgs(BaseModel):
 
 
 class ClickAtArgs(BaseModel):
-    y: int
     x: int
+    y: int
 
 
 class HoverAtArgs(BaseModel):
-    y: int
     x: int
+    y: int
 
 
 class TypeTextAtArgs(BaseModel):
-    y: int
     x: int
+    y: int
     text: str
+    press_enter: bool
+    clear_before_typing: bool
 
 
 class ScrollDocumentArgs(BaseModel):
-    direction: Literal["up"] | Literal["down"]
+    direction: Literal["up", "down", "left", "right"]
+
+
+class ScrollAtArgs(BaseModel):
+    x: int
+    y: int
+    direction: Literal["up", "down", "left", "right"]
+    magnitude: int
+
+
+class DragAndDropArgs(BaseModel):
+    x: int
+    y: int
+    destination_x: int
+    destination_y: int
 
 
 class KeyCombinationArgs(BaseModel):
@@ -70,6 +86,16 @@ class TypeTextAt(BaseModel):
 class ScrollDocument(BaseModel):
     name: Literal["scroll_document"]
     args: ScrollDocumentArgs
+
+
+class ScrollAt(BaseModel):
+    name: Literal["scroll_at"]
+    args: ScrollAtArgs
+
+
+class DragAndDrop(BaseModel):
+    name: Literal["drag_and_drop"]
+    args: DragAndDropArgs
 
 
 class Wait5Seconds(BaseModel):
@@ -120,6 +146,8 @@ Command = Annotated[
         HoverAt,
         TypeTextAt,
         ScrollDocument,
+        ScrollAt,
+        DragAndDrop,
         GoBack,
         GoForward,
         Search,

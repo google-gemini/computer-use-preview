@@ -18,7 +18,7 @@ export interface OpenWebBrowser {
   args?: {}
 }
 
-// click_at(y: int, x: int)
+// click_at(x: int, y: int)
 export interface ClickAt {
   name: "click_at";
   args: {
@@ -27,7 +27,7 @@ export interface ClickAt {
   }
 }
 
-// hover_at(y: int, x: int)
+// hover_at(x: int, y: int)
 export interface HoverAt {
   name: "hover_at";
   args: {
@@ -36,21 +36,45 @@ export interface HoverAt {
   }
 }
 
-// type_text_at(y: int, x: int, text: str)
+// type_text_at(x: int, y: int, text: str, press_enter: bool, clear_before_typing: bool)
 export interface TypeTextAt {
   name: "type_text_at";
   args: {
     x: number;
     y: number;
     text: string;
+    press_enter: boolean;
+    clear_before_typing: boolean;
   }
 }
 
-// scroll_document(direction: str)
+// scroll_document(direction: "up" | "down" | "left" | "right")
 export interface ScrollDocument {
   name: "scroll_document";
   args: {
-    direction: string;
+    direction: "up" | "down" | "left" | "right";
+  }
+}
+
+// scroll_at(x: int, y: int, direction: "up" | "down" | "left" | "right", magnitude: int)
+export interface ScrollAt {
+  name: "scroll_at";
+  args: {
+    x: number;
+    y: number;
+    direction: "up" | "down" | "left" | "right";
+    magnitude: number;
+  }
+}
+
+// drag_and_drop(x: int, y: int, destination_x: int, destination_y: int)
+export interface DragAndDrop {
+  name: "drag_and_drop";
+  args: {
+    x: number;
+    y: number;
+    destination_x: number;
+    destination_y: number;
   }
 }
 
@@ -111,6 +135,8 @@ export type Command = OpenWebBrowser
   | HoverAt
   | TypeTextAt
   | ScrollDocument
+  | ScrollAt
+  | DragAndDrop
   | Wait5Seconds
   | GoBack
   | GoForward

@@ -96,29 +96,63 @@ export class BrowserShell implements ComputerShell {
         break;
       case 'type_text_at':
         await this.page.mouse.click(c.args.x, c.args.y);
+        if (c.args.clear_before_typing) {
+          await this.page.keyboard.down('Control');
+          await this.page.keyboard.press('a');
+          await this.page.keyboard.up('Control');
+          await this.page.keyboard.press('Backspace');
+        }
         // see https://github.com/puppeteer/puppeteer/issues/1648
         for (let i = 0; i < c.args.text.length; i++) {
           await this.page.keyboard.type(c.args.text[i]);
           await new Promise(resolve => setTimeout(resolve, 100));
         }
-        await this.page.keyboard.press('Enter');
+        if (c.args.press_enter) {
+          await this.page.keyboard.press('Enter');
+        }
         break;
       case 'scroll_document':
+        if (c.args.direction === 'up') {
+          await this.page.keyboard.press('PageUp');
+        } else if (c.args.direction === 'down') {
+          await this.page.keyboard.press('PageDown');
+        } else {
+          let deltaX = 0;
+          if (c.args.direction === 'left') {
+            let viewport = this.page.viewport();
+            if (viewport) {
+              deltaX = -viewport.width / 2;
+            }
+          }
+          if (c.args.direction === 'right') {
+            let viewport = this.page.viewport();
+            if (viewport) {
+              deltaX = viewport.width / 2;
+            }
+          }
+          await this.page.mouse.wheel({ deltaX });
+        }
+        break;
+      case 'scroll_at':
+        await this.page.mouse.move(c.args.x, c.args.y);
         let deltaX = 0;
         let deltaY = 0;
-        if (c.args.direction === 'left') {
-          deltaX = -900;
-        }
-        if (c.args.direction === 'right') {
-          deltaX = 900;
-        }
         if (c.args.direction === 'up') {
-          deltaY = -900;
-        }
-        if (c.args.direction === 'down') {
-          deltaY = 900;
+          deltaY = -c.args.magnitude;
+        } else if (c.args.direction === 'down') {
+          deltaY = c.args.magnitude;
+        } else if (c.args.direction === 'left') {
+          deltaX = -c.args.magnitude;
+        } else if (c.args.direction === 'right') {
+          deltaX = c.args.magnitude;
         }
         await this.page.mouse.wheel({deltaY, deltaX});
+        break;
+      case 'drag_and_drop':
+        await this.page.mouse.move(c.args.x, c.args.y);
+        await this.page.mouse.down();
+        await this.page.mouse.move(c.args.destination_x, c.args.destination_y);
+        await this.page.mouse.up();
         break;
       case 'wait_5_seconds':
         await new Promise(resolve => setTimeout(resolve, 5000));
