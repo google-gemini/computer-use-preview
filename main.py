@@ -59,6 +59,11 @@ def main() -> int:
         default=False,
         help="If possible, highlight the location of the mouse.",
     )
+    parser.add_argument(
+        "--model",
+        default='computer-use-exp-6-11',
+        help="Set which main model to use.",
+    )
     args = parser.parse_args()
 
     if args.env == "cloud-run":
@@ -83,6 +88,7 @@ def main() -> int:
         agent = BrowserAgent(
             browser_computer=browser_computer,
             query=args.query,
+            model_name=args.model,
         )
         agent.agent_loop()
     return 0
