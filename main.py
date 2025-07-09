@@ -61,7 +61,7 @@ def main() -> int:
     )
     parser.add_argument(
         "--model",
-        default='computer-use-exp-6-11',
+        default='computer-use-exp',
         help="Set which main model to use.",
     )
     args = parser.parse_args()
