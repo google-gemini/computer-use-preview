@@ -188,7 +188,8 @@ async def delete_session(
 
 
 # Static HTML5 to test the API.
-app.mount("/", StaticFiles(directory="static", html=True), name="static")
+static_dir = os.path.join(os.path.dirname(__file__), "static")
+app.mount("/", StaticFiles(directory=static_dir, html=True), name="static")
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", "8000"))
