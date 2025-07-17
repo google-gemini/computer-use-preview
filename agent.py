@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from typing import Literal, Optional, Union
+from typing import Literal, Optional, Union, Any
 from google import genai
 from google.genai import types
 import termcolor
@@ -99,6 +99,7 @@ class BrowserAgent:
                 ),
                 types.Tool(function_declarations=custom_functions),
             ],
+            thinking_config=types.ThinkingConfig(include_thoughts=True),
         )
 
     def handle_action(self, action: types.FunctionCall) -> FunctionResponseT:
@@ -269,7 +270,15 @@ class BrowserAgent:
 
         function_responses = []
         for function_call in function_calls:
-            fc_result = self._execute_function_call(function_call)
+            if function_call.args and (
+                safety := function_call.args.get("safety_decision")
+            ):
+                decision = self._get_safety_confirmation(safety)
+                if decision == "TERMINATE":
+                    print("Terminating agent loop")
+                    return "COMPLETE"
+            with console.status("Sending command to Computer...", spinner_style=None):
+                fc_result = self.handle_action(function_call)
             if isinstance(fc_result, EnvState):
                 function_responses.append(
                     FunctionResponse(
@@ -298,27 +307,23 @@ class BrowserAgent:
         )
         return "CONTINUE"
 
-    def _execute_function_call(
-        self, function_call: types.FunctionCall
-    ) -> FunctionResponseT:
-        if safety := function_call.args.get("safety_decision"):
-            if safety["decision"] == "require_confirmation":
-                termcolor.cprint(
-                    "Safety service requires explicit confirmation!",
-                    color="yellow",
-                    attrs=["bold"],
-                )
-                print(safety["explanation"])
-                decision = ""
-                while decision.lower() not in ("y", "n", "ye", "yes", "no"):
-                    decision = input("Do you wish to proceed? [Y]es/[n]o\n")
-                if decision.lower() in ("n", "no"):
-                    print("Terminating agent loop.")
-                    return "COMPLETE"
-                print("Proceeding with agent loop.\n")
-
-        with console.status("Sending command to Computer...", spinner_style=None):
-            return self.handle_action(function_call)
+    def _get_safety_confirmation(
+        self, safety: dict[str, Any]
+    ) -> Literal["CONTINUE", "TERMINATE"]:
+        if safety["decision"] != "require_confirmation":
+            raise ValueError(f"Unknown safety decision: safety['decision']")
+        termcolor.cprint(
+            "Safety service requires explicit confirmation!",
+            color="yellow",
+            attrs=["bold"],
+        )
+        print(safety["explanation"])
+        decision = ""
+        while decision.lower() not in ("y", "n", "ye", "yes", "no"):
+            decision = input("Do you wish to proceed? [Y]es/[n]o\n")
+        if decision.lower() in ("n", "no"):
+            return "TERMINATE"
+        return "CONTINUE"
 
     def agent_loop(self):
         status = "CONTINUE"
