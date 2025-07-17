@@ -19,7 +19,7 @@ from computers import CloudRunComputer, BrowserbaseComputer, PlaywrightComputer
 
 
 CLOUD_RUN_SCREEN_SIZE = (1920, 1080)
-PLAYWRIGHT_SCREEN_SIZE = (1920, 810)
+PLAYWRIGHT_SCREEN_SIZE = (1920, 1080)
 
 
 def main() -> int:
