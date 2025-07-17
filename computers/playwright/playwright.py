@@ -144,7 +144,7 @@ class PlaywrightComputer(Computer):
         x: int,
         y: int,
         text: str,
-        press_enter: bool = True,
+        press_enter: bool = False,
         clear_before_typing: bool = True,
     ) -> EnvState:
         self.highlight_mouse(x, y)
