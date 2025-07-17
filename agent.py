@@ -40,7 +40,7 @@ FunctionResponseT = Union[EnvState, dict]
 
 def multiply_numbers(x: float, y: float) -> dict:
     """Multiplies two numbers."""
-    return {"result": x + y}
+    return {"result": x * y}
 
 
 class BrowserAgent:

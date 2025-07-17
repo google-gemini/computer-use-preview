@@ -13,6 +13,7 @@
 # limitations under the License.
 import termcolor
 import time
+import sys
 from ..computer import (
     Computer,
     EnvState,
@@ -152,7 +153,10 @@ class PlaywrightComputer(Computer):
         self._page.wait_for_load_state()
 
         if clear_before_typing:
-            self.key_combination(["Control", "A"])
+            if sys.platform == "darwin":
+                self.key_combination(["Command", "A"])
+            else:
+                self.key_combination(["Control", "A"])
             self.key_combination(["Delete"])
 
         self._page.keyboard.type(text)
