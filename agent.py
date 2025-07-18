@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from typing import Literal, Optional
+from typing import Literal, Optional, Union, Any
 from google import genai
 from google.genai import types
 import termcolor
@@ -33,6 +33,16 @@ from computers import EnvState, Computer
 console = Console()
 
 
+# Built-in Computer Use tools will return "EnvState".
+# Custom provided functions will return "dict".
+FunctionResponseT = Union[EnvState, dict]
+
+
+def multiply_numbers(x: float, y: float) -> dict:
+    """Multiplies two numbers."""
+    return {"result": x * y}
+
+
 class BrowserAgent:
     def __init__(
         self,
@@ -50,8 +60,10 @@ class BrowserAgent:
             location=os.environ.get("VERTEXAI_LOCATION"),
             http_options=types.HttpOptions(
                 api_version="v1alpha",
-                base_url="https://generativelanguage.googleapis.com",
-                )
+                base_url=os.environ.get(
+                    "GEMINI_API_SERVER", "https://generativelanguage.googleapis.com"
+                ),
+            ),
         )
         self._contents: list[Content] = [
             Content(
@@ -61,6 +73,18 @@ class BrowserAgent:
                 ],
             )
         ]
+
+        # Exclude any predefined functions here.
+        excluded_predefined_functions = []
+
+        # Add your own custom functions here.
+        custom_functions = [
+            # For example:
+            types.FunctionDeclaration.from_callable(
+                client=self._client, callable=multiply_numbers
+            )
+        ]
+
         self._generate_content_config = GenerateContentConfig(
             temperature=1,
             top_p=0.95,
@@ -68,14 +92,17 @@ class BrowserAgent:
             max_output_tokens=8192,
             tools=[
                 types.Tool(
-                    computer_use=types.ComputerUse(
-                        environment=types.Environment.ENVIRONMENT_BROWSER
-                    )
-                )
+                    computer_use=types.ToolComputerUse(
+                        environment=types.Environment.ENVIRONMENT_BROWSER,
+                        excluded_predefined_functions=excluded_predefined_functions,
+                    ),
+                ),
+                types.Tool(function_declarations=custom_functions),
             ],
+            thinking_config=types.ThinkingConfig(include_thoughts=True),
         )
 
-    def handle_action(self, action: types.FunctionCall) -> EnvState:
+    def handle_action(self, action: types.FunctionCall) -> FunctionResponseT:
         """Handles the action and returns the environment state."""
         if action.name == "open_web_browser":
             return self._browser_computer.open_web_browser()
@@ -96,7 +123,7 @@ class BrowserAgent:
         elif action.name == "type_text_at":
             x = self.normalize_x(action.args["x"])
             y = self.normalize_y(action.args["y"])
-            press_enter = action.args.get("press_enter", True)
+            press_enter = action.args.get("press_enter", False)
             clear_before_typing = action.args.get("clear_before_typing", True)
             return self._browser_computer.type_text_at(
                 x=x,
@@ -110,7 +137,7 @@ class BrowserAgent:
         elif action.name == "scroll_at":
             x = self.normalize_x(action.args["x"])
             y = self.normalize_y(action.args["y"])
-            magnitude = action.args.get("magnitude", 200)
+            magnitude = action.args.get("magnitude", 800)
             direction = action.args["direction"]
 
             if direction in ("up", "down"):
@@ -147,6 +174,9 @@ class BrowserAgent:
                 destination_x=destination_x,
                 destination_y=destination_y,
             )
+        # Handle the custom function declarations here.
+        elif action.name == multiply_numbers.__name__:
+            return multiply_numbers(x=action.args["x"], y=action.args["y"])
         else:
             raise ValueError(f"Unsupported function: {action}")
 
@@ -189,12 +219,13 @@ class BrowserAgent:
                 text.append(part.text)
         return " ".join(text) or None
 
-    def get_function_call(self, candidate: Candidate) -> Optional[types.FunctionCall]:
+    def extract_function_calls(self, candidate: Candidate) -> list[types.FunctionCall]:
         """Extracts the function call from the candidate."""
+        ret = []
         for part in candidate.content.parts:
             if part.function_call:
-                return part.function_call
-        return None
+                ret.append(part.function_call)
+        return ret
 
     def run_one_iteration(self) -> Literal["COMPLETE", "CONTINUE"]:
         # Generate a response from the model.
@@ -204,89 +235,100 @@ class BrowserAgent:
             except Exception as e:
                 return "COMPLETE"
 
+        if not response.candidates:
+            print("Response has no candidates!")
+            print(response)
+            raise ValueError("Empty response")
+
         # Extract the text and function call from the response.
         candidate = response.candidates[0]
-        reasoning = self.get_text(candidate)
-        function_call = self.get_function_call(candidate)
-
-        # Append the model turn.
+        # Append the model turn to conversation history.
         self._contents.append(candidate.content)
 
-        if not function_call or not function_call.name:
+        reasoning = self.get_text(candidate)
+        function_calls = self.extract_function_calls(candidate)
+        if not function_calls:
             print(f"Agent Loop Complete: {reasoning}")
             return "COMPLETE"
 
-        # Print the function call and any reasoning.
-        function_call_str = f"Name: {function_call.name}"
-        if function_call.args:
-            function_call_str += f"\nArgs:"
-            for key, value in function_call.args.items():
-                function_call_str += f"\n  {key}: {value}"
+        function_call_strs = []
+        for function_call in function_calls:
+            # Print the function call and any reasoning.
+            function_call_str = f"Name: {function_call.name}"
+            if function_call.args:
+                function_call_str += f"\nArgs:"
+                for key, value in function_call.args.items():
+                    function_call_str += f"\n  {key}: {value}"
+            function_call_strs.append(function_call_str)
+
         table = Table(expand=True)
         table.add_column("Gemini Reasoning", header_style="magenta", ratio=1)
-        table.add_column("Function Call", header_style="cyan", ratio=1)
-        table.add_row(
-            reasoning,
-            function_call_str,
-        )
+        table.add_column("Function Call(s)", header_style="cyan", ratio=1)
+        table.add_row(reasoning, "\n".join(function_call_strs))
         console.print(table)
         print()
 
-        if safety := function_call.args.get("safety_decision"):
-            if safety["decision"] == "block":
-                termcolor.cprint(
-                    "Terminating loop due to safety block!",
-                    color="yellow",
-                    attrs=["bold"],
-                )
-                print(safety["explanation"])
-                return "COMPLETE"
-            elif safety["decision"] == "require_confirmation":
-                termcolor.cprint(
-                    "Safety service requires explicit confirmation!",
-                    color="yellow",
-                    attrs=["bold"],
-                )
-                print(safety["explanation"])
-                decision = ""
-                while decision.lower() not in ("y", "n", "ye", "yes", "no"):
-                    decision = input("Do you wish to proceed? [Y]es/[n]o\n")
-                if decision.lower() in ("n", "no"):
-                    print("Terminating agent loop.")
+        function_responses = []
+        for function_call in function_calls:
+            if function_call.args and (
+                safety := function_call.args.get("safety_decision")
+            ):
+                decision = self._get_safety_confirmation(safety)
+                if decision == "TERMINATE":
+                    print("Terminating agent loop")
                     return "COMPLETE"
-                print("Proceeding with agent loop.\n")
-
-        with console.status("Sending command to Computer...", spinner_style=None):
-            environment_state = self.handle_action(function_call)
+            with console.status("Sending command to Computer...", spinner_style=None):
+                fc_result = self.handle_action(function_call)
+            if isinstance(fc_result, EnvState):
+                function_responses.append(
+                    FunctionResponse(
+                        name=function_call.name,
+                        response={
+                            "image": {
+                                "mimetype": "image/png",
+                                "data": base64.b64encode(fc_result.screenshot).decode(
+                                    "utf-8"
+                                ),
+                            },
+                            "url": fc_result.url,
+                        },
+                    )
+                )
+            elif isinstance(fc_result, dict):
+                function_responses.append(
+                    FunctionResponse(name=function_call.name, response=fc_result)
+                )
 
         self._contents.append(
             Content(
                 role="user",
-                parts=[
-                    Part(
-                        function_response=FunctionResponse(
-                            name=function_call.name,
-                            response={
-                                "image": {
-                                    "mimetype": "image/png",
-                                    "data": base64.b64encode(
-                                        environment_state.screenshot
-                                    ).decode("utf-8"),
-                                },
-                                "url": environment_state.url,
-                            },
-                        )
-                    )
-                ],
+                parts=[Part(function_response=fr) for fr in function_responses],
             )
         )
         return "CONTINUE"
 
+    def _get_safety_confirmation(
+        self, safety: dict[str, Any]
+    ) -> Literal["CONTINUE", "TERMINATE"]:
+        if safety["decision"] != "require_confirmation":
+            raise ValueError(f"Unknown safety decision: safety['decision']")
+        termcolor.cprint(
+            "Safety service requires explicit confirmation!",
+            color="yellow",
+            attrs=["bold"],
+        )
+        print(safety["explanation"])
+        decision = ""
+        while decision.lower() not in ("y", "n", "ye", "yes", "no"):
+            decision = input("Do you wish to proceed? [Y]es/[n]o\n")
+        if decision.lower() in ("n", "no"):
+            return "TERMINATE"
+        return "CONTINUE"
+
     def agent_loop(self):
-        while True:
+        status = "CONTINUE"
+        while status == "CONTINUE":
             status = self.run_one_iteration()
-            if status == "COMPLETE":
-                return
 
     def normalize_x(self, x: int) -> int:
         return int(x / 1000 * self._browser_computer.screen_size()[0])
