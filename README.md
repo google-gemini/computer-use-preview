@@ -160,25 +160,9 @@ The `main.py` script is the command-line interface (CLI) for running the browser
 
 ## Computers
 
-### Interface
+For an in-depth explanation of how the system works, please see the instructions document available here:
 
-The following table outlines the browser interaction commands supported by the system. These commands are invoked by the Gemini model through function calls. All listed commands are supported by `CloudRunComputer`, `PlaywrightComputer`, and `BrowserbaseComputer` implementations.
-
-| Command Name | Description | Arguments (in Gemini Function Call) | Example Gemini Function Call |
-|-|-|-|-|
-| open_web_browser | Opens the web browser. | None | `{"name": "open_web_browser", "args": {}}` |
-| wait_5_seconds | Pauses execution for 5 seconds to allow dynamic content to load or animations to complete. | None | `{"name": "wait_5_seconds", "args": {}}` |
-| go_back | Navigates to the previous page in the browser's history. | None | `{"name": "go_back", "args": {}}` |
-| go_forward | Navigates to the next page in the browser's history. | None | `{"name": "go_forward", "args": {}}` |
-| search | Navigates to the default search engine's homepage (e.g., Google). Useful for starting a new search task. | None | `{"name": "search", "args": {}}` |
-| click_at | Clicks at a specific coordinate on the webpage. The x and y values are based on a 1000x1000 grid. | x: int (0-999)<br>y: int (0-999) | `{"name": "click_at", "args": {"x": 500, "y": 300}}` |
-| hover_at | Hovers the mouse at a specific coordinate on the webpage. Useful for revealing sub-menus. x and y are based on a 1000x1000 grid. | x: int (0-999)<br>y: int (0-999) | `{"name": "hover_at", "args": {"x": 250, "y": 150}}` |
-| type_text_at | Clicks at a specific coordinate and then types the given text. The system automatically presses ENTER after typing. x and y are based on a 1000x1000 grid. | x: int (0-999)<br>y: int (0-999) text: str | `{"name": "type_text_at", "args": {"x": 400, "y": 250, "text": "search query"}}` |
-| key_combination | Presses keyboard keys or key combinations. For combinations, keys are specified with "+" (e.g., "Control+C"). Single keys are like "Enter". | keys: str | `{"name": "key_combination", "args": {"keys": "Control+A"}}` |
-| navigate | Navigates the browser directly to the specified URL. | url: str | `{"name": "navigate", "args": {"url": "https://www.wikipedia.org"}}` |
-| scroll_document | Scrolls the entire webpage "up" or "down". | direction: str ("up" or "down") | `{"name": "scroll_document", "args": {"direction": "down"}}` |
-
-
+https://docs.google.com/document/d/1jTWQPVCIso7mo5SbQCn2DKZXWFlL_g3D2f-JOrZa1do/edit?tab=t.0
 
 ## Advanced Topics
 
