@@ -44,12 +44,7 @@ def multiply_numbers(x: float, y: float) -> dict:
 
 
 class BrowserAgent:
-    def __init__(
-        self,
-        browser_computer: Computer,
-        query: str,
-        model_name: str
-    ):
+    def __init__(self, browser_computer: Computer, query: str, model_name: str):
         self._browser_computer = browser_computer
         self._query = query
         self._model_name = model_name
@@ -283,15 +278,14 @@ class BrowserAgent:
                 function_responses.append(
                     FunctionResponse(
                         name=function_call.name,
-                        response={
-                            "image": {
-                                "mimetype": "image/png",
-                                "data": base64.b64encode(fc_result.screenshot).decode(
-                                    "utf-8"
-                                ),
-                            },
-                            "url": fc_result.url,
-                        },
+                        response={"url": fc_result.url},
+                        data=[
+                            types.Part(
+                                inline_data=types.Blob(
+                                    mime_type="image/png", data=fc_result.screenshot
+                                )
+                            )
+                        ],
                     )
                 )
             elif isinstance(fc_result, dict):
