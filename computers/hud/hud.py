@@ -1,10 +1,7 @@
 import asyncio
-import io
 import base64
 from typing import Literal, Optional, Any, Dict
 import termcolor
-from PIL import Image
-import numpy as np
 
 from ..computer import Computer, EnvState
 
