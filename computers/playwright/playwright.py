@@ -13,6 +13,7 @@
 # limitations under the License.
 import termcolor
 import time
+import os
 import sys
 from ..computer import (
     Computer,
@@ -88,11 +89,9 @@ class PlaywrightComputer(Computer):
         print("Creating session...")
         self._playwright = sync_playwright().start()
         self._browser = self._playwright.chromium.launch(
-            args=[
-                '--disable-blink-features=AutomationControlled'
-            ],
-            headless=False,
-            )
+            args=["--disable-blink-features=AutomationControlled"],
+            headless=bool(os.environ.get("PLAYWRIGHT_HEADLESS", False)),
+        )
         self._context = self._browser.new_context(
             viewport={
                 "width": self._screen_size[0],
