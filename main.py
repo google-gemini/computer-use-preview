@@ -15,7 +15,7 @@ import argparse
 import os
 
 from agent import BrowserAgent
-from computers import CloudRunComputer, BrowserbaseComputer, PlaywrightComputer, HudComputer
+from computers import CloudRunComputer, BrowserbaseComputer, PlaywrightComputer, HudComputer, MyComputer
 
 
 CLOUD_RUN_SCREEN_SIZE = (1920, 1080)
@@ -43,7 +43,7 @@ def main() -> int:
     parser.add_argument(
         "--env",
         type=str,
-        choices=("cloud-run", "playwright", "browserbase", "hud"),
+        choices=("cloud-run", "playwright", "browserbase", "hud", "my"),
         default="cloud-run",
         help="The computer use environment to use.",
     )
@@ -81,6 +81,8 @@ def main() -> int:
         )
     elif args.env == "browserbase":
         env = BrowserbaseComputer(screen_size=PLAYWRIGHT_SCREEN_SIZE)
+    elif args.env == 'my':
+        env = MyComputer()
     elif args.env == "hud":
         env = HudComputer(
             screen_size=PLAYWRIGHT_SCREEN_SIZE,

@@ -178,6 +178,7 @@ class BrowserAgent:
     def get_model_response(
         self, max_retries=5, base_delay_s=1
     ) -> types.GenerateContentResponse:
+        print(f'DEBUG: sending req of about {len(str(self._contents))} chars')
         for attempt in range(max_retries):
             try:
                 response = self._client.models.generate_content(
@@ -312,11 +313,6 @@ class BrowserAgent:
             attrs=["bold"],
         )
         print(safety["explanation"])
-        decision = ""
-        while decision.lower() not in ("y", "n", "ye", "yes", "no"):
-            decision = input("Do you wish to proceed? [Y]es/[n]o\n")
-        if decision.lower() in ("n", "no"):
-            return "TERMINATE"
         return "CONTINUE"
 
     def agent_loop(self):

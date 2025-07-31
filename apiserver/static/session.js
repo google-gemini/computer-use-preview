@@ -12,12 +12,33 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 const sessionIdEl = document.getElementById("screenshot");
+const screenViewTextEl = document.getElementById("screen-view-text");
+const nextActionInnerContent = document.getElementById("next-action-inner-content");
+const nextActionTextDiv = document.getElementById("next-action-description");
 const urlParams = new URLSearchParams(window.location.search);
 const sessionId = urlParams.get('session_id');
 const apiKey = urlParams.get('api_key');
 console.log(`Starting session viewer for ${sessionId}`);
 
 const updateScreenshot = async () => {
+
+  const permCheck = await fetch(`/sessions/${sessionId}/get_perm_check`, {
+      method: 'GET',
+    });
+  if (permCheck.status == 404) {
+    nextActionInnerContent.style.display = 'none'
+  }
+  else {
+    permCheckResult = await permCheck.json();
+    if (permCheckResult['pending'] == false) {
+      nextActionInnerContent.style.display = 'none'
+    } else {
+      nextActionInnerContent.style.display = 'block'
+      nextActionTextDiv.innerHTML = permCheckResult['details']
+    }
+  }
+
+
   const response = await fetch(`/sessions/${sessionId}/commands`, {
       method: 'POST',
       headers: {
@@ -27,15 +48,37 @@ const updateScreenshot = async () => {
       body: JSON.stringify({name: 'screenshot'}),
     });
 
-  const json = await response.json();
+
+  
   if (!response.ok) {
-      console.log(`Error processing command: Server error (Status: ${response.status}, message: ${JSON.stringify(json)}})`);
+      console.log(`Error processing command: Server error (Status: ${response.status}, message: ${response.text()}})`);
+      screenViewTextEl.innerHTML = `Failed to get screenshot! ${response.status}`;
+      return;
   }
+  const json = await response.json();
   sessionIdEl.src = "data:image/png;base64," + json.screenshot;
+  screenViewTextEl.innerHTML = '';
   setTimeout(async () => {
     await updateScreenshot();
-  }, 1000);
+  }, 500);
 };
 
+document.getElementById("approve-action").onclick = async function(e) {
+  const response = await fetch(`/sessions/${sessionId}/complete_perm_check`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-Key': apiKey,
+        },
+        body: JSON.stringify(
+          {
+            "granted": true,
+            "reason": "good"
+          }
+        )
+      });
+    const json = await response.json();
+    console.log(json);
+};
 
 updateScreenshot().then(() => console.log("initialized"));

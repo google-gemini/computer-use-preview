@@ -5,13 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Session Viewer</title>
-    <link rel="stylesheet" href="./style.css">
+    <link rel="stylesheet" href="./session.css">
     <link rel="icon" href="data:image/png;base64,iVBORw0KGgo=">
   </head>
   <body>
     <main>
-        <div>
+        <div id="screen-view-container">
+            <h3>Screen View</h3>
             <img id="screenshot"></img>
+            <div id="screen-view-text"></div>
+        </div>
+        <div id="next-action-div">
+            <h3>Next Action</h3>
+            <div id="next-action-inner-content">
+            <div id="next-action-description"></div>
+            <button id="approve-action">Approve</button><button id="deny-action">Deny</button>
+            </div>
         </div>
     </main>
     <script src="session.js"></script>

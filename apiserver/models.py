@@ -55,6 +55,21 @@ class CreateSessionResponse(BaseModel):
         examples=["9652c8a2-4886-41ba-b779-dd658bed2722"],
     )
 
+class AddPermCheckRequest(BaseModel):
+    details: str = Field(
+        title="Details of this permission check",
+        examples=["test action ABC"],
+    )
+
+class CompletePermCheckRequest(BaseModel):
+    granted: bool
+    reason: str
+
+class GetPermCheckResponse(BaseModel):
+    pending: bool
+    details: str
+    granted: bool
+    reason: str
 
 class DeleteSessionResponse(BaseModel):
     id: str = Field(

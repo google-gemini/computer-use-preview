@@ -3,6 +3,7 @@ from .browserbase.browserbase import BrowserbaseComputer
 from .playwright.playwright import PlaywrightComputer
 from .cloud_run.cloud_run import CloudRunComputer
 from .hud.hud import HudComputer
+from .my_computer.my_computer import MyComputer
 
 __all__ = [
     "Computer",
@@ -11,4 +12,5 @@ __all__ = [
     "PlaywrightComputer",
     "CloudRunComputer",
     "HudComputer",
+    "MyComputer",
 ]

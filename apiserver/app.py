@@ -20,7 +20,7 @@ import logging
 import time
 from fastapi.security import APIKeyHeader
 from fastapi import FastAPI, HTTPException, status, Path, Security, Depends, Request
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, Response
 from fastapi.staticfiles import StaticFiles
 from typing import Annotated
 from contextlib import asynccontextmanager
@@ -32,6 +32,7 @@ from models import CreateCommandRequest, CreateCommandResponse
 from models import DeleteSessionResponse
 from models import Message
 from models import SignalingStrategy
+import models
 from commands import Command
 import uuid
 import os
@@ -105,6 +106,8 @@ app = FastAPI(
     dependencies=[Depends(check_api_key)],
 )
 
+app.state.pending_perm_checks = {}
+app.state.completed_perm_checks = {}
 
 @app.post("/sessions")
 async def create_session(session: CreateSessionRequest) -> CreateSessionResponse:
@@ -136,6 +139,42 @@ def get_screenshot(
         pubsub_manager.stream_screenshots(session_id, request),
         media_type="text/event-stream",
     )
+
+@app.post("/sessions/{session_id}/add_perm_check")
+def add_perm_check(
+    session_id: Annotated[str, Path(description="The UUID of the session.")],
+    add_perm: models.AddPermCheckRequest,
+    request: Request,
+):
+    add_perm_dict = add_perm.model_dump()
+    app.state.pending_perm_checks[session_id] = add_perm_dict
+    if session_id in app.state.completed_perm_checks:
+        del app.state.completed_perm_checks[session_id]
+    return {}
+
+@app.post("/sessions/{session_id}/complete_perm_check")
+def complete_perm_check(
+    session_id: Annotated[str, Path(description="The UUID of the session.")],
+    complete_perm: models.CompletePermCheckRequest,
+    request: Request,
+):
+    complete_perm_dict = complete_perm.model_dump()
+    app.state.completed_perm_checks[session_id] = complete_perm_dict
+    return {}
+
+@app.get("/sessions/{session_id}/get_perm_check")
+def get_perm_check(
+    session_id: Annotated[str, Path(description="The UUID of the session.")],
+    request: Request,
+    response: Response,
+) -> models.GetPermCheckResponse:
+    if session_id in app.state.completed_perm_checks:
+        return models.GetPermCheckResponse(pending=False, details=app.state.pending_perm_checks[session_id]['details'], **app.state.completed_perm_checks[session_id])
+    elif session_id in app.state.pending_perm_checks:
+        return models.GetPermCheckResponse(pending=True, details=app.state.pending_perm_checks[session_id]['details'], granted=False, reason='')
+    else:
+        response.status_code = status.HTTP_404_NOT_FOUND
+        return response
 
 
 @app.post("/sessions/{session_id}/commands")

@@ -1,0 +1,67 @@
+main {
+  display: flex;
+  gap: 24px;
+}
+
+/* 
+  This div is set to a fixed 20% width.
+  flex: 0 0 20%; is shorthand for:
+  - flex-grow: 0 (don't grow if there's extra space)
+  - flex-shrink: 0 (don't shrink if there's not enough space)
+  - flex-basis: 20% (the ideal starting width)
+*/
+#screen-view-container {
+  flex: 0 0 80%;
+}
+
+/* 
+  This div will take up the remaining space.
+  flex: 1; is shorthand for:
+  - flex-grow: 1 (grow to fill any available space)
+  - flex-shrink: 1 (can shrink if needed)
+  - flex-basis: 0% (starts with no width and grows from there)
+*/
+#next-action-div {
+  flex: 1;
+}
+
+
+/* --- (Optional) Extra styling for visual clarity --- */
+#screen-view-container, #next-action-div {
+  border: 1px solid #ddd;
+  padding: 16px;
+  border-radius: 8px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+
+/* --- (Optional) Styling for the content inside the divs --- */
+
+/* Make the image responsive and not overflow its container */
+#screenshot {
+  width: 100%;
+  height: auto;
+  background-color: #f0f0f0; /* Placeholder color */
+  min-height: 200px; /* Example minimum height */
+  display: block; /* Removes bottom space under image */
+  border: 1px solid #ccc;
+}
+
+/* Style the buttons */
+#approve-action, #deny-action {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  color: white;
+  margin-right: 10px;
+  font-weight: bold;
+}
+
+#approve-action {
+  background-color: #28a745; /* Green */
+}
+
+#deny-action {
+  background-color: #dc3545; /* Red */
+}

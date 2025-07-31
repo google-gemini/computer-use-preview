@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import base64
+import sys
 import termcolor
 import time
 from typing import Any, Optional, Literal
@@ -53,9 +54,9 @@ class CloudRunComputer(Computer):
                     "type": "browser",
                     "screen_resolution": screen_resolution,
                     # Erase the VM after 600 seconds of total runtime.
-                    "timeout_seconds": 600,
+                    "timeout_seconds": 60 * 60 * 2,
                     # Or after 60 seconds of inactivity.
-                    "idle_timeout_seconds": 60,
+                    "idle_timeout_seconds": 60 * 60 * 2,
                 },
                 headers=self._headers,
             )
@@ -92,6 +93,31 @@ class CloudRunComputer(Computer):
     def _run_command(
         self, command: str, args: Optional[dict[str, Any]] = None
     ) -> EnvState:
+        
+        response = requests.post(
+            urljoin(self._api_server, f"sessions/{self._session_id}/add_perm_check"),
+            json={
+                "details": f"OK to execute command {command} with args {args}?"
+            },
+            headers=self._headers,
+        )
+        response.raise_for_status()
+        while True:
+            response = requests.get(
+                urljoin(self._api_server, f"sessions/{self._session_id}/get_perm_check"),
+                headers=self._headers,
+            )
+            response.raise_for_status()
+            response = response.json()
+            if response["pending"] == True:
+                time.sleep(1.0)
+                continue
+            if response["granted"]:
+                break
+            else:
+                print(f"Stopping since permission not granted!")
+                break
+
         url = urljoin(self._api_server, f"sessions/{self._session_id}/commands")
         response = requests.post(
             url,
