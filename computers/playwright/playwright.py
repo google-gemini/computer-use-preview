@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import logging
 import termcolor
 import time
 import os
@@ -19,6 +20,7 @@ from ..computer import (
     Computer,
     EnvState,
 )
+import playwright.sync_api
 from playwright.sync_api import sync_playwright
 from typing import Literal
 
@@ -85,6 +87,16 @@ class PlaywrightComputer(Computer):
         self._search_engine_url = search_engine_url
         self._highlight_mouse = highlight_mouse
 
+    def _handle_new_page(self, new_page: playwright.sync_api.Page):
+        """The Computer Use model only supports a single tab at the moment.
+
+        Some websites, however, try to open links in a new tab.
+        For those situations, we intercept the page-opening behavior, and instead overwrite the current page.
+        """
+        new_url = new_page.url
+        new_page.close()
+        self._page.goto(new_url)
+
     def __enter__(self):
         print("Creating session...")
         self._playwright = sync_playwright().start()
@@ -100,6 +112,8 @@ class PlaywrightComputer(Computer):
         )
         self._page = self._context.new_page()
         self._page.goto(self._initial_url)
+
+        self._context.on("page", self._handle_new_page)
 
         termcolor.cprint(
             f"Started local playwright.",
@@ -282,7 +296,9 @@ class PlaywrightComputer(Computer):
         return EnvState(screenshot=screenshot_bytes, url=self._page.url)
 
     def screen_size(self) -> tuple[int, int]:
-        return self._screen_size
+        viewport_size = self._page.viewport_size
+        assert viewport_size is not None, "Failed to get viewport size."
+        return viewport_size["width"], viewport_size["height"]
 
     def highlight_mouse(self, x: int, y: int):
         if not self._highlight_mouse:
