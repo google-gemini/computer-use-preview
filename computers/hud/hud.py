@@ -4,7 +4,8 @@ from typing import Literal, Optional, Any, Dict
 import termcolor
 
 from ..computer import Computer, EnvState
-
+from hud.job import Job
+from hud.task import Task
 
 class HudComputer(Computer):
     """HUD SDK Computer implementation that uses HUD environments for browser control."""
@@ -15,11 +16,15 @@ class HudComputer(Computer):
         initial_url: str = "https://www.google.com",
         search_engine_url: str = "https://www.google.com",
         task_prompt: Optional[str] = None,
+        task: Optional[Task] = None,  # Optional Task object from HUD SDK
+        job: Optional[Job] = None,
     ):
         self._screen_size = screen_size
         self._initial_url = initial_url
         self._search_engine_url = search_engine_url
         self._task_prompt = task_prompt or "Browse the web"
+        self._task = task
+        self._job = job
         self._env = None
         self._obs = None
         self._done = False
@@ -40,16 +45,20 @@ class HudComputer(Computer):
         except ImportError:
             raise ImportError("HUD SDK not installed. Please install with: pip install hud-python")
         
-        # Create a task for the browser environment
-        task = Task(
-            prompt=self._task_prompt,
-            gym="hud-browser",
-            setup=("goto", self._initial_url),
-            evaluate=("page_contains", "dummy")
-        )
+        # Use provided task or create a default one
+        if self._task:
+            task = self._task
+        else:
+            # Create a default task for the browser environment
+            task = Task(
+                prompt=self._task_prompt,
+                gym="hud-browser",
+                setup=("goto", self._initial_url),
+                evaluate=("page_contains", "dummy")
+            )
         
         # Create the environment
-        self._env = self._loop.run_until_complete(gym.make(task))
+        self._env = self._loop.run_until_complete(gym.make(task, job=self._job))
         
         # Reset the environment to get initial observation
         self._obs, _ = self._loop.run_until_complete(self._env.reset())
@@ -281,3 +290,8 @@ class HudComputer(Computer):
         screenshot = self._get_screenshot_from_obs()
         url = self._get_url_from_obs()
         return EnvState(screenshot=screenshot, url=url) 
+
+    def evaluate(self) -> dict:
+        return self._loop.run_until_complete(
+            self._env.evaluate()
+        )

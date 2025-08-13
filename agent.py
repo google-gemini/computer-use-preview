@@ -44,10 +44,12 @@ def multiply_numbers(x: float, y: float) -> dict:
 
 
 class BrowserAgent:
-    def __init__(self, browser_computer: Computer, query: str, model_name: str):
+    def __init__(self, browser_computer: Computer, query: str, model_name: str, verbose: bool = True, max_history_length: int = 5):
         self._browser_computer = browser_computer
         self._query = query
         self._model_name = model_name
+        self._verbose = verbose
+        self._max_history_length = max_history_length  # Keep only last N exchanges
         self._client = genai.Client(
             api_key=os.environ.get("GEMINI_API_KEY"),
             vertexai=os.environ.get("USE_VERTEXAI", "0").lower() in ["true", "1"],
@@ -224,7 +226,13 @@ class BrowserAgent:
 
     def run_one_iteration(self) -> Literal["COMPLETE", "CONTINUE"]:
         # Generate a response from the model.
-        with console.status("Generating response from Gemini...", spinner_style=None):
+        if self._verbose:
+            with console.status("Generating response from Gemini...", spinner_style=None):
+                try:
+                    response = self.get_model_response()
+                except Exception as e:
+                    return "COMPLETE"
+        else:
             try:
                 response = self.get_model_response()
             except Exception as e:
@@ -260,8 +268,9 @@ class BrowserAgent:
         table.add_column("Gemini Reasoning", header_style="magenta", ratio=1)
         table.add_column("Function Call(s)", header_style="cyan", ratio=1)
         table.add_row(reasoning, "\n".join(function_call_strs))
-        console.print(table)
-        print()
+        if self._verbose:
+            console.print(table)
+            print()
 
         function_responses = []
         for function_call in function_calls:
@@ -272,7 +281,10 @@ class BrowserAgent:
                 if decision == "TERMINATE":
                     print("Terminating agent loop")
                     return "COMPLETE"
-            with console.status("Sending command to Computer...", spinner_style=None):
+            if self._verbose:
+                with console.status("Sending command to Computer...", spinner_style=None):
+                    fc_result = self.handle_action(function_call)
+            else:
                 fc_result = self.handle_action(function_call)
             if isinstance(fc_result, EnvState):
                 response_data = {}
@@ -302,6 +314,10 @@ class BrowserAgent:
                 parts=[Part(function_response=fr) for fr in function_responses],
             )
         )
+        
+        if len(self._contents) > (self._max_history_length * 2 + 1):
+            self._contents = [self._contents[0]] + self._contents[-(self._max_history_length * 2):]
+        
         return "CONTINUE"
 
     def _get_safety_confirmation(
