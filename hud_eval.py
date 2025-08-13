@@ -32,7 +32,7 @@ def run_task(task: Task, model_name: str, job: Job) -> float:
                 browser_computer=browser_computer,
                 query=task.prompt,
                 model_name=model_name,
-                verbose=True,
+                verbose=False,
                 max_screenshots=1,
             )
             agent.agent_loop()
