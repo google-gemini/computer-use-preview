@@ -92,7 +92,7 @@ python main.py --query "Go to Google and type 'Hello World' into the search bar"
 - `cloud-run`: Connects to a deployed Cloud Run service (default).
 - `playwright`: Runs the browser locally using Playwright.
 - `browserbase`: Connects to a Browserbase instance.
-- `hud`: Integrates with HUD's browser environment.
+- `hud`: Integrates with hud's browser environment.
 
 **Local Playwright**
 
@@ -118,7 +118,7 @@ python main.py --query="Go to Google and type 'Hello World' into the search bar"
 
 **hud**
 
-Runs the agent using HUD's browser environment. This is the same environment used by `hud_eval.py` but can be run directly with `main.py` for individual tasks. Ensure the `HUD_API_KEY` environment variable is set.
+Runs the agent using hud's browser environment. This is the same environment used by `hud_eval.py` but can be run directly with `main.py` for individual tasks. Ensure the `HUD_API_KEY` environment variable is set.
 
 ```bash
 python main.py --query="Go to Google and type 'Hello World' into the search bar" --env="hud"
@@ -166,11 +166,11 @@ The `main.py` script is the command-line interface (CLI) for running the browser
 | API_SERVER_KEY | The API key for your deployed Cloud Run API server, if it's configured to require one. Can also be provided via the `--api_server_key` argument. | Conditionally (if API server requires it and not passed via CLI) |
 | BROWSERBASE_API_KEY | Your API key for Browserbase. | Yes (when using the browserbase environment) |
 | BROWSERBASE_PROJECT_ID | Your Project ID for Browserbase. | Yes (when using the browserbase environment) |
-| HUD_API_KEY | Your API key for HUD. Required for running evaluations with hud_eval.py. | Yes (when using the hud enviornment or running hud_eval.py) |
+| HUD_API_KEY | Your API key for hud. Required for running evaluations with hud_eval.py. | Yes (when using the hud enviornment or running hud_eval.py) |
 
 ## Evaluations
 
-The `hud_eval.py` script allows you to run automated evaluations against HUD tasksets:
+The `hud_eval.py` script allows you to run automated evaluations against hud tasksets:
 
 ```bash
 python hud_eval.py --taskset <taskset_id> [--parallel] [--max_concurrent <n>]
@@ -188,7 +188,7 @@ python hud_eval.py --taskset <taskset_id> [--parallel] [--max_concurrent <n>]
 # Run a taskset serially
 python hud_eval.py --taskset SheetBench-V2
 
-# Run in parallel with 50 concurrent tasks
+# Run in parallel with 50 concurrent tasks (can support up to 400)
 python hud_eval.py --taskset OSWorld-Verified --parallel --max_concurrent 50
 ```
 
