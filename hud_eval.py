@@ -18,6 +18,7 @@ from agent import BrowserAgent
 from hud.task import Task
 from hud.taskset import load_taskset
 from hud.job import create_job, Job
+from hud.adapters.common.types import ResponseAction
 
 
 def run_task(task: Task, model_name: str, job: Job) -> float:
@@ -33,16 +34,30 @@ def run_task(task: Task, model_name: str, job: Job) -> float:
                 query=task.prompt,
                 model_name=model_name,
                 verbose=False,
-                max_screenshots=0, # Max screenshots before current state
             )
-            agent.agent_loop()
-        
-            # Evaluate the task
-            if browser_computer and browser_computer._env:
-                eval_result = browser_computer.evaluate()
-                print(f"Eval result: {eval_result['reward']}")
+            try:
+                final_reasoning = agent.agent_loop()
+                
+                if final_reasoning:
+                    response_action = ResponseAction(
+                        text=final_reasoning,
+                        reasoning="Agent's final response"
+                    )
+                    # Inject the response into HUD environment
+                    hud_computer._loop.run_until_complete(
+                        hud_computer._env.step([response_action])
+                    )
+                    
+            except Exception as e:
+                print(f"Error running agent loop: {e}")
+            finally:
+                print("Agent loop complete")
+                # Evaluate the task
+                if browser_computer and browser_computer._env:
+                    eval_result = browser_computer.evaluate()
+                    print(f"Eval result: {eval_result['reward']}")
 
-                return eval_result['reward']
+                    return eval_result['reward']
         
         return 0.0
             
@@ -61,6 +76,7 @@ def run_task(task: Task, model_name: str, job: Job) -> float:
 def run_taskset(
     taskset_id: str,
     model_name: str,
+    name: str,
     parallel: bool = False,
     max_concurrent: int = 20,
     api_key: str = None
@@ -70,7 +86,7 @@ def run_taskset(
     # Load the taskset
     taskset = asyncio.run(load_taskset(taskset_id, metadata={"partial": True}))
 
-    job = asyncio.run(create_job("SheetBench Evaluation", evalset_id=taskset.id))
+    job = asyncio.run(create_job(name, evalset_id=taskset.id))
     
     if parallel:
         # Run tasks in parallel using threads to avoid event loop conflicts
@@ -104,6 +120,11 @@ def main() -> int:
         help="Run tasks in parallel.",
     )
     parser.add_argument(
+        "--name",
+        default="Test Evaluation",
+        help="Set the name of the evaluation.",
+    )
+    parser.add_argument(
         "--model",
         default="computer-use-exp-07-16",
         help="Set which model to use.",
@@ -125,6 +146,7 @@ def main() -> int:
     rewards = run_taskset(
         taskset_id=args.taskset,
         model_name=args.model,
+        name=args.name,
         parallel=args.parallel,
         max_concurrent=args.max_concurrent,
         api_key=args.api_key or os.environ.get("HUD_API_KEY")

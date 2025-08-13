@@ -43,12 +43,11 @@ def multiply_numbers(x: float, y: float) -> dict:
 
 
 class BrowserAgent:
-    def __init__(self, browser_computer: Computer, query: str, model_name: str, verbose: bool = True, max_screenshots: int = 2):
+    def __init__(self, browser_computer: Computer, query: str, model_name: str, verbose: bool = True):
         self._browser_computer = browser_computer
         self._query = query
         self._model_name = model_name
         self._verbose = verbose
-        self._max_screenshots = max_screenshots  # Keep only last N screenshots in full
         self._client = genai.Client(
             api_key=os.environ.get("GEMINI_API_KEY"),
             vertexai=os.environ.get("USE_VERTEXAI", "0").lower() in ["true", "1"],
@@ -209,6 +208,8 @@ class BrowserAgent:
 
     def get_text(self, candidate: Candidate) -> Optional[str]:
         """Extracts the text from the candidate."""
+        if not candidate.content or not candidate.content.parts:
+            return None
         text = []
         for part in candidate.content.parts:
             if part.text:
@@ -217,6 +218,8 @@ class BrowserAgent:
 
     def extract_function_calls(self, candidate: Candidate) -> list[types.FunctionCall]:
         """Extracts the function call from the candidate."""
+        if not candidate.content or not candidate.content.parts:
+            return []
         ret = []
         for part in candidate.content.parts:
             if part.function_call:
@@ -242,12 +245,11 @@ class BrowserAgent:
             print(response)
             raise ValueError("Empty response")
         
-        self._compress_old_screenshots()
-
         # Extract the text and function call from the response.
         candidate = response.candidates[0]
         # Append the model turn to conversation history.
-        self._contents.append(candidate.content)
+        if candidate.content:
+            self._contents.append(candidate.content)
 
         reasoning = self.get_text(candidate)
         function_calls = self.extract_function_calls(candidate)
@@ -288,20 +290,17 @@ class BrowserAgent:
             else:
                 fc_result = self.handle_action(function_call)
             if isinstance(fc_result, EnvState):
-                response_data = {}
-                if fc_result.screenshot:
-                    encoded_screenshot = base64.b64encode(fc_result.screenshot).decode('utf-8')
-                    response_data["image"] = {
-                        "mimetype": "image/png",
-                        "data": encoded_screenshot,
-                    }
-                if fc_result.url:
-                    response_data["url"] = fc_result.url
-                
                 function_responses.append(
                     FunctionResponse(
                         name=function_call.name,
-                        response=response_data,
+                        response={"url": fc_result.url},
+                        data=[
+                            types.Part(
+                                inline_data=types.Blob(
+                                    mime_type="image/png", data=fc_result.screenshot
+                                )
+                            )
+                        ],
                     )
                 )
             elif isinstance(fc_result, dict):
@@ -317,34 +316,6 @@ class BrowserAgent:
         )
         
         return "CONTINUE"
-    
-    def _compress_old_screenshots(self):
-        """Replace old screenshots with placeholders to reduce token usage."""
-        # Count backwards to keep the most recent screenshots
-        screenshot_count = 0
-        if self._verbose:
-            print(f"Compressing {self._contents}")
-
-        for content in reversed(self._contents):
-            if content is None:
-                continue
-            if content.role == "user" and content.parts:
-                for part in content.parts:
-                    if part is None:
-                        continue
-                    if hasattr(part, 'function_response') and part.function_response:
-                        response = part.function_response.response
-                        if isinstance(response, dict) and "image" in response:
-                            screenshot_count += 1
-                            if screenshot_count > self._max_screenshots:
-                                if self._verbose:
-                                    print(f"Removing screenshot {screenshot_count} of {len(self._contents)}")
-                                # Remove screenshot data to save tokens
-                                if "image" in response:
-                                    response["image"] = {
-                                        "mimetype": "image/png",
-                                        "data": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAAD0lEQVR4AQEEAPv/AP///wX+Av5JZm4rAAAAAElFTkSuQmCC",
-                                    }
 
     def _get_safety_confirmation(
         self, safety: dict[str, Any]
@@ -364,10 +335,34 @@ class BrowserAgent:
             return "TERMINATE"
         return "CONTINUE"
 
+    def get_final_response(self):
+        """Extract the final text response from conversation history."""
+        # Look for the last model response that has text but no function calls
+        for content in reversed(self._contents):
+            if content and content.role == "model" and content.parts:
+                # Check if this is a pure text response (no function calls)
+                has_text = False
+                has_function_call = False
+                text_parts = []
+                
+                for part in content.parts:
+                    if part and hasattr(part, 'text') and part.text:
+                        has_text = True
+                        text_parts.append(part.text)
+                    if part and hasattr(part, 'function_call') and part.function_call:
+                        has_function_call = True
+                
+                # If it has text but no function calls, it's a final response
+                if has_text and not has_function_call:
+                    return " ".join(text_parts)
+        
+        return None
+
     def agent_loop(self):
         status = "CONTINUE"
         while status == "CONTINUE":
             status = self.run_one_iteration()
+        return self.get_final_response()
 
     def normalize_x(self, x: int) -> int:
         return int(x / 1000 * self._browser_computer.screen_size()[0])
