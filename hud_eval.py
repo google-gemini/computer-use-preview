@@ -36,12 +36,11 @@ def run_task(task: Task, model_name: str, job: Job) -> float:
                 verbose=False,
             )
             try:
-                final_reasoning = agent.agent_loop()
+                agent.agent_loop()
                 
-                if final_reasoning:
+                if agent.final_reasoning:
                     response_action = ResponseAction(
-                        text=final_reasoning,
-                        reasoning="Agent's final response"
+                        text=agent.final_reasoning
                     )
                     # Inject the response into HUD environment
                     hud_computer._loop.run_until_complete(

@@ -48,6 +48,7 @@ class BrowserAgent:
         self._query = query
         self._model_name = model_name
         self._verbose = verbose
+        self.final_reasoning = None
         self._client = genai.Client(
             api_key=os.environ.get("GEMINI_API_KEY"),
             vertexai=os.environ.get("USE_VERTEXAI", "0").lower() in ["true", "1"],
@@ -255,6 +256,7 @@ class BrowserAgent:
         function_calls = self.extract_function_calls(candidate)
         if not function_calls:
             print(f"Agent Loop Complete: {reasoning}")
+            self.final_reasoning = reasoning
             return "COMPLETE"
 
         function_call_strs = []
@@ -335,34 +337,10 @@ class BrowserAgent:
             return "TERMINATE"
         return "CONTINUE"
 
-    def get_final_response(self):
-        """Extract the final text response from conversation history."""
-        # Look for the last model response that has text but no function calls
-        for content in reversed(self._contents):
-            if content and content.role == "model" and content.parts:
-                # Check if this is a pure text response (no function calls)
-                has_text = False
-                has_function_call = False
-                text_parts = []
-                
-                for part in content.parts:
-                    if part and hasattr(part, 'text') and part.text:
-                        has_text = True
-                        text_parts.append(part.text)
-                    if part and hasattr(part, 'function_call') and part.function_call:
-                        has_function_call = True
-                
-                # If it has text but no function calls, it's a final response
-                if has_text and not has_function_call:
-                    return " ".join(text_parts)
-        
-        return None
-
     def agent_loop(self):
         status = "CONTINUE"
         while status == "CONTINUE":
             status = self.run_one_iteration()
-        return self.get_final_response()
 
     def normalize_x(self, x: int) -> int:
         return int(x / 1000 * self._browser_computer.screen_size()[0])
