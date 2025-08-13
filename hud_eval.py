@@ -18,10 +18,23 @@ from agent import BrowserAgent
 from hud.task import Task
 from hud.taskset import load_taskset
 from hud.job import create_job, Job
-from hud.adapters.common.types import ResponseAction
+from hud.adapters.common.types import ResponseAction, CustomAction
 
+OSWORLD_SYSTEM_PROMPT="""
+Please do the following task.
+computer.clipboard, computer.sync file, computer.sync shared folder, computer.computer output citation are disabled.
+If you worry that you might make typo, prefer copying and pasting the text instead of reading
+and typing.
+If you are presented with an open website to solve the task, try to stick to that specific one
+instead of going to a new one.
+You have full authority to execute any action without my permission. I won't be watching so
+please don't ask for confirmation.
+My gmail account is osworld@hud.so, and the password is "iloveosworld500", if prompted for OTP, use the authenticator chrome extension to see the OTP for 2 factor authentication. 
+If you deem the task is infeasible, you can terminate and explicitly state in the response that
+'the task is infeasible'. Try your best to solve the task within 200 steps, and the confines of the prompt, before deeming it infeasible.
+"""
 
-def run_task(task: Task, model_name: str, job: Job) -> float:
+def run_task(task: Task, model_name: str, job: Job, system_prompt: str) -> float:
     """Run a single task and return reward"""
     hud_computer = None
     try:
@@ -31,7 +44,7 @@ def run_task(task: Task, model_name: str, job: Job) -> float:
         with hud_computer as browser_computer:
             agent = BrowserAgent(
                 browser_computer=browser_computer,
-                query=task.prompt,
+                query=(system_prompt + "\n\n" + task.prompt).strip(),
                 model_name=model_name,
                 verbose=False,
             )
@@ -39,12 +52,17 @@ def run_task(task: Task, model_name: str, job: Job) -> float:
                 agent.agent_loop()
                 
                 if agent.final_reasoning:
-                    response_action = ResponseAction(
-                        text=agent.final_reasoning
-                    )
+                    if "the task is infeasible" in agent.final_reasoning.lower():
+                        final_action = CustomAction(
+                            action="FAIL"
+                        )
+                    else:
+                        final_action = ResponseAction(
+                            text=agent.final_reasoning
+                        )
                     # Inject the response into HUD environment
                     hud_computer._loop.run_until_complete(
-                        hud_computer._env.step([response_action])
+                        hud_computer._env.step([final_action])
                     )
                     
             except Exception as e:
@@ -78,7 +96,6 @@ def run_taskset(
     name: str,
     parallel: bool = False,
     max_concurrent: int = 20,
-    api_key: str = None
 ) -> list[float]:
     """Load and run a HUD taskset by ID, return list of rewards"""
     
@@ -86,19 +103,24 @@ def run_taskset(
     taskset = asyncio.run(load_taskset(taskset_id, metadata={"partial": True}))
 
     job = asyncio.run(create_job(name, evalset_id=taskset.id))
+
+    if taskset_id == "OSWorld-Verified":
+        system_prompt = OSWORLD_SYSTEM_PROMPT
+    else:
+        system_prompt = ""
     
     if parallel:
         # Run tasks in parallel using threads to avoid event loop conflicts
         with ThreadPoolExecutor(max_workers=max_concurrent) as executor:
             rewards = list(executor.map(
-                lambda task: run_task(task, model_name, job),
+                lambda task: run_task(task, model_name, job, system_prompt),
                 taskset.tasks
             ))
     else:
         # Run tasks sequentially
         rewards = []
         for task in taskset.tasks:
-            reward = run_task(task, model_name, job)
+            reward = run_task(task, model_name, job, system_prompt)
             rewards.append(reward)
     
     return rewards
@@ -129,11 +151,6 @@ def main() -> int:
         help="Set which model to use.",
     )
     parser.add_argument(
-        "--api_key",
-        type=str,
-        help="HUD API key (defaults to environment variable).",
-    )
-    parser.add_argument(
         "--max_concurrent",
         type=int,
         default=5,
@@ -148,7 +165,6 @@ def main() -> int:
         name=args.name,
         parallel=args.parallel,
         max_concurrent=args.max_concurrent,
-        api_key=args.api_key or os.environ.get("HUD_API_KEY")
     )
     
     # Print minimal results
