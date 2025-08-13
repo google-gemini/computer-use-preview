@@ -65,3 +65,7 @@ main {
 #deny-action {
   background-color: #dc3545; /* Red */
 }
+
+#next-action-description {
+  white-space: pre-wrap;
+}
