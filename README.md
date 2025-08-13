@@ -188,8 +188,8 @@ python hud_eval.py --taskset <taskset_id> [--parallel] [--max_concurrent <n>]
 # Run a taskset serially
 python hud_eval.py --taskset SheetBench-V2
 
-# Run in parallel with 5 concurrent tasks
-python hud_eval.py --taskset OSWorld-Verified --parallel --max_concurrent 5
+# Run in parallel with 50 concurrent tasks
+python hud_eval.py --taskset OSWorld-Verified --parallel --max_concurrent 50
 ```
 
 ## Computers
