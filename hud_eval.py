@@ -33,16 +33,16 @@ def run_task(task: Task, model_name: str, job: Job) -> float:
                 query=task.prompt,
                 model_name=model_name,
                 verbose=False,
-                max_screenshots=1,
+                max_screenshots=0, # Max screenshots before current state
             )
             agent.agent_loop()
         
             # Evaluate the task
             if browser_computer and browser_computer._env:
                 eval_result = browser_computer.evaluate()
-                print(f"Eval result: {eval_result}")
+                print(f"Eval result: {eval_result['reward']}")
 
-                return eval_result["reward"]
+                return eval_result['reward']
         
         return 0.0
             
@@ -68,7 +68,7 @@ def run_taskset(
     """Load and run a HUD taskset by ID, return list of rewards"""
     
     # Load the taskset
-    taskset = asyncio.run(load_taskset(taskset_id, api_key=api_key))
+    taskset = asyncio.run(load_taskset(taskset_id, metadata={"partial": True}))
 
     job = asyncio.run(create_job("SheetBench Evaluation", evalset_id=taskset.id))
     
