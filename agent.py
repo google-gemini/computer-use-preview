@@ -275,17 +275,20 @@ class BrowserAgent:
             with console.status("Sending command to Computer...", spinner_style=None):
                 fc_result = self.handle_action(function_call)
             if isinstance(fc_result, EnvState):
+                response_data = {}
+                if fc_result.screenshot:
+                    encoded_screenshot = base64.b64encode(fc_result.screenshot).decode('utf-8')
+                    response_data["image"] = {
+                        "mimetype": "image/png",
+                        "data": encoded_screenshot,
+                    }
+                if fc_result.url:
+                    response_data["url"] = fc_result.url
+                
                 function_responses.append(
                     FunctionResponse(
                         name=function_call.name,
-                        response={"url": fc_result.url},
-                        data=[
-                            types.Part(
-                                inline_data=types.Blob(
-                                    mime_type="image/png", data=fc_result.screenshot
-                                )
-                            )
-                        ],
+                        response=response_data,
                     )
                 )
             elif isinstance(fc_result, dict):
