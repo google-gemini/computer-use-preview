@@ -326,8 +326,12 @@ class BrowserAgent:
             print(f"Compressing {self._contents}")
 
         for content in reversed(self._contents):
-            if content.role == "user":
+            if content is None:
+                continue
+            if content.role == "user" and content.parts:
                 for part in content.parts:
+                    if part is None:
+                        continue
                     if hasattr(part, 'function_response') and part.function_response:
                         response = part.function_response.response
                         if isinstance(response, dict) and "image" in response:
