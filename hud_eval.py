@@ -6,7 +6,6 @@ import argparse
 import asyncio
 import os
 import sys
-import logging
 from concurrent.futures import ThreadPoolExecutor
 
 # Add parent directory to path to import local modules
@@ -19,8 +18,6 @@ from agent import BrowserAgent
 from hud.task import Task
 from hud.taskset import load_taskset
 from hud.job import create_job, Job
-
-logger = logging.getLogger(__name__)
 
 
 def run_task(task: Task, model_name: str, job: Job) -> float:
@@ -35,22 +32,22 @@ def run_task(task: Task, model_name: str, job: Job) -> float:
                 browser_computer=browser_computer,
                 query=task.prompt,
                 model_name=model_name,
-                verbose=False,
-                max_history_length=3,
+                verbose=True,
+                max_screenshots=1,
             )
             agent.agent_loop()
         
             # Evaluate the task
             if browser_computer and browser_computer._env:
                 eval_result = browser_computer.evaluate()
-                logger.info(f"Eval result: {eval_result}")
+                print(f"Eval result: {eval_result}")
 
                 return eval_result["reward"]
         
         return 0.0
             
     except Exception as e:
-        logger.error(f"Error running task: {e}")
+        print(f"Error running task: {e}")
         return 0.0
         
     finally:
@@ -134,8 +131,8 @@ def main() -> int:
     )
     
     # Print minimal results
-    logger.info(f"Rewards: {rewards}")
-    logger.info(f"Average: {sum(rewards)/len(rewards) if rewards else 0:.2f}")
+    print(f"Rewards: {rewards}")
+    print(f"Average: {sum(rewards)/len(rewards) if rewards else 0:.2f}")
     
     return 0
 

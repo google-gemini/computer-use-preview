@@ -251,6 +251,7 @@ class HudComputer(Computer):
         direction: Literal["up", "down", "left", "right"],
         magnitude: int,
     ) -> EnvState:
+        self._execute_action("move", x=x, y=y)
         return self._execute_action(
             "scroll", x=x, y=y, direction=direction, magnitude=magnitude
         )

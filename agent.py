@@ -32,7 +32,6 @@ from computers import EnvState, Computer
 
 console = Console()
 
-
 # Built-in Computer Use tools will return "EnvState".
 # Custom provided functions will return "dict".
 FunctionResponseT = Union[EnvState, dict]
@@ -44,12 +43,12 @@ def multiply_numbers(x: float, y: float) -> dict:
 
 
 class BrowserAgent:
-    def __init__(self, browser_computer: Computer, query: str, model_name: str, verbose: bool = True, max_history_length: int = 5):
+    def __init__(self, browser_computer: Computer, query: str, model_name: str, verbose: bool = True, max_screenshots: int = 2):
         self._browser_computer = browser_computer
         self._query = query
         self._model_name = model_name
         self._verbose = verbose
-        self._max_history_length = max_history_length  # Keep only last N exchanges
+        self._max_screenshots = max_screenshots  # Keep only last N screenshots in full
         self._client = genai.Client(
             api_key=os.environ.get("GEMINI_API_KEY"),
             vertexai=os.environ.get("USE_VERTEXAI", "0").lower() in ["true", "1"],
@@ -242,6 +241,8 @@ class BrowserAgent:
             print("Response has no candidates!")
             print(response)
             raise ValueError("Empty response")
+        
+        self._compress_old_screenshots()
 
         # Extract the text and function call from the response.
         candidate = response.candidates[0]
@@ -315,10 +316,31 @@ class BrowserAgent:
             )
         )
         
-        if len(self._contents) > (self._max_history_length * 2 + 1):
-            self._contents = [self._contents[0]] + self._contents[-(self._max_history_length * 2):]
-        
         return "CONTINUE"
+    
+    def _compress_old_screenshots(self):
+        """Replace old screenshots with placeholders to reduce token usage."""
+        # Count backwards to keep the most recent screenshots
+        screenshot_count = 0
+        if self._verbose:
+            print(f"Compressing {self._contents}")
+
+        for content in reversed(self._contents):
+            if content.role == "user":
+                for part in content.parts:
+                    if hasattr(part, 'function_response') and part.function_response:
+                        response = part.function_response.response
+                        if isinstance(response, dict) and "image" in response:
+                            screenshot_count += 1
+                            if screenshot_count > self._max_screenshots:
+                                if self._verbose:
+                                    print(f"Removing screenshot {screenshot_count} of {len(self._contents)}")
+                                # Remove screenshot data to save tokens
+                                if "image" in response:
+                                    response["image"] = {
+                                        "mimetype": "image/png",
+                                        "data": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAAD0lEQVR4AQEEAPv/AP///wX+Av5JZm4rAAAAAElFTkSuQmCC",
+                                    }
 
     def _get_safety_confirmation(
         self, safety: dict[str, Any]
