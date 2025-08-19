@@ -20,6 +20,7 @@ from computers import CloudRunComputer, BrowserbaseComputer, PlaywrightComputer,
 
 CLOUD_RUN_SCREEN_SIZE = (1920, 1080)
 PLAYWRIGHT_SCREEN_SIZE = (1920, 1080)
+HUD_SCREEN_SIZE = (1440, 900)
 
 
 def main() -> int:
@@ -83,7 +84,7 @@ def main() -> int:
         env = BrowserbaseComputer(screen_size=PLAYWRIGHT_SCREEN_SIZE)
     elif args.env == "hud":
         env = HudComputer(
-            screen_size=PLAYWRIGHT_SCREEN_SIZE,
+            screen_size=HUD_SCREEN_SIZE,
             initial_url=args.initial_url,
             task_prompt=args.query,
         )

@@ -32,7 +32,6 @@ from computers import EnvState, Computer
 
 console = Console()
 
-
 # Built-in Computer Use tools will return "EnvState".
 # Custom provided functions will return "dict".
 FunctionResponseT = Union[EnvState, dict]
@@ -44,10 +43,12 @@ def multiply_numbers(x: float, y: float) -> dict:
 
 
 class BrowserAgent:
-    def __init__(self, browser_computer: Computer, query: str, model_name: str):
+    def __init__(self, browser_computer: Computer, query: str, model_name: str, verbose: bool = True):
         self._browser_computer = browser_computer
         self._query = query
         self._model_name = model_name
+        self._verbose = verbose
+        self.final_reasoning = None
         self._client = genai.Client(
             api_key=os.environ.get("GEMINI_API_KEY"),
             vertexai=os.environ.get("USE_VERTEXAI", "0").lower() in ["true", "1"],
@@ -208,6 +209,8 @@ class BrowserAgent:
 
     def get_text(self, candidate: Candidate) -> Optional[str]:
         """Extracts the text from the candidate."""
+        if not candidate.content or not candidate.content.parts:
+            return None
         text = []
         for part in candidate.content.parts:
             if part.text:
@@ -216,6 +219,8 @@ class BrowserAgent:
 
     def extract_function_calls(self, candidate: Candidate) -> list[types.FunctionCall]:
         """Extracts the function call from the candidate."""
+        if not candidate.content or not candidate.content.parts:
+            return []
         ret = []
         for part in candidate.content.parts:
             if part.function_call:
@@ -224,7 +229,13 @@ class BrowserAgent:
 
     def run_one_iteration(self) -> Literal["COMPLETE", "CONTINUE"]:
         # Generate a response from the model.
-        with console.status("Generating response from Gemini...", spinner_style=None):
+        if self._verbose:
+            with console.status("Generating response from Gemini...", spinner_style=None):
+                try:
+                    response = self.get_model_response()
+                except Exception as e:
+                    return "COMPLETE"
+        else:
             try:
                 response = self.get_model_response()
             except Exception as e:
@@ -234,16 +245,18 @@ class BrowserAgent:
             print("Response has no candidates!")
             print(response)
             raise ValueError("Empty response")
-
+        
         # Extract the text and function call from the response.
         candidate = response.candidates[0]
         # Append the model turn to conversation history.
-        self._contents.append(candidate.content)
+        if candidate.content:
+            self._contents.append(candidate.content)
 
         reasoning = self.get_text(candidate)
         function_calls = self.extract_function_calls(candidate)
         if not function_calls:
             print(f"Agent Loop Complete: {reasoning}")
+            self.final_reasoning = reasoning
             return "COMPLETE"
 
         function_call_strs = []
@@ -260,8 +273,9 @@ class BrowserAgent:
         table.add_column("Gemini Reasoning", header_style="magenta", ratio=1)
         table.add_column("Function Call(s)", header_style="cyan", ratio=1)
         table.add_row(reasoning, "\n".join(function_call_strs))
-        console.print(table)
-        print()
+        if self._verbose:
+            console.print(table)
+            print()
 
         function_responses = []
         for function_call in function_calls:
@@ -272,7 +286,10 @@ class BrowserAgent:
                 if decision == "TERMINATE":
                     print("Terminating agent loop")
                     return "COMPLETE"
-            with console.status("Sending command to Computer...", spinner_style=None):
+            if self._verbose:
+                with console.status("Sending command to Computer...", spinner_style=None):
+                    fc_result = self.handle_action(function_call)
+            else:
                 fc_result = self.handle_action(function_call)
             if isinstance(fc_result, EnvState):
                 function_responses.append(
@@ -299,6 +316,7 @@ class BrowserAgent:
                 parts=[Part(function_response=fr) for fr in function_responses],
             )
         )
+        
         return "CONTINUE"
 
     def _get_safety_confirmation(
