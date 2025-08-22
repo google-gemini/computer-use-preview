@@ -297,8 +297,11 @@ class PlaywrightComputer(Computer):
 
     def screen_size(self) -> tuple[int, int]:
         viewport_size = self._page.viewport_size
-        assert viewport_size is not None, "Failed to get viewport size."
-        return viewport_size["width"], viewport_size["height"]
+        # If available, try to take the local playwright viewport size.
+        if viewport_size:
+            return viewport_size["width"], viewport_size["height"]
+        # If unavailable, fall back to the original provided size.
+        return self._screen_size
 
     def highlight_mouse(self, x: int, y: int):
         if not self._highlight_mouse:
