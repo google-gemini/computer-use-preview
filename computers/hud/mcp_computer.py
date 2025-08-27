@@ -125,6 +125,16 @@ class MCPComputer(Computer):
                 self._has_computer_tool = "computer" in self._available_tools
                 self._has_playwright_tool = "playwright" in self._available_tools
                 print(f"Discovered {len(self._available_tools)} tools: {', '.join(self._available_tools)}")
+
+                names_to_find = ["computer", "playwright"]
+                for tool in tools:
+                    if tool.name in names_to_find:
+                        tool_metadata = tool.model_dump()["meta"]
+                        if "resolution" in tool_metadata and "width" in tool_metadata["resolution"] and "height" in tool_metadata["resolution"]:
+                            self._screen_size = (tool_metadata["resolution"]["width"], tool_metadata["resolution"]["height"])
+                            print(f"Using screen size: {self._screen_size}")
+
+
         except Exception as e:
             print(f"Could not discover tools: {e}")
             # Assume standard tools are available

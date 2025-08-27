@@ -44,6 +44,7 @@ def run_single_task(
     model: str = "computer-use-exp-07-16",
     verbose: bool = False,
     job_id: Optional[str] = None,
+    auto_confirm_safety: bool = False,
 ) -> dict:
     """
     Run a single task using MCPComputer and BrowserAgent.
@@ -52,6 +53,8 @@ def run_single_task(
         task: HUD Task object with mcp_config
         model: Model name to use
         verbose: Enable verbose output
+        job_id: Job ID for HUD telemetry
+        auto_confirm_safety: Auto-confirm safety prompts
             
     Returns:
         Dict with reward and info
@@ -77,7 +80,8 @@ def run_single_task(
                     browser_computer=computer,
                     query=prompt,
                     model_name=model,
-                    verbose=verbose
+                    verbose=verbose,
+                    auto_confirm_safety=auto_confirm_safety
                 )
 
                 # Setup task
@@ -86,7 +90,7 @@ def run_single_task(
                         computer._client.call_tool(task.setup_tool)
                     )
                 except Exception as e:
-                    console.error(f"Could not setup task: {e}")
+                    console.print(f"[red]Could not setup task: {e}[/red]")
 
                 # Get initial state
                 computer.get_initial_state()
@@ -102,20 +106,20 @@ def run_single_task(
                             computer._client.call_tool(name="response", arguments={"response": response})
                         )
                     except Exception as e:
-                        console.error(f"Could not submit response: {e}")
+                        console.print(f"[red]Could not submit response: {e}[/red]")
 
             except Exception as e:
-                console.error(f"Error running task: {e}")
+                console.print(f"[red]Error running task: {e}[/red]")
             except KeyboardInterrupt:
-                console.error("Keyboard interrupt")
+                console.print("[red]Keyboard interrupt[/red]")
             finally:
                 # Evaluate while computer context is still active
                 try:
-                    results = computer._loop.run_until_complete(
+                    eval_result = computer._loop.run_until_complete(
                         computer._client.call_tool(task.evaluate_tool)
                     )
-                    reward = find_reward(results[0])
-                    eval_content = find_content(results[0])
+                    reward = find_reward(eval_result)
+                    eval_content = find_content(eval_result)
 
                     result["reward"] = reward
                     result["info"]["eval_content"] = eval_content
@@ -123,14 +127,14 @@ def run_single_task(
                         computer._client.shutdown()
                     )
                 except Exception as e:
-                    console.error(f"Could not get reward: {e}")
+                    console.print(f"[red]Could not get reward: {e}[/red]")
     
                 if trace_id:
                     console.print(f"See trace at: https://app.hud.so/trace/{trace_id}")
                     
     except Exception as e:
         if verbose:
-            console.error(f"Error running task: {e}")
+            console.print(f"[red]Error running task: {e}[/red]")
 
     return result
 
@@ -186,17 +190,29 @@ def evaluate_dataset(
     # Run tasks in parallel using ThreadPoolExecutor to avoid event loop conflicts
     with ThreadPoolExecutor(max_workers=max_concurrent) as executor:
         # Submit all tasks to the executor
+        # Disable verbose mode in parallel execution to avoid Rich console conflicts
+        task_verbose = False if max_concurrent > 1 else verbose
+        # Auto-confirm safety prompts when running multiple tasks
+        auto_confirm = len(tasks) > 1
+        if auto_confirm:
+            console.print("[yellow]Running multiple tasks - auto-confirming safety prompts[/yellow]")
         futures = [
-            executor.submit(run_single_task, task, model, verbose, job_id)
+            executor.submit(run_single_task, task, model, task_verbose, job_id, auto_confirm)
             for task in tasks
         ]
         
-        # Collect results as they complete
+        # Collect results as they complete with timeout
         results = []
         for future in futures:
             try:
-                result = future.result()
+                # Add timeout to prevent indefinite hangs (5 minutes per task)
+                result = future.result(timeout=300)
                 results.append(result)
+            except TimeoutError:
+                results.append({
+                    "reward": 0.0,
+                    "info": {"error": "Task timed out after 5 minutes", "status": "timeout"}
+                })
             except Exception as e:
                 results.append({
                     "reward": 0.0,
@@ -214,7 +230,7 @@ def main():
         "--dataset",
         type=str,
         required=True,
-        help="HuggingFace dataset ID (e.g., 'hud-evals/sheetbench-50')",
+        help="HuggingFace dataset ID (e.g., 'hud-evals/SheetBench-50')",
     )
     parser.add_argument(
         "--model",
@@ -230,7 +246,7 @@ def main():
     parser.add_argument(
         "--max-concurrent",
         type=int,
-        default=5,
+        default=25,
         help="Maximum concurrent tasks",
     )
     parser.add_argument(
@@ -275,9 +291,6 @@ def main():
     console.print(f"Success rate: {sum(1 for r in rewards if r >= 1.0)/len(rewards)*100 if rewards else 0:.1f}%")
     if errors:
         console.print(f"Errors: {errors}")
-    
-    # Print link to view results
-    console.print(f"\nView results at: https://app.hud.so/jobs/{job_obj.id}")
     
     return 0
 

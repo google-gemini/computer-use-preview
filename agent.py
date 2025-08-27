@@ -43,12 +43,20 @@ def multiply_numbers(x: float, y: float) -> dict:
 
 
 class BrowserAgent:
-    def __init__(self, browser_computer: Computer, query: str, model_name: str, verbose: bool = True):
+    def __init__(self, browser_computer: Computer, query: str, model_name: str, verbose: bool = True, auto_confirm_safety: bool = False):
         self._browser_computer = browser_computer
         self._query = query
         self._model_name = model_name
         self._verbose = verbose
+        self._auto_confirm_safety = auto_confirm_safety
         self.final_reasoning = None
+        
+        if self._auto_confirm_safety:
+            termcolor.cprint(
+                "⚠️  WARNING: Auto-confirm safety mode enabled - safety prompts will be automatically approved",
+                color="yellow",
+                attrs=["bold"],
+            )
         self._client = genai.Client(
             api_key=os.environ.get("GEMINI_API_KEY"),
             vertexai=os.environ.get("USE_VERTEXAI", "0").lower() in ["true", "1"],
@@ -330,6 +338,13 @@ class BrowserAgent:
             attrs=["bold"],
         )
         print(safety["explanation"])
+        
+        # Auto-confirm if auto_confirm_safety is enabled
+        if self._auto_confirm_safety:
+            print("Auto-confirming safety prompt (auto_confirm_safety=True)")
+            return "CONTINUE"
+        
+        # Otherwise, ask for user input
         decision = ""
         while decision.lower() not in ("y", "n", "ye", "yes", "no"):
             decision = input("Do you wish to proceed? [Y]es/[n]o\n")
