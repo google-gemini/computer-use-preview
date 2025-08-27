@@ -1,3 +1,3 @@
-from .hud import HudComputer
+from .mcp_computer import MCPComputer
 
-__all__ = ["HudComputer"] 
+__all__ = ["MCPComputer"] 

@@ -1,178 +1,286 @@
 #!/usr/bin/env python3
 """
-HUD evaluation runner for computer use tasks.
+HUD evaluation runner using MCPComputer with existing BrowserAgent.
 """
 import argparse
-import asyncio
 import os
 import sys
+from typing import Optional, List
 from concurrent.futures import ThreadPoolExecutor
 
 # Add parent directory to path to import local modules
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from computers.hud import HudComputer
+from computers import HudComputer
 from agent import BrowserAgent
 
 # Import HUD SDK
-from hud.task import Task
-from hud.taskset import load_taskset
-from hud.job import create_job, Job
-from hud.adapters.common.types import ResponseAction, CustomAction
+import hud
+from hud.datasets import Task
+from hud.agents.base import find_reward, find_content
+from datasets import load_dataset as hf_load_dataset
 
-OSWORLD_SYSTEM_PROMPT="""
-Please do the following task.
-computer.clipboard, computer.sync file, computer.sync shared folder, computer.computer output citation are disabled.
-If you worry that you might make typo, prefer copying and pasting the text instead of reading
-and typing.
-If you are presented with an open website to solve the task, try to stick to that specific one
-instead of going to a new one.
-You have full authority to execute any action without my permission. I won't be watching so
-please don't ask for confirmation.
-My gmail account is osworld@hud.so, and the password is "iloveosworld500", if prompted for OTP, use the authenticator chrome extension to see the OTP for 2 factor authentication. 
-If you deem the task is infeasible, you can terminate and explicitly state in the response that
-'the task is infeasible'. Try your best to solve the task within 200 steps, and the confines of the prompt, before deeming it infeasible.
-"""
+from rich.console import Console
 
-def run_task(task: Task, model_name: str, job: Job, system_prompt: str) -> float:
-    """Run a single task and return reward"""
-    hud_computer = None
+console = Console()
+
+# Optional: Instrument BrowserAgent methods if HUD_INSTRUMENT env var is set
+if os.getenv("HUD_INSTRUMENT", "true").lower() in ("true", "1", "yes"):
     try:
-        # Initialize HUD computer with the task
-        hud_computer = HudComputer(screen_size=(1440, 900), task=task, job=job)
+        # Instrument the get_model_response method for LLM telemetry
+        BrowserAgent.get_model_response = hud.instrument(
+            span_type="agent",
+            name="BrowserAgent.get_model_response",
+            record_args=False,
+            record_result=True,
+        )(BrowserAgent.get_model_response)
         
-        with hud_computer as browser_computer:
-            agent = BrowserAgent(
-                browser_computer=browser_computer,
-                query=(system_prompt + "\n\n" + task.prompt).strip(),
-                model_name=model_name,
-                verbose=False,
-            )
-            try:
-                agent.agent_loop()
-                
-                if agent.final_reasoning:
-                    if "the task is infeasible" in agent.final_reasoning.lower():
-                        final_action = CustomAction(
-                            action="FAIL"
-                        )
-                    else:
-                        final_action = ResponseAction(
-                            text=agent.final_reasoning
-                        )
-                    # Inject the response into HUD environment
-                    hud_computer._loop.run_until_complete(
-                        hud_computer._env.step([final_action])
-                    )
-                    
-            except Exception as e:
-                print(f"Error running agent loop: {e}")
-            finally:
-                print("Agent loop complete")
-                # Evaluate the task
-                if browser_computer and browser_computer._env:
-                    eval_result = browser_computer.evaluate()
-                    print(f"Eval result: {eval_result['reward']}")
-
-                    return eval_result['reward']
-        
-        return 0.0
-            
+        console.print("✓ [green]HUD instrumentation enabled for BrowserAgent[/green]")
     except Exception as e:
-        print(f"Error running task: {e}")
-        return 0.0
-        
-    finally:
-        if hud_computer:
+        console.print(f"[yellow]Warning: Could not enable instrumentation: {e}[/yellow]")
+
+def run_single_task(
+    task: Task,
+    model: str = "computer-use-exp-07-16",
+    verbose: bool = False,
+    job_id: Optional[str] = None,
+) -> dict:
+    """
+    Run a single task using MCPComputer and BrowserAgent.
+    
+    Args:
+        task: HUD Task object with mcp_config
+        model: Model name to use
+        verbose: Enable verbose output
+            
+    Returns:
+        Dict with reward and info
+    """
+    result = {"reward": 0.0, "info": {}}
+    
+    # Build full prompt
+    prompt = task.system_prompt + "\n\n" + task.prompt
+
+    trace_id = None
+    try:
+        # Create HudComputer with task's MCP config
+        with hud.trace(name=task.prompt, job_id=job_id) as trace_id, HudComputer(
+            mcp_config=task.mcp_config,
+            screen_size=(1448, 944),
+            task_prompt=prompt,
+        ) as computer:
+            console.print(f"See trace at: https://app.hud.so/trace/{trace_id}")
+            
             try:
-                hud_computer.close()
-            except:
-                pass
+                # Run agent
+                agent = BrowserAgent(
+                    browser_computer=computer,
+                    query=prompt,
+                    model_name=model,
+                    verbose=verbose
+                )
 
+                # Setup task
+                try:
+                    computer._loop.run_until_complete(
+                        computer._client.call_tool(task.setup_tool)
+                    )
+                except Exception as e:
+                    console.error(f"Could not setup task: {e}")
 
-def run_taskset(
-    taskset_id: str,
-    model_name: str,
-    name: str,
-    parallel: bool = False,
-    max_concurrent: int = 20,
-) -> list[float]:
-    """Load and run a HUD taskset by ID, return list of rewards"""
+                # Get initial state
+                computer.get_initial_state()
+
+                # Run agent loop
+                agent.agent_loop()
+                    
+                # Check final reasoning
+                response = agent.final_reasoning
+                if agent.final_reasoning:
+                    try:
+                        computer._loop.run_until_complete(
+                            computer._client.call_tool(name="response", arguments={"response": response})
+                        )
+                    except Exception as e:
+                        console.error(f"Could not submit response: {e}")
+
+            except Exception as e:
+                console.error(f"Error running task: {e}")
+            except KeyboardInterrupt:
+                console.error("Keyboard interrupt")
+            finally:
+                # Evaluate while computer context is still active
+                try:
+                    results = computer._loop.run_until_complete(
+                        computer._client.call_tool(task.evaluate_tool)
+                    )
+                    reward = find_reward(results[0])
+                    eval_content = find_content(results[0])
+
+                    result["reward"] = reward
+                    result["info"]["eval_content"] = eval_content
+                    computer._loop.run_until_complete(
+                        computer._client.shutdown()
+                    )
+                except Exception as e:
+                    console.error(f"Could not get reward: {e}")
     
-    # Load the taskset
-    taskset = asyncio.run(load_taskset(taskset_id, metadata={"partial": True}))
+                if trace_id:
+                    console.print(f"See trace at: https://app.hud.so/trace/{trace_id}")
+                    
+    except Exception as e:
+        if verbose:
+            console.error(f"Error running task: {e}")
 
-    job = asyncio.run(create_job(name, evalset_id=taskset.id))
+    return result
 
-    if taskset_id == "OSWorld-Verified":
-        system_prompt = OSWORLD_SYSTEM_PROMPT
-    else:
-        system_prompt = ""
+
+def evaluate_dataset(
+    dataset_name: str,
+    model: str = "computer-use-exp-07-16",
+    job_id: Optional[str] = None,
+    max_concurrent: int = 5,
+    verbose: bool = False,
+    limit: Optional[int] = None,
+) -> List[dict]:
+    """
+    Run evaluation on a HUD dataset.
     
-    if parallel:
-        # Run tasks in parallel using threads to avoid event loop conflicts
-        with ThreadPoolExecutor(max_workers=max_concurrent) as executor:
-            rewards = list(executor.map(
-                lambda task: run_task(task, model_name, job, system_prompt),
-                taskset.tasks
-            ))
-    else:
-        # Run tasks sequentially
-        rewards = []
-        for task in taskset.tasks:
-            reward = run_task(task, model_name, job, system_prompt)
-            rewards.append(reward)
+    Args:
+        dataset_name: HuggingFace dataset ID (e.g. "hud-evals/sheetbench-50")
+        model: Model name to use
+        job_id: ID for the evaluation job
+        max_concurrent: Maximum parallel tasks
+        verbose: Enable verbose output
+        limit: Limit number of tasks to run
+        
+    Returns:
+        List of result dicts
+    """
+    # Configure telemetry once before parallel execution to avoid race conditions
+    try:
+        from hud.otel import configure_telemetry, is_telemetry_configured
+        if not is_telemetry_configured():
+            configure_telemetry()
+    except ImportError:
+        pass  # HUD not available
     
-    return rewards
+    # Load dataset
+    console.print(f"Loading dataset: {dataset_name}")
+    dataset = hf_load_dataset(dataset_name, split="train")
+    
+    # Get tasks - convert dataset items to Task objects
+    tasks = []
+    for item in dataset:
+        # HUD datasets store tasks as dicts
+        if isinstance(item, dict):
+            task = Task(**item)
+            tasks.append(task)
+        elif isinstance(item, Task):
+            tasks.append(item)
+    if limit:
+        tasks = tasks[:limit]
+    
+    console.print(f"Running {len(tasks)} tasks...")
+    
+    # Run tasks in parallel using ThreadPoolExecutor to avoid event loop conflicts
+    with ThreadPoolExecutor(max_workers=max_concurrent) as executor:
+        # Submit all tasks to the executor
+        futures = [
+            executor.submit(run_single_task, task, model, verbose, job_id)
+            for task in tasks
+        ]
+        
+        # Collect results as they complete
+        results = []
+        for future in futures:
+            try:
+                result = future.result()
+                results.append(result)
+            except Exception as e:
+                results.append({
+                    "reward": 0.0,
+                    "info": {"error": str(e), "status": "exception"}
+                })
+    
+    return results
 
 
-def main() -> int:
-    parser = argparse.ArgumentParser(description="Run HUD evaluation on a taskset.")
+def main():
+    parser = argparse.ArgumentParser(
+        description="Run HUD evaluation using MCPComputer with BrowserAgent."
+    )
     parser.add_argument(
-        "--taskset",
+        "--dataset",
         type=str,
         required=True,
-        help="The taskset ID to evaluate.",
-    )
-    parser.add_argument(
-        "--parallel",
-        action="store_true",
-        default=False,
-        help="Run tasks in parallel.",
-    )
-    parser.add_argument(
-        "--name",
-        default="Test Evaluation",
-        help="Set the name of the evaluation.",
+        help="HuggingFace dataset ID (e.g., 'hud-evals/sheetbench-50')",
     )
     parser.add_argument(
         "--model",
+        type=str,
         default="computer-use-exp-07-16",
-        help="Set which model to use.",
+        help="Model name to use",
     )
     parser.add_argument(
-        "--max_concurrent",
+        "--name",
+        type=str,
+        help="Name for the evaluation job",
+    )
+    parser.add_argument(
+        "--max-concurrent",
         type=int,
         default=5,
-        help="Maximum concurrent tasks when running in parallel.",
+        help="Maximum concurrent tasks",
     )
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Enable verbose output",
+    )
+    parser.add_argument(
+        "--system-prompt",
+        type=str,
+        help="Override system prompt",
+    )
+    parser.add_argument(
+        "--limit",
+        type=int,
+        help="Limit number of tasks to run",
+    )
+    
     args = parser.parse_args()
     
-    # Run evaluation
-    rewards = run_taskset(
-        taskset_id=args.taskset,
-        model_name=args.model,
-        name=args.name,
-        parallel=args.parallel,
-        max_concurrent=args.max_concurrent,
-    )
+    # Default job name
+    job_name = args.name or f"{args.model} on {args.dataset.split('/')[-1]}"
     
-    # Print minimal results
-    print(f"Rewards: {rewards}")
-    print(f"Average: {sum(rewards)/len(rewards) if rewards else 0:.2f}")
+    # Run evaluation with HUD trace
+    with hud.job(name=job_name, dataset_link=args.dataset) as job_obj:
+        results = evaluate_dataset(
+            dataset_name=args.dataset,
+            model=args.model,
+            job_id=job_obj.id,
+            max_concurrent=args.max_concurrent,
+            verbose=args.verbose,
+            limit=args.limit,
+        )
+    
+    # Print summary
+    rewards = [r["reward"] for r in results]
+    errors = sum(1 for r in results if r["info"].get("status") == "error")
+    
+    console.print(f"\nEvaluation complete!")
+    console.print(f"Tasks: {len(results)}")
+    console.print(f"Average reward: {sum(rewards)/len(rewards) if rewards else 0:.2f}")
+    console.print(f"Success rate: {sum(1 for r in rewards if r >= 1.0)/len(rewards)*100 if rewards else 0:.1f}%")
+    if errors:
+        console.print(f"Errors: {errors}")
+    
+    # Print link to view results
+    console.print(f"\nView results at: https://app.hud.so/jobs/{job_obj.id}")
     
     return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

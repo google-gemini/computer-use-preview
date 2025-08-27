@@ -83,7 +83,18 @@ def main() -> int:
     elif args.env == "browserbase":
         env = BrowserbaseComputer(screen_size=PLAYWRIGHT_SCREEN_SIZE)
     elif args.env == "hud":
+        # HUD now uses MCP protocol - build MCP config
+        mcp_config = {
+            "hud": {
+                "url": "https://mcp.hud.so/v3/mcp",
+                "headers": {
+                    "Authorization": f"Bearer {os.environ.get('HUD_API_KEY')}",
+                    "Mcp-Image": "hudpython/hud-remote-browser:latest"
+                }
+            }
+        }
         env = HudComputer(
+            mcp_config=mcp_config,
             screen_size=HUD_SCREEN_SIZE,
             initial_url=args.initial_url,
             task_prompt=args.query,

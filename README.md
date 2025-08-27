@@ -116,13 +116,15 @@ Runs the agent using Browserbase as the browser backend. Ensure the proper Brows
 python main.py --query="Go to Google and type 'Hello World' into the search bar" --env="browserbase"
 ```
 
-**hud**
+**HUD**
 
-Runs the agent using hud's browser environment. This is the same environment used by `hud_eval.py` but can be run directly with `main.py` for individual tasks. Ensure the `HUD_API_KEY` environment variable is set.
+Runs the agent using HUD's browser environment via the Model Context Protocol (MCP). Ensure the `HUD_API_KEY` environment variable is set.
 
 ```bash
 python main.py --query="Go to Google and type 'Hello World' into the search bar" --env="hud"
 ```
+
+This is the same environment used by `hud_eval.py` but can be run directly with `main.py` for individual tasks.
 
 **Cloud Run**
 
@@ -152,11 +154,12 @@ The `main.py` script is the command-line interface (CLI) for running the browser
 | Argument | Description | Required | Default | Supported Environment(s) |
 |-|-|-|-|-|
 | `--query` | The natural language query for the browser agent to execute. | Yes | N/A | All |
-| `--env` | The computer use environment to use. Must be one of the following: `cloud-run`, `playwright`, or `browserbase` | No | `cloud-run` | All |
+| `--env` | The computer use environment to use. Must be one of the following: `cloud-run`, `playwright`, `browserbase`, or `hud` | No | `cloud-run` | All |
 | `--api_server` | The URL of the API Server. | Yes if --env is `cloud-run` | N/A | `cloud-run` |
 | `--api_server_key` | The API key for the API Server. If not provided, the script will try to use the `API_SERVER_KEY` environment variable. | No | None (tries `API_SERVER_KEY` env var) | `cloud-run` |
-| `--initial_url` | The initial URL to load when the browser starts. | No | https://www.google.com | `playwright` |
+| `--initial_url` | The initial URL to load when the browser starts. | No | https://www.google.com | `playwright`, `hud` |
 | `--highlight_mouse` | If specified, the agent will attempt to highlight the mouse cursor's position in the screenshots. This is useful for visual debugging. | No | False (not highlighted) | `playwright` |
+| `--model` | The model to use for the agent. | No | computer-use-exp-07-16 | All |
 
 ### Environment Variables
 
@@ -168,31 +171,59 @@ The `main.py` script is the command-line interface (CLI) for running the browser
 | BROWSERBASE_PROJECT_ID | Your Project ID for Browserbase. | Yes (when using the browserbase environment) |
 | HUD_API_KEY | Your API key for hud. Required for running evaluations with hud_eval.py. | Yes (when using the hud enviornment or running hud_eval.py) |
 
+
+
 ## Evaluations
 
-The `hud_eval.py` script allows you to run automated evaluations against hud tasksets:
+The `hud_eval.py` script allows you to run automated evaluations against HUD datasets using the new MCP protocol:
 
 ```bash
-python hud_eval.py --taskset <taskset_id> [--parallel] [--max_concurrent <n>]
+# Run a HuggingFace dataset
+python hud_eval.py --dataset hud-evals/sheetbench-50
+
+# Run with custom settings
+python hud_eval.py --dataset hud-evals/OSWorld-Verified --model computer-use-exp-07-16 --max-concurrent 10
+
+# Run with verbose output
+python hud_eval.py --dataset hud-evals/sheetbench-50 --verbose
+
+# Limit number of tasks for testing
+python hud_eval.py --dataset hud-evals/sheetbench-50 --limit 5
 ```
 
 **Arguments:**
-- `--taskset`: The HUD taskset ID to evaluate (e.g., 'OSWorld-Verified')
-- `--parallel`: Run tasks in parallel (default: serial execution)
-- `--max_concurrent`: Maximum concurrent tasks when running in parallel (default: 3)
-- `--model`: Model name (default: 'gemini-2.0-flash-exp')
-- `--api_key`: Gemini API key (uses GEMINI_API_KEY env var if not provided)
+- `--dataset`: HuggingFace dataset ID (e.g., 'hud-evals/sheetbench-50') (required)
+- `--model`: Model name to use (default: computer-use-exp-07-16)
+- `--max-concurrent`: Maximum concurrent tasks (default: 5)
+- `--verbose`: Enable verbose output
+- `--system-prompt`: Override the system prompt
+- `--limit`: Limit number of tasks to run (useful for testing)
+- `--name`: Custom name for the evaluation job
 
-**Example:**
-```bash
-# Run a taskset serially
-python hud_eval.py --taskset SheetBench-V2
-
-# Run in parallel with 50 concurrent tasks (can support up to 400)
-python hud_eval.py --taskset OSWorld-Verified --parallel --max_concurrent 50
-```
+The evaluation runner uses the `HudComputer` to connect to HUD's MCP servers, allowing your existing `BrowserAgent` to work seamlessly with HUD's evaluation infrastructure.
 
 ## Computers
+
+The system supports multiple computer implementations through the `Computer` interface:
+
+### Available Implementations
+
+1. **CloudRunComputer** - Google Cloud Run-based browser environment
+2. **PlaywrightComputer** - Local Playwright-based browser
+3. **BrowserbaseComputer** - Browserbase cloud browser service
+4. **HudComputer** - HUD environment using Model Context Protocol (MCP)
+
+### HudComputer
+
+The `HudComputer` now uses the Model Context Protocol (MCP) to connect to HUD's browser environments. This allows the existing `BrowserAgent` to work with HUD's infrastructure without any modifications.
+
+Key features:
+- Implements the standard `Computer` interface
+- Connects to MCP servers via the HUD Client SDK
+- Translates Computer method calls to MCP tool calls (using the "computer" tool)
+- Handles async MCP operations in a sync interface
+- Automatically discovers available tools from the MCP server
+- Supports both computer and playwright tools when available
 
 For an in-depth explanation of how the system works, please see the instructions document available here:
 

@@ -1,7 +1,7 @@
 termcolor==3.1.0
-pydantic==2.11.4
+pydantic==2.11.7
 ./sdk/google_genai-1.27.0-py3-none-any.whl
 playwright==1.52.0
 browserbase==1.3.0
 rich
-hud-python==0.2.10
+hud-python[agents]==0.4.11
