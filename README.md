@@ -175,7 +175,7 @@ The `main.py` script is the command-line interface (CLI) for running the browser
 
 ## Evaluations
 
-The `hud_eval.py` script allows you to run automated evaluations against HUD datasets using the new MCP protocol:
+The `hud_eval.py` script allows you to run automated evaluations against HUD datasets using the MCP protocol:
 
 ```bash
 # Run a HuggingFace dataset
@@ -183,20 +183,13 @@ python hud_eval.py --dataset hud-evals/sheetbench-50
 
 # Run with custom settings
 python hud_eval.py --dataset hud-evals/OSWorld-Verified --model computer-use-exp-07-16 --max-concurrent 10
-
-# Run with verbose output
-python hud_eval.py --dataset hud-evals/sheetbench-50 --verbose
-
-# Limit number of tasks for testing
-python hud_eval.py --dataset hud-evals/sheetbench-50 --limit 5
 ```
 
 **Arguments:**
 - `--dataset`: HuggingFace dataset ID (e.g., 'hud-evals/sheetbench-50') (required)
 - `--model`: Model name to use (default: computer-use-exp-07-16)
 - `--max-concurrent`: Maximum concurrent tasks (default: 5)
-- `--verbose`: Enable verbose output
-- `--system-prompt`: Override the system prompt
+- `--verbose`: Enable verbose output (Note: disables parallel execution when > 1 task)
 - `--limit`: Limit number of tasks to run (useful for testing)
 - `--name`: Custom name for the evaluation job
 
@@ -212,18 +205,6 @@ The system supports multiple computer implementations through the `Computer` int
 2. **PlaywrightComputer** - Local Playwright-based browser
 3. **BrowserbaseComputer** - Browserbase cloud browser service
 4. **HudComputer** - HUD environment using Model Context Protocol (MCP)
-
-### HudComputer
-
-The `HudComputer` now uses the Model Context Protocol (MCP) to connect to HUD's browser environments. This allows the existing `BrowserAgent` to work with HUD's infrastructure without any modifications.
-
-Key features:
-- Implements the standard `Computer` interface
-- Connects to MCP servers via the HUD Client SDK
-- Translates Computer method calls to MCP tool calls (using the "computer" tool)
-- Handles async MCP operations in a sync interface
-- Automatically discovers available tools from the MCP server
-- Supports both computer and playwright tools when available
 
 For an in-depth explanation of how the system works, please see the instructions document available here:
 

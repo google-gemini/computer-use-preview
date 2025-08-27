@@ -70,7 +70,8 @@ class MCPComputer(Computer):
         self._owns_loop = True
         
         # Create MCP client with the provided config
-        self._client = MCPClient(mcp_config=self._mcp_config)
+        # Disable auto_trace to avoid context issues across event loop boundaries
+        self._client = MCPClient(mcp_config=self._mcp_config, auto_trace=False)
         
         # Connect to MCP server
         self._loop.run_until_complete(self._client.initialize())
@@ -109,6 +110,7 @@ class MCPComputer(Computer):
         """Exit context manager - cleanup MCP client connection."""
         if self._client and self._loop:
             self._loop.run_until_complete(self._client.shutdown())
+        
         if self._loop:
             self._loop.close()
     

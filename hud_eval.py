@@ -67,7 +67,7 @@ def run_single_task(
     trace_id = None
     try:
         # Create HudComputer with task's MCP config
-        with hud.trace(name=task.prompt, job_id=job_id) as trace_id, HudComputer(
+        with hud.trace(name=task.prompt, job_id=job_id, task_id=task.id) as trace_id, HudComputer(
             mcp_config=task.mcp_config,
             screen_size=(1448, 944),
             task_prompt=prompt,
@@ -86,9 +86,12 @@ def run_single_task(
 
                 # Setup task
                 try:
-                    computer._loop.run_until_complete(
-                        computer._client.call_tool(task.setup_tool)
-                    )
+                    if not isinstance(task.setup_tool, list):
+                        task.setup_tool= [task.setup_tool]
+                    for tool in task.setup_tool:
+                        computer._loop.run_until_complete(
+                            computer._client.call_tool(tool)
+                        )
                 except Exception as e:
                     console.print(f"[red]Could not setup task: {e}[/red]")
 
@@ -115,6 +118,8 @@ def run_single_task(
             finally:
                 # Evaluate while computer context is still active
                 try:
+                    if isinstance(task.evaluate_tool, list):
+                        task.evaluate_tool = task.evaluate_tool[0]
                     eval_result = computer._loop.run_until_complete(
                         computer._client.call_tool(task.evaluate_tool)
                     )
