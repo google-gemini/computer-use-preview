@@ -128,7 +128,7 @@ class SessionManager:
                     job=job,
                 )
                 operation = await client.update_job(request=request)
-                response = await operation.result()
+            response = await operation.result()
             logging.info(response.latest_created_execution)
         except NotFound:
             logging.info("Job does not exist, creating it...")
