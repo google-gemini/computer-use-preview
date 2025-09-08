@@ -21,6 +21,8 @@ from models import SessionType, SignalingStrategy
 from config import Config
 
 
+_update_job_lock = asyncio.Lock()
+
 class SessionManager:
 
     config: Config
@@ -109,23 +111,24 @@ class SessionManager:
             get_job_request = run_v2.GetJobRequest(
                 name=self.config.job_name,
             )
-            job = await client.get_job(request=get_job_request)
-            job = self._configure_job(
-                job=job,
-                session_id=session_id,
-                session_type=session_type,
-                signaling_strategy=signaling_strategy,
-                screen_resolution=screen_resolution,
-                job_timeout_seconds=job_timeout_seconds,
-                idle_timeout_seconds=idle_timeout_seconds,
-            )
+            async with _update_job_lock:
+                job = await client.get_job(request=get_job_request)
+                job = self._configure_job(
+                    job=job,
+                    session_id=session_id,
+                    session_type=session_type,
+                    signaling_strategy=signaling_strategy,
+                    screen_resolution=screen_resolution,
+                    job_timeout_seconds=job_timeout_seconds,
+                    idle_timeout_seconds=idle_timeout_seconds,
+                )
 
-            # Send the request to the Cloud Run control plane:
-            request = run_v2.UpdateJobRequest(
-                job=job,
-            )
-            operation = await client.update_job(request=request)
-            response = await operation.result()
+                # Send the request to the Cloud Run control plane:
+                request = run_v2.UpdateJobRequest(
+                    job=job,
+                )
+                operation = await client.update_job(request=request)
+                response = await operation.result()
             logging.info(response.latest_created_execution)
         except NotFound:
             logging.info("Job does not exist, creating it...")
