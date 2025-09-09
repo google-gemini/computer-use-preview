@@ -36,7 +36,7 @@ class Config:
         )
         self.job_image = os.environ.get(
             "JOB_IMAGE",
-            "us-docker.pkg.dev/jfyang-proj/export-images/puppeteer",
+            "us-docker.pkg.dev/jfyang-proj/export-images/puppeteer:latest",
         )
         self.cmd_timeout = int(os.environ.get("CMD_TIMEOUT", "60"))
         self.project_id = Config._get_project_id(self.on_cloud_run)
