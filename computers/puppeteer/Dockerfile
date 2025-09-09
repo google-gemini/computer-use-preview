@@ -12,6 +12,8 @@ ENV SCREEN_RESOLUTION=1920x1000x16
 RUN export DEBIAN_FRONTEND=noninteractive && apt-get update && apt-get install -yq --no-install-recommends \
     ca-certificates \
     gnupg \
+    xvfb \
+    libgbm-dev \
     jq \
     libgconf-2-4 \
     libnss3 \
@@ -53,4 +55,9 @@ RUN ln -s /usr/src/app/run-command.sh /usr/bin/run-command
 EXPOSE 8080
 
 # Start the application
-ENTRYPOINT ["node", "dist/index.js"]
+
+ENV DISPLAY=:99
+
+COPY start.sh /usr/local/bin/start.sh
+
+CMD ["/usr/local/bin/start.sh"]
