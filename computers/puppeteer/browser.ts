@@ -213,9 +213,6 @@ export class BrowserShell implements ComputerShell {
   }
 
   async screenshot(): Promise<string> {
-    if (this.headfulShell) {
-      return await this.headfulShell.screenshot();
-    }
     return await this.page.screenshot({
       encoding: 'base64',
       type: 'png',
