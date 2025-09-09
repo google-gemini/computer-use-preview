@@ -79,9 +79,9 @@ export class BrowserShell implements ComputerShell {
   }
 
   async runCommand(c: Command): Promise<void> {
-    if (this.headfulShell && HEADFUL_COMMANDS.has(c.name)) {
-      return await this.headfulShell.runCommand(c);
-    }
+    //if (this.headfulShell && HEADFUL_COMMANDS.has(c.name)) {
+    //  return await this.headfulShell.runCommand(c);
+    //}
     switch (c.name) {
       case 'open_web_browser':
         await this.page.goto('https://www.google.com');
