@@ -40,7 +40,7 @@ const LANG = process.env.LANG ?? 'en-US,en';
 
 let isReady = false;
 
-const server = http.createServer((req, res) => {
+const server = http.createServer(async (req, res) => {
   if (req.url === '/ready') {
     if (isReady) {
       res.writeHead(204);
@@ -51,33 +51,73 @@ const server = http.createServer((req, res) => {
     }
     return;
   }
+  else if (req.url === '/start_session' && req.method == 'POST') {
+    try {
+      // 1. Asynchronously read the full request body
+      const body = await new Promise<string>((resolve, reject) => {
+        let data = '';
+        req.on('data', chunk => {
+          data += chunk.toString();
+        });
+        req.on('end', () => resolve(data));
+        req.on('error', err => reject(err));
+      });
+
+      // 2. Parse the body as JSON and extract session_id
+      const { session_id } = JSON.parse(body);
+
+      // 3. Validate that session_id is a string
+      console.log(`Session ID received: ${session_id}`);
+
+      res.writeHead(200, { 'Content-Type': 'text/plain' });
+      res.write('1');
+
+      await launchSession(session_id);
+
+      isReady = true;
+      res.write('2');
+
+      await new Promise(resolve => setTimeout(resolve, 1000 * 60 * 55));
+
+      res.end('done, exiting');
+
+      process.exit(0);
+
+    } catch (error) {
+      // This catches errors from JSON.parse() or our validation
+      res.writeHead(400, { 'Content-Type': 'text/plain' });
+      res.end('Bad Request: Invalid JSON or missing/invalid session_id.');
+    }
+
+    return; // Stop further execution
+  }
 
   res.writeHead(404, { 'Content-Type': 'text/plain' });
   res.end('Not Found');
 });
 
-server.listen(READINESS_CHECK_PORT, () => {
-  console.log(`HTTP server listening on port ${READINESS_CHECK_PORT} for readiness checks.`);
+let portToUse = SESSION_ID == '1234' ? PORT : READINESS_CHECK_PORT;
+
+server.listen(portToUse, () => {
+  console.log(`HTTP server listening on port ${portToUse}...`);
 });
 
-const getSignallingChannel = (): MessagingChannel => {
+const getSignallingChannel = (session_id: string): MessagingChannel => {
   if (process.env.USE_PUBSUB === "true") {
     console.log('using PubSub signalling strategy');
     return new PubSubChannel({
       projectId: PUBSUB_PROJECT_ID,
-      commandsTopic: `projects/${PUBSUB_PROJECT_ID}/topics/commands-${SESSION_ID}`,
-      screenshotsTopic: `projects/${PUBSUB_PROJECT_ID}/topics/screenshots-${SESSION_ID}`,
-      subscriptionName: `projects/${PUBSUB_PROJECT_ID}/subscriptions/commands-${SESSION_ID}`,
+      commandsTopic: `projects/${PUBSUB_PROJECT_ID}/topics/commands-${session_id}`,
+      screenshotsTopic: `projects/${PUBSUB_PROJECT_ID}/topics/screenshots-${session_id}`,
+      subscriptionName: `projects/${PUBSUB_PROJECT_ID}/subscriptions/commands-${session_id}`,
     })
   }
   console.log('using HTTP signalling strategy');
   return new HttpChannel(PORT);
 };
 
-(async () => {
-  console.log("creating puppeteer worker");
-
-  const channel = getSignallingChannel();
+const launchSession = async (session_id: string) => {
+  const channel = getSignallingChannel(session_id);
 
   let idleTimer: NodeJS.Timeout;
 
@@ -136,7 +176,7 @@ const getSignallingChannel = (): MessagingChannel => {
       await browserShell!.runCommand(command);
       const url = browserShell!.currentUrl();
       const screenshot = await browserShell!.screenshot();
-      message.publishScreenshot(screenshot, SESSION_ID, url);
+      message.publishScreenshot(screenshot, session_id, url);
     } catch (e: Error | any) {
       console.error(e);
       if (e instanceof Error) {
@@ -147,8 +187,17 @@ const getSignallingChannel = (): MessagingChannel => {
     }
   });
   browserShell = FULLOS ? await OsShell.init() : await BrowserShell.init(!HEADFULCHROME, SCREEN_RESOLUTION, LANG);
+};
 
+(async () => {
+  if (SESSION_ID == '1234') {
+    console.log("Started in service mode.")
+    return;
+  }
 
+  console.log("creating puppeteer worker");
+
+  await launchSession(SESSION_ID);
 
   isReady = true;
   console.log('Worker is ready.');
