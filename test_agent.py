@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 import unittest
 from unittest.mock import MagicMock, patch
 from google.genai import types
@@ -20,6 +21,7 @@ from computers import EnvState
 
 class TestBrowserAgent(unittest.TestCase):
     def setUp(self):
+        os.environ["GEMINI_API_KEY"] = "test_api_key"
         self.mock_browser_computer = MagicMock()
         self.mock_browser_computer.screen_size.return_value = (1000, 1000)
         self.agent = BrowserAgent(
