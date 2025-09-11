@@ -31,7 +31,7 @@ class TestBrowserAgent(unittest.TestCase):
         self.agent._client = MagicMock()
 
     def test_multiply_numbers(self):
-        self.assertEqual(multiply_numbers(2, 3), {"result": 5})
+        self.assertEqual(multiply_numbers(2, 3), {"result": 6})
 
     def test_handle_action_open_web_browser(self):
         action = types.FunctionCall(name="open_web_browser", args={})
@@ -86,8 +86,8 @@ class TestBrowserAgent(unittest.TestCase):
         self.assertEqual(self.agent._contents[1], mock_candidate.content)
 
     @patch('agent.BrowserAgent.get_model_response')
-    @patch('agent.BrowserAgent._execute_function_call')
-    def test_run_one_iteration_with_function_call(self, mock_execute_function_call, mock_get_model_response):
+    @patch('agent.BrowserAgent.handle_action')
+    def test_run_one_iteration_with_function_call(self, mock_handle_action, mock_get_model_response):
         mock_response = MagicMock()
         mock_candidate = MagicMock()
         function_call = types.FunctionCall(name="navigate", args={"url": "https://example.com"})
@@ -96,12 +96,12 @@ class TestBrowserAgent(unittest.TestCase):
         mock_get_model_response.return_value = mock_response
 
         mock_env_state = EnvState(screenshot=b"screenshot", url="https://example.com")
-        mock_execute_function_call.return_value = mock_env_state
+        mock_handle_action.return_value = mock_env_state
 
         result = self.agent.run_one_iteration()
 
         self.assertEqual(result, "CONTINUE")
-        mock_execute_function_call.assert_called_once_with(function_call)
+        mock_handle_action.assert_called_once_with(function_call)
         self.assertEqual(len(self.agent._contents), 3)
 
 
