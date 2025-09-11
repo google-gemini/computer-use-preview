@@ -47,6 +47,9 @@ class CreateSessionRequest(BaseModel):
     idle_timeout_seconds: int = Field(
         title="The idle timeout in seconds.", examples=[60], default=60 * 60  # 1 hour
     )
+    puppeteer_host: str = Field(
+        title="Optional puppeteer host", default=""
+    )
 
 
 class CreateSessionResponse(BaseModel):

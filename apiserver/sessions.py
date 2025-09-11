@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import asyncio
+import aiohttp
 import logging
 from google.cloud import run_v2
 from google.api_core.exceptions import NotFound
@@ -22,6 +23,7 @@ from config import Config
 
 
 _update_job_lock = asyncio.Lock()
+_connections = {}
 
 class SessionManager:
 
@@ -44,7 +46,52 @@ class SessionManager:
         screen_resolution: str,
         job_timeout_seconds: int,
         idle_timeout_seconds: int,
+        puppeteer_host: str,
     ) -> None:
+
+        if puppeteer_host:
+            audience = puppeteer_host
+            async with aiohttp.ClientSession() as session:
+                # Make a GET request to httpbin.org/get
+                async with session.get(f'http://metadata/computeMetadata/v1/instance/service-accounts/default/identity?audience={audience}',
+                                    headers={
+                                        "Metadata-Flavor": "Google"
+                                    }) as resp:
+                    logging.warning(f"getidtoken Status: {resp.status}")  # Print the HTTP status code
+                    id_token = await resp.text()
+            
+            async with aiohttp.ClientSession() as session:
+                # Make a GET request to httpbin.org/get
+                async with session.get(f'http://metadata/computeMetadata/v1/project/project-id',
+                                    headers={
+                                        "Metadata-Flavor": "Google"
+                                    }) as resp:
+                    logging.warning(f"getproject Status: {resp.status}")  # Print the HTTP status code
+                    project_id = await resp.text()
+
+            session = aiohttp.ClientSession()
+            url = f'{puppeteer_host}/start_session'
+            response = await session.post(url,
+                                        json={
+                                            "session_id": session_id,
+                                            "screen_resolution": screen_resolution,
+                                            "job_timeout_seconds": job_timeout_seconds,
+                                            "pubsub_project": project_id,
+                                        },
+                                        headers={
+                                            "Authorization": f"Bearer {id_token}"
+                                        })
+            if response.status == 200:
+                start_bytes = await response.content.readexactly(2)
+                logging.warning(f"Got starting bytes {url}: {start_bytes}")
+
+                _connections[session_id] = (session, response)
+            else:
+                logging.warning(f"Error fetching {url}: Status {resp.status} {await response.text()}")
+
+            return
+
+
         if self.config.job_name is not None:
             await self._execute_cloud_run_job(
                 session_id=session_id,

@@ -79,9 +79,9 @@ export class BrowserShell implements ComputerShell {
   }
 
   async runCommand(c: Command): Promise<void> {
-    if (this.headfulShell && HEADFUL_COMMANDS.has(c.name)) {
-      return await this.headfulShell.runCommand(c);
-    }
+    //if (this.headfulShell && HEADFUL_COMMANDS.has(c.name)) {
+    //  return await this.headfulShell.runCommand(c);
+    //}
     switch (c.name) {
       case 'open_web_browser':
         await this.page.goto('https://www.google.com');
@@ -213,9 +213,6 @@ export class BrowserShell implements ComputerShell {
   }
 
   async screenshot(): Promise<string> {
-    if (this.headfulShell) {
-      return await this.headfulShell.screenshot();
-    }
     return await this.page.screenshot({
       encoding: 'base64',
       type: 'png',

@@ -121,6 +121,7 @@ async def create_session(session: CreateSessionRequest) -> CreateSessionResponse
             screen_resolution=session.screen_resolution,
             job_timeout_seconds=session.timeout_seconds,
             idle_timeout_seconds=session.idle_timeout_seconds,
+            puppeteer_host=session.puppeteer_host,
         )
         return CreateSessionResponse(id=session_id)
     except Exception as e:
