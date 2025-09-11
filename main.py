@@ -15,10 +15,9 @@ import argparse
 import os
 
 from agent import BrowserAgent
-from computers import CloudRunComputer, BrowserbaseComputer, PlaywrightComputer, HudComputer
+from computers import BrowserbaseComputer, PlaywrightComputer, HudComputer
 
 
-CLOUD_RUN_SCREEN_SIZE = (1920, 1080)
 PLAYWRIGHT_SCREEN_SIZE = (1920, 1080)
 HUD_SCREEN_SIZE = (1440, 900)
 
@@ -31,21 +30,12 @@ def main() -> int:
         required=True,
         help="The query for the browser agent to execute.",
     )
-    parser.add_argument(
-        "--api_server",
-        type=str,
-        help="The URL of the API Server for the Cloud Run environment.",
-    )
-    parser.add_argument(
-        "--api_server_key",
-        type=str,
-        help="The API key for the API Server.",
-    )
+
     parser.add_argument(
         "--env",
         type=str,
-        choices=("cloud-run", "playwright", "browserbase", "hud"),
-        default="cloud-run",
+        choices=("playwright", "browserbase", "hud"),
+        default="playwright",
         help="The computer use environment to use.",
     )
     parser.add_argument(
@@ -67,14 +57,7 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    if args.env == "cloud-run":
-        assert args.api_server, "--api_server is required for cloud run."
-        env = CloudRunComputer(
-            api_server=args.api_server,
-            screen_size=CLOUD_RUN_SCREEN_SIZE,
-            api_key=args.api_server_key or os.environ.get("API_SERVER_KEY"),
-        )
-    elif args.env == "playwright":
+    if args.env == "playwright":
         env = PlaywrightComputer(
             screen_size=PLAYWRIGHT_SCREEN_SIZE,
             initial_url=args.initial_url,

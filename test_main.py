@@ -19,28 +19,6 @@ import main
 class TestMain(unittest.TestCase):
 
     @patch('main.argparse.ArgumentParser')
-    @patch('main.CloudRunComputer')
-    @patch('main.BrowserAgent')
-    def test_main_cloud_run(self, mock_browser_agent, mock_cloud_run_computer, mock_arg_parser):
-        mock_args = MagicMock()
-        mock_args.env = 'cloud-run'
-        mock_args.api_server = 'test_server'
-        mock_args.api_server_key = 'test_key'
-        mock_args.query = 'test_query'
-        mock_args.model = 'test_model'
-        mock_arg_parser.return_value.parse_args.return_value = mock_args
-
-        main.main()
-
-        mock_cloud_run_computer.assert_called_once_with(
-            api_server='test_server',
-            screen_size=main.CLOUD_RUN_SCREEN_SIZE,
-            api_key='test_key'
-        )
-        mock_browser_agent.assert_called_once()
-        mock_browser_agent.return_value.agent_loop.assert_called_once()
-
-    @patch('main.argparse.ArgumentParser')
     @patch('main.PlaywrightComputer')
     @patch('main.BrowserAgent')
     def test_main_playwright(self, mock_browser_agent, mock_playwright_computer, mock_arg_parser):
@@ -85,16 +63,6 @@ class TestMain(unittest.TestCase):
         )
         mock_browser_agent.assert_called_once()
         mock_browser_agent.return_value.agent_loop.assert_called_once()
-
-    @patch('main.argparse.ArgumentParser')
-    def test_main_cloud_run_no_api_server(self, mock_arg_parser):
-        mock_args = MagicMock()
-        mock_args.env = 'cloud-run'
-        mock_args.api_server = None
-        mock_arg_parser.return_value.parse_args.return_value = mock_args
-
-        with self.assertRaises(AssertionError):
-            main.main()
 
 if __name__ == '__main__':
     unittest.main()

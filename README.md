@@ -89,7 +89,6 @@ python main.py --query "Go to Google and type 'Hello World' into the search bar"
 
 **Available Environments:**
 
-- `cloud-run`: Connects to a deployed Cloud Run service (default).
 - `playwright`: Runs the browser locally using Playwright.
 - `browserbase`: Connects to a Browserbase instance.
 - `hud`: Integrates with hud's browser environment.
@@ -124,25 +123,6 @@ Runs the agent using hud's browser environment. This is the same environment use
 python main.py --query="Go to Google and type 'Hello World' into the search bar" --env="hud"
 ```
 
-**Cloud Run**
-
-Connects to an [API Server](./apiserver/) deployed on Cloud Run for computer use.
-You should use the simple one-click deploy setup from AI Studio to obtain the API server address, as well as the API server key.
-
-1. Run the sample code against your Cloud Run API server:
-
-```bash
-python main.py \
-  --query="Go to Google and type 'Hello World' into the search bar" \
-  --api_server="https://your-cloud-run-service-url.run.app/" \
-  --api_server_key="your_api_server_key"
-```
-
-- Replace `https://your-cloud-run-service-url.run.app/` with the actual URL of your deployed Cloud Run service.
-- Replace `your_api_server_key` with the actual API server key.
-- If `--env` is not specified, it defaults to `cloud-run`, so providing `--api_server` is sufficient to use this mode.
-- **Note:** When using the Cloud Run environment, the script will print a link to a live stream of screenshots, allowing you to follow the agent's actions in real-time.
-
 ## Agent CLI
 
 The `main.py` script is the command-line interface (CLI) for running the browser agent.
@@ -152,9 +132,7 @@ The `main.py` script is the command-line interface (CLI) for running the browser
 | Argument | Description | Required | Default | Supported Environment(s) |
 |-|-|-|-|-|
 | `--query` | The natural language query for the browser agent to execute. | Yes | N/A | All |
-| `--env` | The computer use environment to use. Must be one of the following: `cloud-run`, `playwright`, or `browserbase` | No | `cloud-run` | All |
-| `--api_server` | The URL of the API Server. | Yes if --env is `cloud-run` | N/A | `cloud-run` |
-| `--api_server_key` | The API key for the API Server. If not provided, the script will try to use the `API_SERVER_KEY` environment variable. | No | None (tries `API_SERVER_KEY` env var) | `cloud-run` |
+| `--env` | The computer use environment to use. Must be one of the following: `playwright`, or `browserbase` | No | N/A | All |
 | `--initial_url` | The initial URL to load when the browser starts. | No | https://www.google.com | `playwright` |
 | `--highlight_mouse` | If specified, the agent will attempt to highlight the mouse cursor's position in the screenshots. This is useful for visual debugging. | No | False (not highlighted) | `playwright` |
 
@@ -163,7 +141,6 @@ The `main.py` script is the command-line interface (CLI) for running the browser
 | Variable | Description | Required |
 |-|-|-|
 | GEMINI_API_KEY | Your API key for the Gemini model. | Yes |
-| API_SERVER_KEY | The API key for your deployed Cloud Run API server, if it's configured to require one. Can also be provided via the `--api_server_key` argument. | Conditionally (if API server requires it and not passed via CLI) |
 | BROWSERBASE_API_KEY | Your API key for Browserbase. | Yes (when using the browserbase environment) |
 | BROWSERBASE_PROJECT_ID | Your Project ID for Browserbase. | Yes (when using the browserbase environment) |
 | HUD_API_KEY | Your API key for hud. Required for running evaluations with hud_eval.py. | Yes (when using the hud enviornment or running hud_eval.py) |
@@ -197,15 +174,3 @@ python hud_eval.py --taskset OSWorld-Verified --parallel --max_concurrent 50
 For an in-depth explanation of how the system works, please see the instructions document available here:
 
 https://docs.google.com/document/d/1jTWQPVCIso7mo5SbQCn2DKZXWFlL_g3D2f-JOrZa1do/edit?tab=t.0
-
-## Advanced Topics
-
-### Cloud Run
-
-Besides the AIS Cloud Run integration, you can also manually deploy the Cloud Run API server yourself:
-
-```bash
-gcloud run deploy computer-use-api --image=us-docker.pkg.dev/cloudrun/solutions/computer-use/apiserver:latest --no-invoker-iam-check
-```
-
-Warning: the command above deploys a service that allows unauthenticated invocations.
