@@ -64,20 +64,34 @@ const server = http.createServer(async (req, res) => {
       });
 
       // 2. Parse the body as JSON and extract session_id
-      const { session_id } = JSON.parse(body);
+      const { session_id, screen_resolution, job_timeout_seconds, pubsub_project } = JSON.parse(body);
+
+      const parts = screen_resolution.split('x');
+      if (parts.length < 2) {
+        throw `invalid SCREEN_RESOLUTION: ${screen_resolution}`;
+      }
+      let screen_resolution_parsed = {
+        width: parseInt(parts[0], 10),
+        height: parseInt(parts[1], 10),
+      };
 
       // 3. Validate that session_id is a string
-      console.log(`Session ID received: ${session_id}`);
+      console.log(`Got request body: ${body}`);
+
+      res.on('close', () => {
+        console.log('Client disconnected. Aborting operations.');
+        process.exit(0);
+      });
 
       res.writeHead(200, { 'Content-Type': 'text/plain' });
       res.write('1');
 
-      await launchSession(session_id);
+      await launchSession(session_id, screen_resolution_parsed, pubsub_project);
 
       isReady = true;
       res.write('2');
 
-      await new Promise(resolve => setTimeout(resolve, 1000 * 60 * 55));
+      await new Promise(resolve => setTimeout(resolve, 1000 * job_timeout_seconds));
 
       res.end('done, exiting');
 
@@ -102,22 +116,22 @@ server.listen(portToUse, () => {
   console.log(`HTTP server listening on port ${portToUse}...`);
 });
 
-const getSignallingChannel = (session_id: string): MessagingChannel => {
+const getSignallingChannel = (session_id: string, pubsub_project: string): MessagingChannel => {
   if (process.env.USE_PUBSUB === "true") {
     console.log('using PubSub signalling strategy');
     return new PubSubChannel({
-      projectId: PUBSUB_PROJECT_ID,
-      commandsTopic: `projects/${PUBSUB_PROJECT_ID}/topics/commands-${session_id}`,
-      screenshotsTopic: `projects/${PUBSUB_PROJECT_ID}/topics/screenshots-${session_id}`,
-      subscriptionName: `projects/${PUBSUB_PROJECT_ID}/subscriptions/commands-${session_id}`,
+      projectId: pubsub_project,
+      commandsTopic: `projects/${pubsub_project}/topics/commands-${session_id}`,
+      screenshotsTopic: `projects/${pubsub_project}/topics/screenshots-${session_id}`,
+      subscriptionName: `projects/${pubsub_project}/subscriptions/commands-${session_id}`,
     })
   }
   console.log('using HTTP signalling strategy');
   return new HttpChannel(PORT);
 };
 
-const launchSession = async (session_id: string) => {
-  const channel = getSignallingChannel(session_id);
+const launchSession = async (session_id: string, screen_resolution: ScreenResolution, pubsub_project: string) => {
+  const channel = getSignallingChannel(session_id, pubsub_project);
 
   let idleTimer: NodeJS.Timeout;
 
@@ -186,7 +200,7 @@ const launchSession = async (session_id: string) => {
       }
     }
   });
-  browserShell = FULLOS ? await OsShell.init() : await BrowserShell.init(!HEADFULCHROME, SCREEN_RESOLUTION, LANG);
+  browserShell = FULLOS ? await OsShell.init() : await BrowserShell.init(!HEADFULCHROME, screen_resolution, LANG);
 };
 
 (async () => {
@@ -197,7 +211,7 @@ const launchSession = async (session_id: string) => {
 
   console.log("creating puppeteer worker");
 
-  await launchSession(SESSION_ID);
+  await launchSession(SESSION_ID, SCREEN_RESOLUTION, PUBSUB_PROJECT_ID);
 
   isReady = true;
   console.log('Worker is ready.');
