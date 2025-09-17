@@ -15,6 +15,9 @@ const sessionIdEl = document.getElementById("screenshot");
 const screenViewTextEl = document.getElementById("screen-view-text");
 const nextActionInnerContent = document.getElementById("next-action-inner-content");
 const nextActionTextDiv = document.getElementById("next-action-description");
+const buttonContainer = document.getElementById("button-container");
+const denyReasonInput = document.getElementById("deny-reason-input");
+
 const urlParams = new URLSearchParams(window.location.search);
 const sessionId = urlParams.get('session_id');
 const apiKey = urlParams.get('api_key');
@@ -30,11 +33,18 @@ const updateScreenshot = async () => {
   }
   else {
     permCheckResult = await permCheck.json();
-    if (permCheckResult['pending'] == false) {
-      nextActionInnerContent.style.display = 'none'
-    } else {
-      nextActionInnerContent.style.display = 'block'
-      nextActionTextDiv.innerHTML = permCheckResult['details']
+    if (permCheckResult['pending'] == true) {
+      nextActionTextDiv.innerHTML = permCheckResult['details'];
+      buttonContainer.style.display = 'block';
+      nextActionInnerContent.style.display = 'block';
+    } else if (permCheckResult['granted'] == true) {
+      buttonContainer.style.display = 'none';
+      nextActionInnerContent.style.display = 'block';
+      nextActionTextDiv.innerHTML = "The last action was APPROVED. Processing...";
+    } else if (permCheckResult['granted'] == false) {
+      buttonContainer.style.display = 'none';
+      nextActionInnerContent.style.display = 'block';
+      nextActionTextDiv.innerHTML = "The last action was DENIED. Processing...";
     }
   }
 
@@ -74,6 +84,26 @@ document.getElementById("approve-action").onclick = async function(e) {
           {
             "granted": true,
             "reason": "good"
+          }
+        )
+      });
+    const json = await response.json();
+    console.log(json);
+};
+
+document.getElementById("deny-action").onclick = async function(e) {
+  const reason = denyReasonInput.value.trim();
+
+  const response = await fetch(`/sessions/${sessionId}/complete_perm_check`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-Key': apiKey,
+        },
+        body: JSON.stringify(
+          {
+            "granted": false,
+            "reason": reason || "denied"
           }
         )
       });
