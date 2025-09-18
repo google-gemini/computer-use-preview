@@ -43,7 +43,13 @@ def multiply_numbers(x: float, y: float) -> dict:
 
 
 class BrowserAgent:
-    def __init__(self, browser_computer: Computer, query: str, model_name: str, verbose: bool = True):
+    def __init__(
+        self,
+        browser_computer: Computer,
+        query: str,
+        model_name: str,
+        verbose: bool = True,
+    ):
         self._browser_computer = browser_computer
         self._query = query
         self._model_name = model_name
@@ -230,7 +236,9 @@ class BrowserAgent:
     def run_one_iteration(self) -> Literal["COMPLETE", "CONTINUE"]:
         # Generate a response from the model.
         if self._verbose:
-            with console.status("Generating response from Gemini...", spinner_style=None):
+            with console.status(
+                "Generating response from Gemini...", spinner_style=None
+            ):
                 try:
                     response = self.get_model_response()
                 except Exception as e:
@@ -245,7 +253,7 @@ class BrowserAgent:
             print("Response has no candidates!")
             print(response)
             raise ValueError("Empty response")
-        
+
         # Extract the text and function call from the response.
         candidate = response.candidates[0]
         # Append the model turn to conversation history.
@@ -279,6 +287,7 @@ class BrowserAgent:
 
         function_responses = []
         for function_call in function_calls:
+            extra_fr_fields = {}
             if function_call.args and (
                 safety := function_call.args.get("safety_decision")
             ):
@@ -286,8 +295,12 @@ class BrowserAgent:
                 if decision == "TERMINATE":
                     print("Terminating agent loop")
                     return "COMPLETE"
+                # Explicitly mark the safety check as acknowledged.
+                extra_fr_fields["safety_acknowledgement"] = "true"
             if self._verbose:
-                with console.status("Sending command to Computer...", spinner_style=None):
+                with console.status(
+                    "Sending command to Computer...", spinner_style=None
+                ):
                     fc_result = self.handle_action(function_call)
             else:
                 fc_result = self.handle_action(function_call)
@@ -295,7 +308,10 @@ class BrowserAgent:
                 function_responses.append(
                     FunctionResponse(
                         name=function_call.name,
-                        response={"url": fc_result.url},
+                        response={
+                            "url": fc_result.url,
+                            **extra_fr_fields,
+                        },
                         data=[
                             types.Part(
                                 inline_data=types.Blob(
@@ -316,7 +332,7 @@ class BrowserAgent:
                 parts=[Part(function_response=fr) for fr in function_responses],
             )
         )
-        
+
         return "CONTINUE"
 
     def _get_safety_confirmation(
