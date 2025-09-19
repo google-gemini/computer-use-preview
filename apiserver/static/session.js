@@ -17,6 +17,7 @@ const nextActionInnerContent = document.getElementById("next-action-inner-conten
 const nextActionTextDiv = document.getElementById("next-action-description");
 const buttonContainer = document.getElementById("button-container");
 const denyReasonInput = document.getElementById("deny-reason-input");
+const clickMarker = document.getElementById("target-marker");
 
 const urlParams = new URLSearchParams(window.location.search);
 const sessionId = urlParams.get('session_id');
@@ -67,6 +68,29 @@ const updateScreenshot = async () => {
   }
   const json = await response.json();
   sessionIdEl.src = "data:image/png;base64," + json.screenshot;
+
+  // Only display the marker for the "clickable" object when in PENDING state
+  if (permCheckResult['pending'] == true) {
+    const click_params = json.click_params;
+
+    if (typeof click_params === 'object' && click_params !== null) {
+        const displayed_width = sessionIdEl.clientWidth;
+        const displayed_height = sessionIdEl.clientHeight;
+        const scale_x = displayed_width / click_params.width;
+        const scale_y = displayed_height / click_params.height;
+        const new_x = click_params.x * scale_x;
+        const new_y = click_params.y * scale_y;
+
+        clickMarker.style.left = `${new_x}px`;
+        clickMarker.style.top = `${new_y}px`;
+        clickMarker.style.display = 'block';
+    } else {
+        clickMarker.style.display = 'none';
+    }
+  } else {
+      clickMarker.style.display = 'none';
+  }
+
   screenViewTextEl.innerHTML = '';
   setTimeout(async () => {
     await updateScreenshot();

@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import json
+from typing import Optional
 from pydantic import BaseModel, Field
 import uuid
 import asyncio
@@ -58,10 +59,22 @@ class CreateSessionResponse(BaseModel):
         examples=["9652c8a2-4886-41ba-b779-dd658bed2722"],
     )
 
+
+class ClickParams(BaseModel):
+    x: int = Field(title="X coordinate", examples=[450])
+    y: int = Field(title="Y coordinate", examples=[180])
+    width: int = Field(title="Window width", examples=[450])
+    height: int = Field(title="Window height", examples=[180])
+
+
 class AddPermCheckRequest(BaseModel):
     details: str = Field(
         title="Details of this permission check",
         examples=["test action ABC"],
+    )
+    click_params: Optional[ClickParams] = Field(
+        None,
+        title="Parameters of the clickable object of permission request"
     )
 
 class CompletePermCheckRequest(BaseModel):
@@ -84,6 +97,25 @@ class DeleteSessionResponse(BaseModel):
 CreateCommandRequest = CommandModel
 
 
+class BrowserParams(BaseModel):
+    target_x: int = Field(
+        title="The X coordinate of the target element on the screenshot.",
+        examples=[300],
+    )
+    target_y: int = Field(
+        title="The Y coordinate of the target element on the screenshot.",
+        examples=[150],
+    )
+    window_width: int = Field(
+        title="The actual width of the browser window.",
+        examples=[300],
+    )
+    window_height: int = Field(
+        title="The actual height of the browser window.",
+        examples=[150],
+    )
+
+
 class CreateCommandResponse(BaseModel):
     id: str = Field(
         title="The UUID of this command.",
@@ -99,6 +131,11 @@ class CreateCommandResponse(BaseModel):
     url: str = Field(
         title="The current URL open in the browser.",
         examples=["https://www.google.com/"],
+    )
+
+    click_params: Optional[ClickParams] = Field(
+        None,
+        title="Parameters of the current clickable object in the browser."
     )
 
 

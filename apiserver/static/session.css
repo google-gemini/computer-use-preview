@@ -37,14 +37,43 @@ main {
 
 /* --- (Optional) Styling for the content inside the divs --- */
 
-/* Make the image responsive and not overflow its container */
+#image-container {
+  /* Establishes the positioning context for the absolute marker */
+  position: relative; 
+  /* Ensures the container wraps tightly around its non-absolute content (the image) */
+  display: inline-block;
+  
+  background-color: #f0f0f0; /* Restores the placeholder grey color */
+  border: 1px solid #ccc;    /* Restores the border */
+  
+  width: 100%;    /* Takes up the full width of #screen-view-container padding area */
+  min-height: 200px; /* Set a fixed or minimum height for the grey box */
+  height: auto;
+}
+
+
+/* --- Image (Modified to fit the wrapper) --- */
 #screenshot {
+  /* Image must now fit within the new wrapper dimensions */
   width: 100%;
   height: auto;
-  background-color: #f0f0f0; /* Placeholder color */
-  min-height: 200px; /* Example minimum height */
-  display: block; /* Removes bottom space under image */
-  border: 1px solid #ccc;
+  display: block; 
+}
+
+
+/* --- Target Marker (Added) --- */
+#target-marker {
+  position: absolute; 
+  top: 150px; 
+  left: 300px; 
+  
+  width: 30px;
+  height: 30px;
+  border: 3px solid red;
+  border-radius: 50%;
+  background-color: rgba(255, 0, 0, 0.1);
+  transform: translate(-50%, -50%); 
+  z-index: 10;
 }
 
 /* Style the buttons */

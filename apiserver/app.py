@@ -28,7 +28,7 @@ from pubsub import DevManager
 from cloud_pubsub import CloudPubSubManager
 from sessions import SessionManager
 from models import CreateSessionRequest, CreateSessionResponse
-from models import CreateCommandRequest, CreateCommandResponse
+from models import CreateCommandRequest, CreateCommandResponse, ClickParams
 from models import DeleteSessionResponse
 from models import Message
 from models import SignalingStrategy
@@ -211,7 +211,25 @@ async def create_command(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Command failed"
         )
 
-    return CreateCommandResponse(id=message.id, screenshot=screenshot, url=url)
+    click_params = None
+    if session_id in app.state.pending_perm_checks and "click_params" in app.state.pending_perm_checks[session_id]:
+        click = app.state.pending_perm_checks[session_id]["click_params"]
+        if click is not None:
+            click_params=ClickParams(
+                x=click["x"], 
+                y=click["y"], 
+                width=click["width"], 
+                height=click["height"]
+            )
+
+    if click_params is None:
+        return CreateCommandResponse(id=message.id, screenshot=screenshot, url=url)
+
+    return CreateCommandResponse(
+        id=message.id, 
+        screenshot=screenshot, 
+        url=url, 
+        click_params=click_params)
 
 
 @app.delete("/sessions/{session_id}")
