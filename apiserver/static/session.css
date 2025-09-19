@@ -69,3 +69,15 @@ main {
 #next-action-description {
   white-space: pre-wrap;
 }
+
+/* The "Pressed Down" Effect (When the button is clicked) */
+#approve-action:active, #deny-action:active {
+  /* 1. Reduce the shadow to make it look 'sunken' */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2); 
+  
+  /* 2. Move the button down 3 pixels */
+  transform: translateY(3px); 
+  
+  /* Optional: Slightly darken the color to enhance the pressed look */
+  filter: brightness(90%);
+}
