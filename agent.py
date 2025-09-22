@@ -306,9 +306,9 @@ class BrowserAgent:
                             "url": fc_result.url,
                             **extra_fr_fields,
                         },
-                        data=[
-                            types.Part(
-                                inline_data=types.Blob(
+                        parts=[
+                            types.FunctionResponsePart(
+                                inline_data=types.FunctionResponseBlob(
                                     mime_type="image/png", data=fc_result.screenshot
                                 )
                             )
@@ -326,6 +326,17 @@ class BrowserAgent:
                 parts=[Part(function_response=fr) for fr in function_responses],
             )
         )
+
+        # only keep few most recent screenshots in the content.
+        MAX_RECENT_SCREENSHOTS = 3
+        screenshots_found = 0
+        for item in reversed(self._contents):
+            if item.role == "user" and item.parts:
+                for part in reversed(item.parts):
+                    if part.function_response and part.function_response.parts:
+                        screenshots_found += 1
+                        if screenshots_found > MAX_RECENT_SCREENSHOTS:
+                            part.function_response.parts = None
 
         return "CONTINUE"
 
