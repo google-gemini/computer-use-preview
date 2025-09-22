@@ -60,12 +60,6 @@ class BrowserAgent:
             vertexai=os.environ.get("USE_VERTEXAI", "0").lower() in ["true", "1"],
             project=os.environ.get("VERTEXAI_PROJECT"),
             location=os.environ.get("VERTEXAI_LOCATION"),
-            http_options=types.HttpOptions(
-                api_version="v1alpha",
-                base_url=os.environ.get(
-                    "GEMINI_API_SERVER", "https://generativelanguage.googleapis.com"
-                ),
-            ),
         )
         self._contents: list[Content] = [
             Content(
@@ -99,9 +93,9 @@ class BrowserAgent:
                         excluded_predefined_functions=excluded_predefined_functions,
                     ),
                 ),
-                types.Tool(function_declarations=custom_functions),
+                # types.Tool(function_declarations=custom_functions),
             ],
-            thinking_config=types.ThinkingConfig(include_thoughts=True),
+            # thinking_config=types.ThinkingConfig(include_thoughts=True),
         )
 
     def handle_action(self, action: types.FunctionCall) -> FunctionResponseT:
