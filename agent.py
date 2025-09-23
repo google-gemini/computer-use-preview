@@ -30,6 +30,24 @@ from rich.table import Table
 
 from computers import EnvState, Computer
 
+MAX_RECENT_SCREENSHOTS = 3
+PREDEFINED_COMPUTER_USE_FUNCTIONS = [
+    "open_web_browser",
+    "click_at",
+    "hover_at",
+    "type_text_at",
+    "scroll_document",
+    "scroll_at",
+    "wait_5_seconds",
+    "go_back",
+    "go_forward",
+    "search",
+    "navigate",
+    "key_combination",
+    "drag_and_drop",
+]
+
+
 console = Console()
 
 # Built-in Computer Use tools will return "EnvState".
@@ -327,16 +345,23 @@ class BrowserAgent:
             )
         )
 
-        # only keep few most recent screenshots in the content.
-        MAX_RECENT_SCREENSHOTS = 3
-        screenshots_found = 0
+        # only keep few most recent function response screenshots 
+        # and corresponding function calls in the content.
+        fr_screenshots_found = 0
+        predefined_fc_found = 0
         for item in reversed(self._contents):
             if item.role == "user" and item.parts:
                 for part in reversed(item.parts):
                     if part.function_response and part.function_response.parts:
-                        screenshots_found += 1
-                        if screenshots_found > MAX_RECENT_SCREENSHOTS:
-                            part.function_response.parts = None
+                        fr_screenshots_found += 1
+                        if fr_screenshots_found > MAX_RECENT_SCREENSHOTS:
+                            part.function_response = None
+            elif item.parts:
+                for part in reversed(item.parts):
+                    if part.function_call and part.function_call.name in PREDEFINED_COMPUTER_USE_FUNCTIONS:
+                        predefined_fc_found += 1
+                        if predefined_fc_found > MAX_RECENT_SCREENSHOTS:
+                            part.function_call = None
 
         return "CONTINUE"
 
