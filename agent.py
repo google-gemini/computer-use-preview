@@ -111,7 +111,7 @@ class BrowserAgent:
                         excluded_predefined_functions=excluded_predefined_functions,
                     ),
                 ),
-                # types.Tool(function_declarations=custom_functions),
+                types.Tool(function_declarations=custom_functions),
             ],
             # thinking_config=types.ThinkingConfig(include_thoughts=True),
         )
