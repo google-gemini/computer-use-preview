@@ -362,6 +362,27 @@ class BrowserAgent:
                         predefined_fc_found += 1
                         if predefined_fc_found > MAX_RECENT_SCREENSHOTS:
                             part.function_call = None
+                            
+        # if part doesn't have text, function_response or function_call, remove from the contents
+        new_contents = []
+        for content in self._contents:
+            if not content.parts:
+                new_contents.append(content)
+                continue
+
+            # Keep only the parts that have meaningful content.
+            non_empty_parts = [
+                part
+                for part in content.parts
+                if part.text or part.function_response or part.function_call
+            ]
+
+            # If the content still has parts after filtering, keep it.
+            if non_empty_parts:
+                content.parts = non_empty_parts
+                new_contents.append(content)
+
+        self._contents = new_contents
 
         return "CONTINUE"
 
