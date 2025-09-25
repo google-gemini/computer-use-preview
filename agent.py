@@ -22,8 +22,8 @@ from google.genai.types import (
     Content,
     Candidate,
     FunctionResponse,
+    FinishReason,
 )
-import base64
 import time
 from rich.console import Console
 from rich.table import Table
@@ -262,6 +262,15 @@ class BrowserAgent:
 
         reasoning = self.get_text(candidate)
         function_calls = self.extract_function_calls(candidate)
+
+        # Retry the request in case of malformed FCs.
+        if (
+            not function_calls
+            and not reasoning
+            and candidate.finish_reason == FinishReason.MALFORMED_FUNCTION_CALL
+        ):
+            return "CONTINUE"
+
         if not function_calls:
             print(f"Agent Loop Complete: {reasoning}")
             self.final_reasoning = reasoning
