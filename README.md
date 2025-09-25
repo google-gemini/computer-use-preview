@@ -1,16 +1,16 @@
-# Computer Use Experimental Solution
+# Computer Use Preview
 
 ## Quick Start
 
-This section will guide you through setting up and running the Computer Use Experimental Solution. Follow these steps to get started.
+This section will guide you through setting up and running the Computer Use Preview model. Follow these steps to get started.
 
 ### 1. Installation
 
 **Clone the Repository**
 
 ```bash
-git clone https://github.com/google/computer-use-solution-exp.git
-cd computer-use-solution-exp
+git clone https://github.com/google/computer-use-preview.git
+cd computer-use-preview
 ```
 
 **Set up Python Virtual Environment and Install Dependencies**
@@ -168,9 +168,3 @@ python hud_eval.py --taskset SheetBench-V2
 # Run in parallel with 50 concurrent tasks (can support up to 400)
 python hud_eval.py --taskset OSWorld-Verified --parallel --max_concurrent 50
 ```
-
-## Computers
-
-For an in-depth explanation of how the system works, please see the instructions document available here:
-
-https://docs.google.com/document/d/1jTWQPVCIso7mo5SbQCn2DKZXWFlL_g3D2f-JOrZa1do/edit?tab=t.0

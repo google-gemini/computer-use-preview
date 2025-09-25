@@ -399,7 +399,7 @@ class BrowserAgent:
         print(safety["explanation"])
         decision = ""
         while decision.lower() not in ("y", "n", "ye", "yes", "no"):
-            decision = input("Do you wish to proceed? [Y]es/[n]o\n")
+            decision = input("Do you wish to proceed? [Yes]/[No]\n")
         if decision.lower() in ("n", "no"):
             return "TERMINATE"
         return "CONTINUE"
