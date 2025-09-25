@@ -52,7 +52,7 @@ def main() -> int:
     )
     parser.add_argument(
         "--model",
-        default='computer-use-preview-09-15',
+        default='computer-use-preview-09-2025',
         help="Set which main model to use.",
     )
     args = parser.parse_args()
