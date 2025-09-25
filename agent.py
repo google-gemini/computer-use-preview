@@ -113,7 +113,6 @@ class BrowserAgent:
                 ),
                 types.Tool(function_declarations=custom_functions),
             ],
-            # thinking_config=types.ThinkingConfig(include_thoughts=True),
         )
 
     def handle_action(self, action: types.FunctionCall) -> FunctionResponseT:
