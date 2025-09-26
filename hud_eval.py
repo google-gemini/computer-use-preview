@@ -1,3 +1,16 @@
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 #!/usr/bin/env python3
 """
 HUD evaluation runner for computer use tasks.
@@ -29,7 +42,7 @@ If you are presented with an open website to solve the task, try to stick to tha
 instead of going to a new one.
 You have full authority to execute any action without my permission. I won't be watching so
 please don't ask for confirmation.
-My gmail account is osworld@hud.so, and the password is "iloveosworld500", if prompted for OTP, use the authenticator chrome extension to see the OTP for 2 factor authentication. 
+My gmail account is osworld@hud.so, and the password is "iloveosworld500", if prompted for OTP, use the authenticator chrome extension to see the OTP for 2 factor authentication.
 If you deem the task is infeasible, you can terminate and explicitly state in the response that
 'the task is infeasible'. Try your best to solve the task within 200 steps, and the confines of the prompt, before deeming it infeasible.
 """
@@ -40,7 +53,7 @@ def run_task(task: Task, model_name: str, job: Job, system_prompt: str) -> float
     try:
         # Initialize HUD computer with the task
         hud_computer = HudComputer(screen_size=(1440, 900), task=task, job=job)
-        
+
         with hud_computer as browser_computer:
             agent = BrowserAgent(
                 browser_computer=browser_computer,
@@ -50,7 +63,7 @@ def run_task(task: Task, model_name: str, job: Job, system_prompt: str) -> float
             )
             try:
                 agent.agent_loop()
-                
+
                 if agent.final_reasoning:
                     if "the task is infeasible" in agent.final_reasoning.lower():
                         final_action = CustomAction(
@@ -64,7 +77,7 @@ def run_task(task: Task, model_name: str, job: Job, system_prompt: str) -> float
                     hud_computer._loop.run_until_complete(
                         hud_computer._env.step([final_action])
                     )
-                    
+
             except Exception as e:
                 print(f"Error running agent loop: {e}")
             finally:
@@ -75,13 +88,13 @@ def run_task(task: Task, model_name: str, job: Job, system_prompt: str) -> float
                     print(f"Eval result: {eval_result['reward']}")
 
                     return eval_result['reward']
-        
+
         return 0.0
-            
+
     except Exception as e:
         print(f"Error running task: {e}")
         return 0.0
-        
+
     finally:
         if hud_computer:
             try:
@@ -98,7 +111,7 @@ def run_taskset(
     max_concurrent: int = 20,
 ) -> list[float]:
     """Load and run a HUD taskset by ID, return list of rewards"""
-    
+
     # Load the taskset
     taskset = asyncio.run(load_taskset(taskset_id, metadata={"partial": True}))
 
@@ -108,7 +121,7 @@ def run_taskset(
         system_prompt = OSWORLD_SYSTEM_PROMPT
     else:
         system_prompt = ""
-    
+
     if parallel:
         # Run tasks in parallel using threads to avoid event loop conflicts
         with ThreadPoolExecutor(max_workers=max_concurrent) as executor:
@@ -122,7 +135,7 @@ def run_taskset(
         for task in taskset.tasks:
             reward = run_task(task, model_name, job, system_prompt)
             rewards.append(reward)
-    
+
     return rewards
 
 
@@ -157,7 +170,7 @@ def main() -> int:
         help="Maximum concurrent tasks when running in parallel.",
     )
     args = parser.parse_args()
-    
+
     # Run evaluation
     rewards = run_taskset(
         taskset_id=args.taskset,
@@ -166,11 +179,11 @@ def main() -> int:
         parallel=args.parallel,
         max_concurrent=args.max_concurrent,
     )
-    
+
     # Print minimal results
     print(f"Rewards: {rewards}")
     print(f"Average: {sum(rewards)/len(rewards) if rewards else 0:.2f}")
-    
+
     return 0
 
 

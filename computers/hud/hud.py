@@ -1,3 +1,16 @@
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 import asyncio
 import base64
 from typing import Literal, Optional, Any, Dict
@@ -33,18 +46,18 @@ class HudComputer(Computer):
 
     def __enter__(self):
         print("Creating HUD session...")
-        
+
         # Create and run the async setup in a new event loop
         self._loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self._loop)
-        
+
         # Import HUD SDK here to avoid circular imports
         try:
             from hud import gym
             from hud.task import Task
         except ImportError:
             raise ImportError("HUD SDK not installed. Please install with: pip install hud-python")
-        
+
         # Use provided task or create a default one
         if self._task:
             task = self._task
@@ -56,13 +69,13 @@ class HudComputer(Computer):
                 setup=("goto", self._initial_url),
                 evaluate=("page_contains", "dummy")
             )
-        
+
         # Create the environment
         self._env = self._loop.run_until_complete(gym.make(task, job=self._job))
-        
+
         # Reset the environment to get initial observation
         self._obs, _ = self._loop.run_until_complete(self._env.reset())
-        
+
         termcolor.cprint(
             f"HUD browser session started.",
             color="green",
@@ -80,19 +93,19 @@ class HudComputer(Computer):
         """Extract screenshot from HUD observation."""
         if self._obs is None:
             return b""
-        
+
         if hasattr(self._obs, 'screenshot'):
             screenshot_b64 = self._obs.screenshot
             screenshot_bytes = base64.b64decode(screenshot_b64)
             return screenshot_bytes
-        
+
         # HUD SDK returns observations with a 'screenshot' key containing base64 encoded image
         if isinstance(self._obs, dict) and 'screenshot' in self._obs:
             screenshot_b64 = self._obs['screenshot']
             # Decode base64 to bytes
             screenshot_bytes = base64.b64decode(screenshot_b64)
             return screenshot_bytes
-        
+
         return b""
 
     def _get_url_from_obs(self) -> str:
@@ -142,7 +155,7 @@ class HudComputer(Computer):
                 dx = magnitude
             elif direction == "left":
                 dx = -magnitude
-            
+
             action = ScrollAction(
                 scroll=Point(x=dx, y=dy)
             )
@@ -190,10 +203,10 @@ class HudComputer(Computer):
         """Execute an action in the HUD environment."""
         if self._done:
             return self.current_state()
-        
+
         # Create CLA action for HUD SDK
         action = self._create_cla_action(action_type, **kwargs)
-        
+
         # Execute action in HUD environment
         # HUD SDK expects a list of actions
         self._obs, reward, self._done, info = self._loop.run_until_complete(
@@ -202,7 +215,7 @@ class HudComputer(Computer):
 
         if "current_url" in info:
             self._current_url = info["current_url"]
-        
+
         return self.current_state()
 
     def screen_size(self) -> tuple[int, int]:
@@ -227,16 +240,16 @@ class HudComputer(Computer):
     ) -> EnvState:
         # First click at the position
         self._execute_action("click", x=x, y=y)
-        
+
         # Clear existing text if requested
         if clear_before_typing:
             # Select all and delete
             self._execute_action("press", keys=["ctrl", "a"])
             self._execute_action("press", keys=["delete"])
-        
+
         # Type the text with optional enter
         self._execute_action("type", text=text, enter_after=press_enter)
-        
+
         return self.current_state()
 
     def scroll_document(
@@ -280,17 +293,17 @@ class HudComputer(Computer):
         self, x: int, y: int, destination_x: int, destination_y: int
     ) -> EnvState:
         return self._execute_action(
-            "drag", 
-            start_x=x, 
-            start_y=y, 
-            end_x=destination_x, 
+            "drag",
+            start_x=x,
+            start_y=y,
+            end_x=destination_x,
             end_y=destination_y
         )
 
     def current_state(self) -> EnvState:
         screenshot = self._get_screenshot_from_obs()
         url = self._get_url_from_obs()
-        return EnvState(screenshot=screenshot, url=url) 
+        return EnvState(screenshot=screenshot, url=url)
 
     def evaluate(self) -> dict:
         return self._loop.run_until_complete(
