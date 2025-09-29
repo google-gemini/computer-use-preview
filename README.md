@@ -32,8 +32,9 @@ playwright install chrome
 ```
 
 ### 2. Configuration
+You can get started using either the Gemini Developer API or Vertex AI.
 
-#### Set Gemini API Key (for Gemini Developer API only)
+#### A. If using the Gemini Developer API:
 
 You need a Gemini API key to use the agent:
 
@@ -53,7 +54,7 @@ source .venv/bin/activate
 
 Replace `YOUR_GEMINI_API_KEY` with your actual key.
 
-#### Setup Vertex AI Client (for Vertex AI API only)
+#### B. If using the Vertex AI Client:
 
 You need to explicitly use Vertex AI, then provide project and location to use the agent:
 
@@ -84,10 +85,12 @@ The primary way to use the tool is via the `main.py` script.
 **General Command Structure:**
 
 ```bash
-python main.py --query "Go to Google and type 'Hello World' into the search bar" --env <environment> [options]
+python main.py --query "Go to Google and type 'Hello World' into the search bar"
 ```
 
 **Available Environments:**
+
+You can specify a particular environment with the ```--env <environment>``` flag.  Available options:
 
 - `playwright`: Runs the browser locally using Playwright.
 - `browserbase`: Connects to a Browserbase instance.
