@@ -86,6 +86,10 @@ class GetPermCheckResponse(BaseModel):
     details: str
     granted: bool
     reason: str
+    click_params: Optional[ClickParams] = Field(
+        None,
+        title="Parameters of the current clickable object in the browser."
+    )
 
 class DeleteSessionResponse(BaseModel):
     id: str = Field(
@@ -95,25 +99,6 @@ class DeleteSessionResponse(BaseModel):
 
 
 CreateCommandRequest = CommandModel
-
-
-class BrowserParams(BaseModel):
-    target_x: int = Field(
-        title="The X coordinate of the target element on the screenshot.",
-        examples=[300],
-    )
-    target_y: int = Field(
-        title="The Y coordinate of the target element on the screenshot.",
-        examples=[150],
-    )
-    window_width: int = Field(
-        title="The actual width of the browser window.",
-        examples=[300],
-    )
-    window_height: int = Field(
-        title="The actual height of the browser window.",
-        examples=[150],
-    )
 
 
 class CreateCommandResponse(BaseModel):
@@ -131,11 +116,6 @@ class CreateCommandResponse(BaseModel):
     url: str = Field(
         title="The current URL open in the browser.",
         examples=["https://www.google.com/"],
-    )
-
-    click_params: Optional[ClickParams] = Field(
-        None,
-        title="Parameters of the current clickable object in the browser."
     )
 
 

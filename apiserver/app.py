@@ -172,7 +172,17 @@ def get_perm_check(
     if session_id in app.state.completed_perm_checks:
         return models.GetPermCheckResponse(pending=False, details=app.state.pending_perm_checks[session_id]['details'], **app.state.completed_perm_checks[session_id])
     elif session_id in app.state.pending_perm_checks:
-        return models.GetPermCheckResponse(pending=True, details=app.state.pending_perm_checks[session_id]['details'], granted=False, reason='')
+        click_params = None
+        if "click_params" in app.state.pending_perm_checks[session_id]:
+            click = app.state.pending_perm_checks[session_id]["click_params"]
+            if click is not None:
+                click_params=ClickParams(
+                    x=click["x"], 
+                    y=click["y"], 
+                    width=click["width"], 
+                    height=click["height"]
+                )
+        return models.GetPermCheckResponse(pending=True, details=app.state.pending_perm_checks[session_id]['details'], granted=False, reason='', click_params=click_params)
     else:
         response.status_code = status.HTTP_404_NOT_FOUND
         return response
@@ -211,25 +221,7 @@ async def create_command(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Command failed"
         )
 
-    click_params = None
-    if session_id in app.state.pending_perm_checks and "click_params" in app.state.pending_perm_checks[session_id]:
-        click = app.state.pending_perm_checks[session_id]["click_params"]
-        if click is not None:
-            click_params=ClickParams(
-                x=click["x"], 
-                y=click["y"], 
-                width=click["width"], 
-                height=click["height"]
-            )
-
-    if click_params is None:
-        return CreateCommandResponse(id=message.id, screenshot=screenshot, url=url)
-
-    return CreateCommandResponse(
-        id=message.id, 
-        screenshot=screenshot, 
-        url=url, 
-        click_params=click_params)
+    return CreateCommandResponse(id=message.id, screenshot=screenshot, url=url)
 
 
 @app.delete("/sessions/{session_id}")

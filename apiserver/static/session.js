@@ -29,6 +29,8 @@ const updateScreenshot = async () => {
   const permCheck = await fetch(`/sessions/${sessionId}/get_perm_check`, {
       method: 'GET',
     });
+
+  let permCheckResult = null;
   if (permCheck.status == 404) {
     nextActionInnerContent.style.display = 'none'
   }
@@ -47,6 +49,23 @@ const updateScreenshot = async () => {
       nextActionInnerContent.style.display = 'block';
       nextActionTextDiv.innerHTML = "The last action was DENIED. Processing...";
     }
+  }
+
+  // Only display the marker for the "clickable" object when in PENDING state
+  if (permCheckResult !== null && permCheckResult['pending'] == true) {
+    const click_params = permCheckResult.click_params;
+
+    if (typeof click_params === 'object' && click_params !== null) {
+        const new_x = click_params.x / click_params.width * 100;
+        const new_y = click_params.y / click_params.height * 100;
+        clickMarker.style.left = `${new_x}%`;
+        clickMarker.style.top = `${new_y}%`;
+        clickMarker.style.display = 'block';
+    } else {
+        clickMarker.style.display = 'none';
+    }
+  } else {
+      clickMarker.style.display = 'none';
   }
 
 
@@ -68,29 +87,6 @@ const updateScreenshot = async () => {
   }
   const json = await response.json();
   sessionIdEl.src = "data:image/png;base64," + json.screenshot;
-
-  // Only display the marker for the "clickable" object when in PENDING state
-  if (permCheckResult['pending'] == true) {
-    const click_params = json.click_params;
-
-    if (typeof click_params === 'object' && click_params !== null) {
-        const displayed_width = sessionIdEl.clientWidth;
-        const displayed_height = sessionIdEl.clientHeight;
-        const scale_x = displayed_width / click_params.width;
-        const scale_y = displayed_height / click_params.height;
-        const new_x = click_params.x * scale_x;
-        const new_y = click_params.y * scale_y;
-
-        clickMarker.style.left = `${new_x}px`;
-        clickMarker.style.top = `${new_y}px`;
-        clickMarker.style.display = 'block';
-    } else {
-        clickMarker.style.display = 'none';
-    }
-  } else {
-      clickMarker.style.display = 'none';
-  }
-
   screenViewTextEl.innerHTML = '';
   setTimeout(async () => {
     await updateScreenshot();
