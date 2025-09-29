@@ -30,7 +30,7 @@ from rich.table import Table
 
 from computers import EnvState, Computer
 
-MAX_RECENT_SCREENSHOTS = 3
+MAX_RECENT_TURN_WITH_SCREENSHOTS = 3
 PREDEFINED_COMPUTER_USE_FUNCTIONS = [
     "open_web_browser",
     "click_at",
@@ -353,44 +353,34 @@ class BrowserAgent:
             )
         )
 
-        # only keep few most recent function response screenshots 
-        # and corresponding function calls in the content.
-        fr_screenshots_found = 0
-        predefined_fc_found = 0
-        for item in reversed(self._contents):
-            if item.role == "user" and item.parts:
-                for part in reversed(item.parts):
-                    if part.function_response and part.function_response.parts:
-                        fr_screenshots_found += 1
-                        if fr_screenshots_found > MAX_RECENT_SCREENSHOTS:
-                            part.function_response = None
-            elif item.parts:
-                for part in reversed(item.parts):
-                    if part.function_call and part.function_call.name in PREDEFINED_COMPUTER_USE_FUNCTIONS:
-                        predefined_fc_found += 1
-                        if predefined_fc_found > MAX_RECENT_SCREENSHOTS:
-                            part.function_call = None
-                            
-        # if part doesn't have text, function_response or function_call, remove from the contents
-        new_contents = []
-        for content in self._contents:
-            if not content.parts:
-                new_contents.append(content)
-                continue
+        # only keep screenshots in the few most recent turns, remove the screenshot images from the old turns.
+        turn_with_screenshots_found = 0
+        for content in reversed(self._contents):
+            if content.role == "user" and content.parts:
+                # check if content has screenshot of the predefined computer use functions.
+                has_screenshot = False
+                for part in content.parts:
+                    if (
+                        part.function_response
+                        and part.function_response.parts
+                        and part.function_response.name
+                        in PREDEFINED_COMPUTER_USE_FUNCTIONS
+                    ):
+                        has_screenshot = True
+                        break
 
-            # Keep only the parts that have meaningful content.
-            non_empty_parts = [
-                part
-                for part in content.parts
-                if part.text or part.function_response or part.function_call
-            ]
-
-            # If the content still has parts after filtering, keep it.
-            if non_empty_parts:
-                content.parts = non_empty_parts
-                new_contents.append(content)
-
-        self._contents = new_contents
+                if has_screenshot:
+                    turn_with_screenshots_found += 1
+                    # remove the screenshot image if the number of screenshots exceed the limit.
+                    if turn_with_screenshots_found > MAX_RECENT_TURN_WITH_SCREENSHOTS:
+                        for part in content.parts:
+                            if (
+                                part.function_response
+                                and part.function_response.parts
+                                and part.function_response.name
+                                in PREDEFINED_COMPUTER_USE_FUNCTIONS
+                            ):
+                                part.function_response.parts = None
 
         return "CONTINUE"
 
