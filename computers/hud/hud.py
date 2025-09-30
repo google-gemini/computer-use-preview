@@ -143,6 +143,8 @@ class HudComputer(Computer):
                 enter_after=kwargs.get("enter_after", False)
             )
         elif action_type == "scroll":
+            x = kwargs.get("x", 0)
+            y = kwargs.get("y", 0)
             # Map direction to scroll amounts
             direction = kwargs.get("direction", "down")
             dx, dy = 0, 0
@@ -157,7 +159,7 @@ class HudComputer(Computer):
                 dx = -magnitude
 
             action = ScrollAction(
-                scroll=Point(x=dx, y=dy)
+                scroll=Point(x=x+dx, y=y+dy)
             )
             if "x" in kwargs and "y" in kwargs:
                 action.point = Point(x=kwargs["x"], y=kwargs["y"])
@@ -255,7 +257,14 @@ class HudComputer(Computer):
     def scroll_document(
         self, direction: Literal["up", "down", "left", "right"]
     ) -> EnvState:
-        return self._execute_action("scroll", direction=direction)
+        if direction == "down":
+            return self.key_combination(["PageDown"])
+        elif direction == "up":
+            return self.key_combination(["PageUp"])
+        elif direction in ("left", "right"):
+            return self._horizontal_document_scroll(direction)
+        else:
+            raise ValueError("Unsupported direction: ", direction)
 
     def scroll_at(
         self,
