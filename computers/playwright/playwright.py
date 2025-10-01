@@ -102,7 +102,6 @@ class PlaywrightComputer(Computer):
         self._playwright = sync_playwright().start()
         self._browser = self._playwright.chromium.launch(
             args=[
-                "--disable-blink-features=AutomationControlled",
                 "--disable-extensions",
                 "--disable-file-system",
                 "--disable-plugins",
