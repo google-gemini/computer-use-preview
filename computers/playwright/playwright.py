@@ -101,7 +101,16 @@ class PlaywrightComputer(Computer):
         print("Creating session...")
         self._playwright = sync_playwright().start()
         self._browser = self._playwright.chromium.launch(
-            args=["--disable-blink-features=AutomationControlled"],
+            args=[
+                "--disable-extensions",
+                "--disable-file-system",
+                "--disable-plugins",
+                "--disable-dev-shm-usage",
+                "--disable-background-networking",
+                "--disable-default-apps",
+                "--disable-sync",
+                # No '--no-sandbox' arg means the sandbox is on.
+            ],
             headless=bool(os.environ.get("PLAYWRIGHT_HEADLESS", False)),
         )
         self._context = self._browser.new_context(
