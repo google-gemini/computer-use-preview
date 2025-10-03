@@ -94,7 +94,6 @@ You can specify a particular environment with the ```--env <environment>``` flag
 
 - `playwright`: Runs the browser locally using Playwright.
 - `browserbase`: Connects to a Browserbase instance.
-- `hud`: Integrates with hud's browser environment.
 
 **Local Playwright**
 
@@ -118,14 +117,6 @@ Runs the agent using Browserbase as the browser backend. Ensure the proper Brows
 python main.py --query="Go to Google and type 'Hello World' into the search bar" --env="browserbase"
 ```
 
-**hud**
-
-Runs the agent using hud's browser environment. This is the same environment used by `hud_eval.py` but can be run directly with `main.py` for individual tasks. Ensure the `HUD_API_KEY` environment variable is set.
-
-```bash
-python main.py --query="Go to Google and type 'Hello World' into the search bar" --env="hud"
-```
-
 ## Agent CLI
 
 The `main.py` script is the command-line interface (CLI) for running the browser agent.
@@ -146,28 +137,3 @@ The `main.py` script is the command-line interface (CLI) for running the browser
 | GEMINI_API_KEY | Your API key for the Gemini model. | Yes |
 | BROWSERBASE_API_KEY | Your API key for Browserbase. | Yes (when using the browserbase environment) |
 | BROWSERBASE_PROJECT_ID | Your Project ID for Browserbase. | Yes (when using the browserbase environment) |
-| HUD_API_KEY | Your API key for hud. Required for running evaluations with hud_eval.py. | Yes (when using the hud enviornment or running hud_eval.py) |
-
-## Evaluations
-
-The `hud_eval.py` script allows you to run automated evaluations against hud tasksets:
-
-```bash
-python hud_eval.py --taskset <taskset_id> [--parallel] [--max_concurrent <n>]
-```
-
-**Arguments:**
-- `--taskset`: The HUD taskset ID to evaluate (e.g., 'OSWorld-Verified')
-- `--parallel`: Run tasks in parallel (default: serial execution)
-- `--max_concurrent`: Maximum concurrent tasks when running in parallel (default: 3)
-- `--model`: Model name (default: 'gemini-2.0-flash-exp')
-- `--api_key`: Gemini API key (uses GEMINI_API_KEY env var if not provided)
-
-**Example:**
-```bash
-# Run a taskset serially
-python hud_eval.py --taskset SheetBench-V2
-
-# Run in parallel with 50 concurrent tasks (can support up to 400)
-python hud_eval.py --taskset OSWorld-Verified --parallel --max_concurrent 50
-```
