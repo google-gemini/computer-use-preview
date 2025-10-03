@@ -11,15 +11,17 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from .computer import Computer, EnvState
 from .browserbase.browserbase import BrowserbaseComputer
-from .playwright.playwright import PlaywrightComputer
+from .browseruse.browseruse import BrowserUseComputer
+from .computer import Computer, EnvState
 from .hud.hud import HudComputer
+from .playwright.playwright import PlaywrightComputer
 
 __all__ = [
     "Computer",
     "EnvState",
     "BrowserbaseComputer",
+    "BrowserUseComputer",
     "PlaywrightComputer",
     "HudComputer",
 ]

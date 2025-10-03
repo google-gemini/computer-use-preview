@@ -91,6 +91,7 @@ python main.py --query "Go to Google and type 'Hello World' into the search bar"
 
 - `playwright`: Runs the browser locally using Playwright.
 - `browserbase`: Connects to a Browserbase instance.
+- `browseruse`: Connects to a Browser Use instance.
 - `hud`: Integrates with hud's browser environment.
 
 **Local Playwright**
@@ -115,6 +116,20 @@ Runs the agent using Browserbase as the browser backend. Ensure the proper Brows
 python main.py --query="Go to Google and type 'Hello World' into the search bar" --env="browserbase"
 ```
 
+**Browser-Use**
+
+Runs the agent using browser-use.com as the browser backend. Ensure the proper environment variables are set: `BROWSER_USE_API_KEY` (required).
+
+Optional environment variables:
+
+- `BROWSER_USE_TIMEOUT`: Session timeout in minutes (1-240, defaults to 15)
+- `BROWSER_USE_PROXY_COUNTRY`: Country code for proxy location (e.g., "US", "UK", "DE")
+- `BROWSER_USE_PROFILE_ID`: Profile ID (UUID format) for persistent browser profiles
+
+```bash
+python main.py --query="Go to Google and type 'Hello World' into the search bar" --env="browseruse"
+```
+
 **hud**
 
 Runs the agent using hud's browser environment. This is the same environment used by `hud_eval.py` but can be run directly with `main.py` for individual tasks. Ensure the `HUD_API_KEY` environment variable is set.
@@ -129,21 +144,25 @@ The `main.py` script is the command-line interface (CLI) for running the browser
 
 ### Command-Line Arguments
 
-| Argument | Description | Required | Default | Supported Environment(s) |
-|-|-|-|-|-|
-| `--query` | The natural language query for the browser agent to execute. | Yes | N/A | All |
-| `--env` | The computer use environment to use. Must be one of the following: `playwright`, or `browserbase` | No | N/A | All |
-| `--initial_url` | The initial URL to load when the browser starts. | No | https://www.google.com | `playwright` |
-| `--highlight_mouse` | If specified, the agent will attempt to highlight the mouse cursor's position in the screenshots. This is useful for visual debugging. | No | False (not highlighted) | `playwright` |
+| Argument            | Description                                                                                                                            | Required | Default                 | Supported Environment(s) |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | -------- | ----------------------- | ------------------------ |
+| `--query`           | The natural language query for the browser agent to execute.                                                                           | Yes      | N/A                     | All                      |
+| `--env`             | The computer use environment to use. Must be one of the following: `playwright`, `browserbase`, or `browseruse`                        | No       | N/A                     | All                      |
+| `--initial_url`     | The initial URL to load when the browser starts.                                                                                       | No       | https://www.google.com  | `playwright`             |
+| `--highlight_mouse` | If specified, the agent will attempt to highlight the mouse cursor's position in the screenshots. This is useful for visual debugging. | No       | False (not highlighted) | `playwright`             |
 
 ### Environment Variables
 
-| Variable | Description | Required |
-|-|-|-|
-| GEMINI_API_KEY | Your API key for the Gemini model. | Yes |
-| BROWSERBASE_API_KEY | Your API key for Browserbase. | Yes (when using the browserbase environment) |
-| BROWSERBASE_PROJECT_ID | Your Project ID for Browserbase. | Yes (when using the browserbase environment) |
-| HUD_API_KEY | Your API key for hud. Required for running evaluations with hud_eval.py. | Yes (when using the hud enviornment or running hud_eval.py) |
+| Variable                  | Description                                                              | Required                                                    |
+| ------------------------- | ------------------------------------------------------------------------ | ----------------------------------------------------------- |
+| GEMINI_API_KEY            | Your API key for the Gemini model.                                       | Yes                                                         |
+| BROWSERBASE_API_KEY       | Your API key for Browserbase.                                            | Yes (when using the browserbase environment)                |
+| BROWSERBASE_PROJECT_ID    | Your Project ID for Browserbase.                                         | Yes (when using the browserbase environment)                |
+| BROWSER_USE_API_KEY       | Your API key for browser-use.com.                                        | Yes (when using the browseruse environment)                 |
+| BROWSER_USE_TIMEOUT       | Session timeout in minutes (1-240).                                      | No (optional for browseruse environment)                    |
+| BROWSER_USE_PROXY_COUNTRY | Country code for proxy location.                                         | No (optional for browseruse environment)                    |
+| BROWSER_USE_PROFILE_ID    | Profile ID for persistent browser profiles.                              | No (optional for browseruse environment)                    |
+| HUD_API_KEY               | Your API key for hud. Required for running evaluations with hud_eval.py. | Yes (when using the hud enviornment or running hud_eval.py) |
 
 ## Evaluations
 

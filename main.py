@@ -12,11 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import argparse
-import os
 
 from agent import BrowserAgent
-from computers import BrowserbaseComputer, PlaywrightComputer, HudComputer
-
+from computers import (
+    BrowserbaseComputer,
+    BrowserUseComputer,
+    HudComputer,
+    PlaywrightComputer,
+)
 
 PLAYWRIGHT_SCREEN_SIZE = (1920, 1080)
 HUD_SCREEN_SIZE = (1440, 900)
@@ -34,7 +37,7 @@ def main() -> int:
     parser.add_argument(
         "--env",
         type=str,
-        choices=("playwright", "browserbase", "hud"),
+        choices=("playwright", "browserbase", "browseruse", "hud"),
         default="playwright",
         help="The computer use environment to use.",
     )
@@ -65,6 +68,8 @@ def main() -> int:
         )
     elif args.env == "browserbase":
         env = BrowserbaseComputer(screen_size=PLAYWRIGHT_SCREEN_SIZE)
+    elif args.env == "browseruse":
+        env = BrowserUseComputer()
     elif args.env == "hud":
         env = HudComputer(
             screen_size=HUD_SCREEN_SIZE,
