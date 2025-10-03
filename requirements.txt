@@ -4,5 +4,4 @@ google-genai==1.39.0
 playwright==1.52.0
 browserbase==1.3.0
 rich
-hud-python==0.2.10
 pytest
