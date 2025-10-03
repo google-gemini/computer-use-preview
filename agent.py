@@ -106,7 +106,7 @@ class BrowserAgent:
             max_output_tokens=8192,
             tools=[
                 types.Tool(
-                    computer_use=types.ToolComputerUse(
+                    computer_use=types.ComputerUse(
                         environment=types.Environment.ENVIRONMENT_BROWSER,
                         excluded_predefined_functions=excluded_predefined_functions,
                     ),
