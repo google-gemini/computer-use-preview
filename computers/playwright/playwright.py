@@ -263,7 +263,10 @@ class PlaywrightComputer(Computer):
         return self.navigate(self._search_engine_url)
 
     def navigate(self, url: str) -> EnvState:
-        self._page.goto(url)
+        normalized_url = url
+        if not normalized_url.startswith(("http://", "https://")):
+          normalized_url = "https://" + normalized_url
+        self._page.goto(normalized_url)
         self._page.wait_for_load_state()
         return self.current_state()
 
