@@ -12,23 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from typing import Literal, Optional, Union, Any
+import time
+from typing import Any, Literal, Optional, Union
+
+import termcolor
 from google import genai
 from google.genai import types
-import termcolor
 from google.genai.types import (
-    Part,
-    GenerateContentConfig,
-    Content,
     Candidate,
-    FunctionResponse,
+    Content,
     FinishReason,
+    FunctionResponse,
+    GenerateContentConfig,
+    Part,
 )
-import time
 from rich.console import Console
 from rich.table import Table
 
-from computers import EnvState, Computer
+from computers import Computer, EnvState
 
 MAX_RECENT_TURN_WITH_SCREENSHOTS = 3
 PREDEFINED_COMPUTER_USE_FUNCTIONS = [
@@ -106,7 +107,7 @@ class BrowserAgent:
             max_output_tokens=8192,
             tools=[
                 types.Tool(
-                    computer_use=types.ComputerUse(
+                    computer_use=types.ToolComputerUse(
                         environment=types.Environment.ENVIRONMENT_BROWSER,
                         excluded_predefined_functions=excluded_predefined_functions,
                     ),
@@ -252,12 +253,12 @@ class BrowserAgent:
             ):
                 try:
                     response = self.get_model_response()
-                except Exception as e:
+                except Exception:
                     return "COMPLETE"
         else:
             try:
                 response = self.get_model_response()
-            except Exception as e:
+            except Exception:
                 return "COMPLETE"
 
         if not response.candidates:
@@ -292,7 +293,7 @@ class BrowserAgent:
             # Print the function call and any reasoning.
             function_call_str = f"Name: {function_call.name}"
             if function_call.args:
-                function_call_str += f"\nArgs:"
+                function_call_str += "\nArgs:"
                 for key, value in function_call.args.items():
                     function_call_str += f"\n  {key}: {value}"
             function_call_strs.append(function_call_str)
@@ -388,7 +389,7 @@ class BrowserAgent:
         self, safety: dict[str, Any]
     ) -> Literal["CONTINUE", "TERMINATE"]:
         if safety["decision"] != "require_confirmation":
-            raise ValueError(f"Unknown safety decision: safety['decision']")
+            raise ValueError("Unknown safety decision: safety['decision']")
         termcolor.cprint(
             "Safety service requires explicit confirmation!",
             color="yellow",
