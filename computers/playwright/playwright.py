@@ -221,7 +221,7 @@ class PlaywrightComputer(Computer):
         x: int,
         y: int,
         direction: Literal["up", "down", "left", "right"],
-        magnitude: int,
+        magnitude: int = 800,
     ) -> EnvState:
         self.highlight_mouse(x, y)
 
