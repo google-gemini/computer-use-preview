@@ -22,8 +22,8 @@ from ..playwright.playwright import PlaywrightComputer
 
 class BrowserUseComputer(PlaywrightComputer):
     def __init__(self):
-        # Browser-use determines its own viewport size
-        self._screen_size = None
+        # Browser-use determines its own viewport size, pass dummy value
+        super().__init__(screen_size=(1920, 1080))
         self._session = None
 
     def __enter__(self):
@@ -54,7 +54,7 @@ class BrowserUseComputer(PlaywrightComputer):
             "https://api.browser-use.com/api/v2/browsers", headers=headers, json=payload
         )
 
-        if response.status_code != 200:
+        if response.status_code not in (200, 201):
             raise Exception(f"Failed to create browser session: {response.text}")
 
         self._session = response.json()
