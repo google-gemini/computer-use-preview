@@ -127,7 +127,7 @@ The `main.py` script is the command-line interface (CLI) for running the browser
 |-|-|-|-|-|
 | `--query` | The natural language query for the browser agent to execute. | Yes | N/A | All |
 | `--env` | The computer use environment to use. Must be one of the following: `playwright`, or `browserbase` | No | N/A | All |
-| `--initial_url` | The initial URL to load when the browser starts. | No | https://www.google.com | `playwright`, `browserbase` |
+| `--initial_url` | The initial URL to load when the browser starts. | No | https://www.google.com | All |
 | `--highlight_mouse` | If specified, the agent will attempt to highlight the mouse cursor's position in the screenshots. This is useful for visual debugging. | No | False (not highlighted) | `playwright` |
 
 ### Environment Variables
