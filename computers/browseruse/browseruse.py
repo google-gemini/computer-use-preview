@@ -27,8 +27,6 @@ class BrowserUseComputer(PlaywrightComputer):
         self._session = None
 
     def __enter__(self):
-        print("Creating browser-use session...")
-
         self._playwright = sync_playwright().start()
 
         # Create a browser session using browser-use.com API
@@ -50,14 +48,19 @@ class BrowserUseComputer(PlaywrightComputer):
         if "BROWSER_USE_PROFILE_ID" in os.environ:
             payload["profileId"] = os.environ["BROWSER_USE_PROFILE_ID"]
 
+        termcolor.cprint("Creating browser-use session...", color="yellow")
         response = requests.post(
             "https://api.browser-use.com/api/v2/browsers", headers=headers, json=payload
         )
-
         if response.status_code not in (200, 201):
             raise Exception(f"Failed to create browser session: {response.text}")
 
         self._session = response.json()
+
+        termcolor.cprint(
+            f"Browser-use session created with CDP URL: {self._session['cdpUrl']}",
+            color="green",
+        )
 
         # Connect to the browser using the CDP URL
         self._browser = self._playwright.chromium.connect_over_cdp(
