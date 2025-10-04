@@ -41,7 +41,7 @@ def main() -> int:
         "--initial_url",
         type=str,
         default="https://www.google.com",
-        help="The inital URL loaded for the computer (currently only works for local playwright).",
+        help="The inital URL loaded for the computer.",
     )
     parser.add_argument(
         "--highlight_mouse",
@@ -63,7 +63,10 @@ def main() -> int:
             highlight_mouse=args.highlight_mouse,
         )
     elif args.env == "browserbase":
-        env = BrowserbaseComputer(screen_size=PLAYWRIGHT_SCREEN_SIZE)
+        env = BrowserbaseComputer(
+            screen_size=PLAYWRIGHT_SCREEN_SIZE,
+            initial_url=args.initial_url
+        )
     else:
         raise ValueError("Unknown environment: ", args.env)
 
