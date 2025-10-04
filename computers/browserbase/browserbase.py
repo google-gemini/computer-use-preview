@@ -55,6 +55,8 @@ class BrowserbaseComputer(PlaywrightComputer):
         self._page = self._context.pages[0]
         self._page.goto(self._initial_url)
 
+        self._context.on("page", self._handle_new_page)
+
         termcolor.cprint(
             f"Session started at https://browserbase.com/sessions/{self._session.id}",
             color="green",
