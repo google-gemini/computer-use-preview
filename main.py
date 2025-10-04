@@ -17,12 +17,10 @@ from agent import BrowserAgent
 from computers import (
     BrowserbaseComputer,
     BrowserUseComputer,
-    HudComputer,
     PlaywrightComputer,
 )
 
 PLAYWRIGHT_SCREEN_SIZE = (1920, 1080)
-HUD_SCREEN_SIZE = (1440, 900)
 
 
 def main() -> int:
@@ -37,7 +35,7 @@ def main() -> int:
     parser.add_argument(
         "--env",
         type=str,
-        choices=("playwright", "browserbase", "browseruse", "hud"),
+        choices=("playwright", "browserbase", "browseruse"),
         default="playwright",
         help="The computer use environment to use.",
     )
@@ -70,12 +68,6 @@ def main() -> int:
         env = BrowserbaseComputer(screen_size=PLAYWRIGHT_SCREEN_SIZE)
     elif args.env == "browseruse":
         env = BrowserUseComputer()
-    elif args.env == "hud":
-        env = HudComputer(
-            screen_size=HUD_SCREEN_SIZE,
-            initial_url=args.initial_url,
-            task_prompt=args.query,
-        )
     else:
         raise ValueError("Unknown environment: ", args.env)
 

@@ -14,7 +14,6 @@
 from .browserbase.browserbase import BrowserbaseComputer
 from .browseruse.browseruse import BrowserUseComputer
 from .computer import Computer, EnvState
-from .hud.hud import HudComputer
 from .playwright.playwright import PlaywrightComputer
 
 __all__ = [
@@ -23,5 +22,4 @@ __all__ = [
     "BrowserbaseComputer",
     "BrowserUseComputer",
     "PlaywrightComputer",
-    "HudComputer",
 ]

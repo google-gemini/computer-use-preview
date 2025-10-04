@@ -32,8 +32,9 @@ playwright install chrome
 ```
 
 ### 2. Configuration
+You can get started using either the Gemini Developer API or Vertex AI.
 
-#### Set Gemini API Key (for Gemini Developer API only)
+#### A. If using the Gemini Developer API:
 
 You need a Gemini API key to use the agent:
 
@@ -53,7 +54,7 @@ source .venv/bin/activate
 
 Replace `YOUR_GEMINI_API_KEY` with your actual key.
 
-#### Setup Vertex AI Client (for Vertex AI API only)
+#### B. If using the Vertex AI Client:
 
 You need to explicitly use Vertex AI, then provide project and location to use the agent:
 
@@ -84,15 +85,16 @@ The primary way to use the tool is via the `main.py` script.
 **General Command Structure:**
 
 ```bash
-python main.py --query "Go to Google and type 'Hello World' into the search bar" --env <environment> [options]
+python main.py --query "Go to Google and type 'Hello World' into the search bar"
 ```
 
 **Available Environments:**
 
+You can specify a particular environment with the ```--env <environment>``` flag.  Available options:
+
 - `playwright`: Runs the browser locally using Playwright.
 - `browserbase`: Connects to a Browserbase instance.
 - `browseruse`: Connects to a Browser Use instance.
-- `hud`: Integrates with hud's browser environment.
 
 **Local Playwright**
 
@@ -130,14 +132,6 @@ Optional environment variables:
 python main.py --query="Go to Google and type 'Hello World' into the search bar" --env="browseruse"
 ```
 
-**hud**
-
-Runs the agent using hud's browser environment. This is the same environment used by `hud_eval.py` but can be run directly with `main.py` for individual tasks. Ensure the `HUD_API_KEY` environment variable is set.
-
-```bash
-python main.py --query="Go to Google and type 'Hello World' into the search bar" --env="hud"
-```
-
 ## Agent CLI
 
 The `main.py` script is the command-line interface (CLI) for running the browser agent.
@@ -162,28 +156,5 @@ The `main.py` script is the command-line interface (CLI) for running the browser
 | BROWSER_USE_TIMEOUT       | Session timeout in minutes (1-240).                                      | No (optional for browseruse environment)                    |
 | BROWSER_USE_PROXY_COUNTRY | Country code for proxy location.                                         | No (optional for browseruse environment)                    |
 | BROWSER_USE_PROFILE_ID    | Profile ID for persistent browser profiles.                              | No (optional for browseruse environment)                    |
-| HUD_API_KEY               | Your API key for hud. Required for running evaluations with hud_eval.py. | Yes (when using the hud enviornment or running hud_eval.py) |
 
 ## Evaluations
-
-The `hud_eval.py` script allows you to run automated evaluations against hud tasksets:
-
-```bash
-python hud_eval.py --taskset <taskset_id> [--parallel] [--max_concurrent <n>]
-```
-
-**Arguments:**
-- `--taskset`: The HUD taskset ID to evaluate (e.g., 'OSWorld-Verified')
-- `--parallel`: Run tasks in parallel (default: serial execution)
-- `--max_concurrent`: Maximum concurrent tasks when running in parallel (default: 3)
-- `--model`: Model name (default: 'gemini-2.0-flash-exp')
-- `--api_key`: Gemini API key (uses GEMINI_API_KEY env var if not provided)
-
-**Example:**
-```bash
-# Run a taskset serially
-python hud_eval.py --taskset SheetBench-V2
-
-# Run in parallel with 50 concurrent tasks (can support up to 400)
-python hud_eval.py --taskset OSWorld-Verified --parallel --max_concurrent 50
-```

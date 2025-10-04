@@ -30,6 +30,24 @@ from rich.table import Table
 
 from computers import EnvState, Computer
 
+MAX_RECENT_TURN_WITH_SCREENSHOTS = 3
+PREDEFINED_COMPUTER_USE_FUNCTIONS = [
+    "open_web_browser",
+    "click_at",
+    "hover_at",
+    "type_text_at",
+    "scroll_document",
+    "scroll_at",
+    "wait_5_seconds",
+    "go_back",
+    "go_forward",
+    "search",
+    "navigate",
+    "key_combination",
+    "drag_and_drop",
+]
+
+
 console = Console()
 
 # Built-in Computer Use tools will return "EnvState".
@@ -60,12 +78,6 @@ class BrowserAgent:
             vertexai=os.environ.get("USE_VERTEXAI", "0").lower() in ["true", "1"],
             project=os.environ.get("VERTEXAI_PROJECT"),
             location=os.environ.get("VERTEXAI_LOCATION"),
-            http_options=types.HttpOptions(
-                api_version="v1alpha",
-                base_url=os.environ.get(
-                    "GEMINI_API_SERVER", "https://generativelanguage.googleapis.com"
-                ),
-            ),
         )
         self._contents: list[Content] = [
             Content(
@@ -94,14 +106,13 @@ class BrowserAgent:
             max_output_tokens=8192,
             tools=[
                 types.Tool(
-                    computer_use=types.ToolComputerUse(
+                    computer_use=types.ComputerUse(
                         environment=types.Environment.ENVIRONMENT_BROWSER,
                         excluded_predefined_functions=excluded_predefined_functions,
                     ),
                 ),
                 types.Tool(function_declarations=custom_functions),
             ],
-            thinking_config=types.ThinkingConfig(include_thoughts=True),
         )
 
     def handle_action(self, action: types.FunctionCall) -> FunctionResponseT:
@@ -321,9 +332,9 @@ class BrowserAgent:
                             "url": fc_result.url,
                             **extra_fr_fields,
                         },
-                        data=[
-                            types.Part(
-                                inline_data=types.Blob(
+                        parts=[
+                            types.FunctionResponsePart(
+                                inline_data=types.FunctionResponseBlob(
                                     mime_type="image/png", data=fc_result.screenshot
                                 )
                             )
@@ -341,6 +352,35 @@ class BrowserAgent:
                 parts=[Part(function_response=fr) for fr in function_responses],
             )
         )
+
+        # only keep screenshots in the few most recent turns, remove the screenshot images from the old turns.
+        turn_with_screenshots_found = 0
+        for content in reversed(self._contents):
+            if content.role == "user" and content.parts:
+                # check if content has screenshot of the predefined computer use functions.
+                has_screenshot = False
+                for part in content.parts:
+                    if (
+                        part.function_response
+                        and part.function_response.parts
+                        and part.function_response.name
+                        in PREDEFINED_COMPUTER_USE_FUNCTIONS
+                    ):
+                        has_screenshot = True
+                        break
+
+                if has_screenshot:
+                    turn_with_screenshots_found += 1
+                    # remove the screenshot image if the number of screenshots exceed the limit.
+                    if turn_with_screenshots_found > MAX_RECENT_TURN_WITH_SCREENSHOTS:
+                        for part in content.parts:
+                            if (
+                                part.function_response
+                                and part.function_response.parts
+                                and part.function_response.name
+                                in PREDEFINED_COMPUTER_USE_FUNCTIONS
+                            ):
+                                part.function_response.parts = None
 
         return "CONTINUE"
 
