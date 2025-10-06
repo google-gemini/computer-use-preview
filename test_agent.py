@@ -67,11 +67,11 @@ class TestBrowserAgent(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.agent.handle_action(action)
 
-    def test_normalize_x(self):
-        self.assertEqual(self.agent.normalize_x(500), 500)
+    def test_denormalize_x(self):
+        self.assertEqual(self.agent.denormalize_x(500), 500)
 
-    def test_normalize_y(self):
-        self.assertEqual(self.agent.normalize_y(500), 500)
+    def test_denormalize_y(self):
+        self.assertEqual(self.agent.denormalize_y(500), 500)
 
     @patch('agent.BrowserAgent.get_model_response')
     def test_run_one_iteration_no_function_calls(self, mock_get_model_response):
