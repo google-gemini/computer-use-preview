@@ -73,7 +73,7 @@ PLAYWRIGHT_KEY_MAP = {
 
 
 class PlaywrightComputer(Computer):
-    """Connects to a Cloud Run server and uses Chromium there."""
+    """Connects to a local Playwright instance."""
 
     def __init__(
         self,
@@ -265,7 +265,7 @@ class PlaywrightComputer(Computer):
     def navigate(self, url: str) -> EnvState:
         normalized_url = url
         if not normalized_url.startswith(("http://", "https://")):
-          normalized_url = "https://" + normalized_url
+            normalized_url = "https://" + normalized_url
         self._page.goto(normalized_url)
         self._page.wait_for_load_state()
         return self.current_state()
