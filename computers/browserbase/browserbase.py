@@ -19,8 +19,12 @@ from playwright.sync_api import sync_playwright
 
 
 class BrowserbaseComputer(PlaywrightComputer):
-    def __init__(self, screen_size: tuple[int, int]):
-        super().__init__(screen_size)
+    def __init__(
+        self,
+        screen_size: tuple[int, int],
+        initial_url: str = "https://www.google.com",
+    ):
+        super().__init__(screen_size, initial_url)
 
     def __enter__(self):
         print("Creating session...")
