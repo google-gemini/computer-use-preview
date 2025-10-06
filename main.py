@@ -18,7 +18,7 @@ from agent import BrowserAgent
 from computers import BrowserbaseComputer, PlaywrightComputer
 
 
-PLAYWRIGHT_SCREEN_SIZE = (1920, 1080)
+PLAYWRIGHT_SCREEN_SIZE = (1440, 900)
 
 
 def main() -> int:

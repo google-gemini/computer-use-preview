@@ -248,7 +248,7 @@ class BrowserAgent:
         # Generate a response from the model.
         if self._verbose:
             with console.status(
-                "Generating response from Gemini...", spinner_style=None
+                "Generating response from Google Computer Use...", spinner_style=None
             ):
                 try:
                     response = self.get_model_response()
@@ -298,7 +298,9 @@ class BrowserAgent:
             function_call_strs.append(function_call_str)
 
         table = Table(expand=True)
-        table.add_column("Gemini Reasoning", header_style="magenta", ratio=1)
+        table.add_column(
+            "Google Computer Use Reasoning", header_style="magenta", ratio=1
+        )
         table.add_column("Function Call(s)", header_style="cyan", ratio=1)
         table.add_row(reasoning, "\n".join(function_call_strs))
         if self._verbose:
