@@ -120,22 +120,22 @@ class BrowserAgent:
         if action.name == "open_web_browser":
             return self._browser_computer.open_web_browser()
         elif action.name == "click_at":
-            x = self.normalize_x(action.args["x"])
-            y = self.normalize_y(action.args["y"])
+            x = self.denormalize_x(action.args["x"])
+            y = self.denormalize_y(action.args["y"])
             return self._browser_computer.click_at(
                 x=x,
                 y=y,
             )
         elif action.name == "hover_at":
-            x = self.normalize_x(action.args["x"])
-            y = self.normalize_y(action.args["y"])
+            x = self.denormalize_x(action.args["x"])
+            y = self.denormalize_y(action.args["y"])
             return self._browser_computer.hover_at(
                 x=x,
                 y=y,
             )
         elif action.name == "type_text_at":
-            x = self.normalize_x(action.args["x"])
-            y = self.normalize_y(action.args["y"])
+            x = self.denormalize_x(action.args["x"])
+            y = self.denormalize_y(action.args["y"])
             press_enter = action.args.get("press_enter", False)
             clear_before_typing = action.args.get("clear_before_typing", True)
             return self._browser_computer.type_text_at(
@@ -148,15 +148,15 @@ class BrowserAgent:
         elif action.name == "scroll_document":
             return self._browser_computer.scroll_document(action.args["direction"])
         elif action.name == "scroll_at":
-            x = self.normalize_x(action.args["x"])
-            y = self.normalize_y(action.args["y"])
+            x = self.denormalize_x(action.args["x"])
+            y = self.denormalize_y(action.args["y"])
             magnitude = action.args.get("magnitude", 800)
             direction = action.args["direction"]
 
             if direction in ("up", "down"):
-                magnitude = self.normalize_y(magnitude)
+                magnitude = self.denormalize_y(magnitude)
             elif direction in ("left", "right"):
-                magnitude = self.normalize_x(magnitude)
+                magnitude = self.denormalize_x(magnitude)
             else:
                 raise ValueError("Unknown direction: ", direction)
             return self._browser_computer.scroll_at(
@@ -177,10 +177,10 @@ class BrowserAgent:
                 action.args["keys"].split("+")
             )
         elif action.name == "drag_and_drop":
-            x = self.normalize_x(action.args["x"])
-            y = self.normalize_y(action.args["y"])
-            destination_x = self.normalize_x(action.args["destination_x"])
-            destination_y = self.normalize_y(action.args["destination_y"])
+            x = self.denormalize_x(action.args["x"])
+            y = self.denormalize_y(action.args["y"])
+            destination_x = self.denormalize_x(action.args["destination_x"])
+            destination_y = self.denormalize_y(action.args["destination_y"])
             return self._browser_computer.drag_and_drop(
                 x=x,
                 y=y,
@@ -409,8 +409,8 @@ class BrowserAgent:
         while status == "CONTINUE":
             status = self.run_one_iteration()
 
-    def normalize_x(self, x: int) -> int:
+    def denormalize_x(self, x: int) -> int:
         return int(x / 1000 * self._browser_computer.screen_size()[0])
 
-    def normalize_y(self, y: int) -> int:
+    def denormalize_y(self, y: int) -> int:
         return int(y / 1000 * self._browser_computer.screen_size()[1])
