@@ -72,7 +72,6 @@ def main() -> int:
         raise ValueError("Unknown environment: ", args.env)
 
     with env as browser_computer:
-<<<<<<< HEAD
         if args.agent == "form":
             agent = FormAgent(
                 browser_computer=browser_computer,
