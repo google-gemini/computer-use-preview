@@ -25,12 +25,6 @@ PLAYWRIGHT_SCREEN_SIZE = (1440, 900)
 def main() -> int:
     parser = argparse.ArgumentParser(description="Run the browser agent with a query.")
     parser.add_argument(
-        "--query",
-        type=str,
-        required=True,
-        help="The query for the browser agent to execute.",
-    )
-    parser.add_argument(
         "--agent",
         type=str,
         choices=("browser", "form"),
