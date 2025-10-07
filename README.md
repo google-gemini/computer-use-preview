@@ -126,9 +126,28 @@ The `main.py` script is the command-line interface (CLI) for running the browser
 | Argument | Description | Required | Default | Supported Environment(s) |
 |-|-|-|-|-|
 | `--query` | The natural language query for the browser agent to execute. | Yes | N/A | All |
+| `--agent` | The agent to use. Must be one of `browser` or `form`. | No | `browser` | All |
 | `--env` | The computer use environment to use. Must be one of the following: `playwright`, or `browserbase` | No | N/A | All |
 | `--initial_url` | The initial URL to load when the browser starts. | No | https://www.google.com | All |
 | `--highlight_mouse` | If specified, the agent will attempt to highlight the mouse cursor's position in the screenshots. This is useful for visual debugging. | No | False (not highlighted) | `playwright` |
+
+### Form Agent
+
+The `FormAgent` is a specialized agent for filling out web forms. It extends the `BrowserAgent` with the ability to read data from local JSON files to populate form fields.
+
+**Example Usage:**
+
+Run the `FormAgent` with a query that instructs it to open the local form, read the data, and fill out the fields:
+
+```bash
+python main.py \
+    --agent form \
+    --initial_url "file://$(pwd)/form.html" \
+    --query "Read the data from data.json and fill out the business registration form."
+```
+
+The agent will then open the local `form.html` file in the browser, read the `data.json` file, and fill in the corresponding fields.
+
 
 ### Environment Variables
 
