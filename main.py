@@ -19,7 +19,7 @@ from form_agent import FormAgent
 from computers import BrowserbaseComputer, PlaywrightComputer
 
 
-PLAYWRIGHT_SCREEN_SIZE = (1920, 1080)
+PLAYWRIGHT_SCREEN_SIZE = (1440, 900)
 
 
 def main() -> int:
@@ -30,7 +30,6 @@ def main() -> int:
         required=True,
         help="The query for the browser agent to execute.",
     )
-
     parser.add_argument(
         "--agent",
         type=str,
@@ -49,7 +48,7 @@ def main() -> int:
         "--initial_url",
         type=str,
         default="https://www.google.com",
-        help="The inital URL loaded for the computer (currently only works for local playwright).",
+        help="The inital URL loaded for the computer.",
     )
     parser.add_argument(
         "--highlight_mouse",
@@ -59,7 +58,7 @@ def main() -> int:
     )
     parser.add_argument(
         "--model",
-        default='computer-use-exp',
+        default='gemini-2.5-computer-use-preview-10-2025',
         help="Set which main model to use.",
     )
     args = parser.parse_args()
@@ -71,7 +70,10 @@ def main() -> int:
             highlight_mouse=args.highlight_mouse,
         )
     elif args.env == "browserbase":
-        env = BrowserbaseComputer(screen_size=PLAYWRIGHT_SCREEN_SIZE)
+        env = BrowserbaseComputer(
+            screen_size=PLAYWRIGHT_SCREEN_SIZE,
+            initial_url=args.initial_url
+        )
     else:
         raise ValueError("Unknown environment: ", args.env)
 
