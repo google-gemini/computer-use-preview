@@ -15,10 +15,11 @@ import argparse
 import os
 
 from agent import BrowserAgent
+from form_agent import FormAgent
 from computers import BrowserbaseComputer, PlaywrightComputer
 
 
-PLAYWRIGHT_SCREEN_SIZE = (1440, 900)
+PLAYWRIGHT_SCREEN_SIZE = (1920, 1080)
 
 
 def main() -> int:
@@ -31,6 +32,13 @@ def main() -> int:
     )
 
     parser.add_argument(
+        "--agent",
+        type=str,
+        choices=("browser", "form"),
+        default="browser",
+        help="The agent to use.",
+    )
+    parser.add_argument(
         "--env",
         type=str,
         choices=("playwright", "browserbase"),
@@ -41,7 +49,7 @@ def main() -> int:
         "--initial_url",
         type=str,
         default="https://www.google.com",
-        help="The inital URL loaded for the computer.",
+        help="The inital URL loaded for the computer (currently only works for local playwright).",
     )
     parser.add_argument(
         "--highlight_mouse",
@@ -51,7 +59,7 @@ def main() -> int:
     )
     parser.add_argument(
         "--model",
-        default='gemini-2.5-computer-use-preview-10-2025',
+        default='computer-use-exp',
         help="Set which main model to use.",
     )
     args = parser.parse_args()
@@ -63,19 +71,23 @@ def main() -> int:
             highlight_mouse=args.highlight_mouse,
         )
     elif args.env == "browserbase":
-        env = BrowserbaseComputer(
-            screen_size=PLAYWRIGHT_SCREEN_SIZE,
-            initial_url=args.initial_url
-        )
+        env = BrowserbaseComputer(screen_size=PLAYWRIGHT_SCREEN_SIZE)
     else:
         raise ValueError("Unknown environment: ", args.env)
 
     with env as browser_computer:
-        agent = BrowserAgent(
-            browser_computer=browser_computer,
-            query=args.query,
-            model_name=args.model,
-        )
+        if args.agent == "form":
+            agent = FormAgent(
+                browser_computer=browser_computer,
+                query=args.query,
+                model_name=args.model,
+            )
+        else:
+            agent = BrowserAgent(
+                browser_computer=browser_computer,
+                query=args.query,
+                model_name=args.model,
+            )
         agent.agent_loop()
     return 0
 
