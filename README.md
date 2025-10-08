@@ -109,6 +109,8 @@ You can also specify an initial URL for the Playwright environment:
 python main.py --query="Go to Google and type 'Hello World' into the search bar" --env="playwright" --initial_url="https://www.google.com/search?q=latest+AI+news"
 ```
 
+To reuse an existing Playwright-compatible browser instead of launching one locally, set `CDP_URL` to the remote browser's CDP endpoint (for example, the URL returned by `playwright run-server`). When this variable is set the agent connects over CDP, reusing the first available context and page on that browser session.
+
 **Browserbase**
 
 Runs the agent using Browserbase as the browser backend. Ensure the proper Browserbase environment variables are set:`BROWSERBASE_API_KEY` and `BROWSERBASE_PROJECT_ID`.
@@ -137,3 +139,4 @@ The `main.py` script is the command-line interface (CLI) for running the browser
 | GEMINI_API_KEY | Your API key for the Gemini model. | Yes |
 | BROWSERBASE_API_KEY | Your API key for Browserbase. | Yes (when using the browserbase environment) |
 | BROWSERBASE_PROJECT_ID | Your Project ID for Browserbase. | Yes (when using the browserbase environment) |
+| CDP_URL | Connects the Playwright environment to a remote Chromium instance over CDP instead of launching locally. | No |
