@@ -75,9 +75,10 @@ class BrowserAgent:
         self.final_reasoning = None
         self._client = genai.Client(
             api_key=os.environ.get("GEMINI_API_KEY"),
-            vertexai=os.environ.get("USE_VERTEXAI", "0").lower() in ["true", "1"],
-            project=os.environ.get("VERTEXAI_PROJECT"),
-            location=os.environ.get("VERTEXAI_LOCATION"),
+            vertexai=os.environ.get("GOOGLE_GENAI_USE_VERTEXAI", "0").lower()
+            in ["true", "1"],
+            project=os.environ.get("GOOGLE_CLOUD_PROJECT"),
+            location=os.environ.get("GOOGLE_CLOUD_LOCATION"),
         )
         self._contents: list[Content] = [
             Content(
