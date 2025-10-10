@@ -1,8 +1,10 @@
 # Computer Use Preview
 
+This project allows you to interact with a computer using natural language queries — for example, you can tell it to “Go to Google and search for Hello World” and the agent will perform the action for you.
+
 ## Quick Start
 
-This section will guide you through setting up and running the Computer Use Preview model. Follow these steps to get started.
+Follow these steps to set up and run the project on your local machine.
 
 ### 1. Installation
 
@@ -32,6 +34,7 @@ playwright install chrome
 ```
 
 ### 2. Configuration
+
 You can get started using either the Gemini Developer API or Vertex AI.
 
 #### A. If using the Gemini Developer API:
@@ -90,7 +93,7 @@ python main.py --query "Go to Google and type 'Hello World' into the search bar"
 
 **Available Environments:**
 
-You can specify a particular environment with the ```--env <environment>``` flag.  Available options:
+You can specify a particular environment with the `--env <environment>` flag. Available options:
 
 - `playwright`: Runs the browser locally using Playwright.
 - `browserbase`: Connects to a Browserbase instance.
@@ -123,17 +126,17 @@ The `main.py` script is the command-line interface (CLI) for running the browser
 
 ### Command-Line Arguments
 
-| Argument | Description | Required | Default | Supported Environment(s) |
-|-|-|-|-|-|
-| `--query` | The natural language query for the browser agent to execute. | Yes | N/A | All |
-| `--env` | The computer use environment to use. Must be one of the following: `playwright`, or `browserbase` | No | N/A | All |
-| `--initial_url` | The initial URL to load when the browser starts. | No | https://www.google.com | All |
-| `--highlight_mouse` | If specified, the agent will attempt to highlight the mouse cursor's position in the screenshots. This is useful for visual debugging. | No | False (not highlighted) | `playwright` |
+| Argument            | Description                                                                                                                            | Required | Default                 | Supported Environment(s) |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | -------- | ----------------------- | ------------------------ |
+| `--query`           | The natural language query for the browser agent to execute.                                                                           | Yes      | N/A                     | All                      |
+| `--env`             | The computer use environment to use. Must be one of the following: `playwright`, or `browserbase`                                      | No       | N/A                     | All                      |
+| `--initial_url`     | The initial URL to load when the browser starts.                                                                                       | No       | https://www.google.com  | All                      |
+| `--highlight_mouse` | If specified, the agent will attempt to highlight the mouse cursor's position in the screenshots. This is useful for visual debugging. | No       | False (not highlighted) | `playwright`             |
 
 ### Environment Variables
 
-| Variable | Description | Required |
-|-|-|-|
-| GEMINI_API_KEY | Your API key for the Gemini model. | Yes |
-| BROWSERBASE_API_KEY | Your API key for Browserbase. | Yes (when using the browserbase environment) |
-| BROWSERBASE_PROJECT_ID | Your Project ID for Browserbase. | Yes (when using the browserbase environment) |
+| Variable               | Description                        | Required                                     |
+| ---------------------- | ---------------------------------- | -------------------------------------------- |
+| GEMINI_API_KEY         | Your API key for the Gemini model. | Yes                                          |
+| BROWSERBASE_API_KEY    | Your API key for Browserbase.      | Yes (when using the browserbase environment) |
+| BROWSERBASE_PROJECT_ID | Your Project ID for Browserbase.   | Yes (when using the browserbase environment) |
