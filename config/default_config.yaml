@@ -1,0 +1,50 @@
+# Computer Use Preview 默认配置文件
+
+# 模型配置
+model:
+  name: "gemini-2.5-computer-use-preview-10-2025"
+  temperature: 1.0
+  top_p: 0.95
+  top_k: 40
+  max_output_tokens: 8192
+
+# 浏览器配置
+browser:
+  screen_size: [1440, 900]
+  wait_timeout: 30000  # 毫秒
+  max_retries: 5
+  base_delay_s: 1
+  max_recent_turns_with_screenshots: 3
+
+# Playwright配置
+playwright:
+  headless: false
+  highlight_mouse: false
+  initial_url: "https://www.google.com"
+  search_engine_url: "https://www.google.com"
+
+# Browserbase配置
+browserbase:
+  initial_url: "https://www.google.com"
+  fingerprint:
+    screen:
+      maxWidth: 1920
+      maxHeight: 1080
+      minWidth: 1024
+      minHeight: 768
+
+# 日志配置
+logging:
+  enabled: true
+  level: "INFO"
+  log_file: "browser_agent.log"
+  max_file_size: "10MB"
+  backup_count: 5
+
+# 性能监控配置
+performance:
+  enabled: true
+  metrics_file: "performance_metrics.json"
+  track_screenshot_time: true
+  track_model_response_time: true
+  track_action_execution_time: true
