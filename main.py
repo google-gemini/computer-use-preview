@@ -59,6 +59,12 @@ def main() -> int:
         default=None,
         help="Use gcloud authentication with Vertex AI. Specify the project ID (e.g., mlr-generative-ai-lab).",
     )
+    parser.add_argument(
+        "--trust",
+        action="store_true",
+        default=False,
+        help="Automatically approve all safety confirmations without prompting.",
+    )
     args = parser.parse_args()
 
     if args.env == "playwright":
@@ -81,6 +87,7 @@ def main() -> int:
             query=args.query,
             model_name=args.model,
             gcloud_project=args.gcloud_auth,
+            trust_mode=args.trust,
         )
         agent.agent_loop()
     return 0

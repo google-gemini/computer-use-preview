@@ -68,11 +68,13 @@ class BrowserAgent:
         model_name: str,
         verbose: bool = True,
         gcloud_project: Optional[str] = None,
+        trust_mode: bool = False,
     ):
         self._browser_computer = browser_computer
         self._query = query
         self._model_name = model_name
         self._verbose = verbose
+        self._trust_mode = trust_mode
         self.final_reasoning = None
         
         # Configure client based on authentication method
@@ -401,6 +403,17 @@ class BrowserAgent:
     ) -> Literal["CONTINUE", "TERMINATE"]:
         if safety["decision"] != "require_confirmation":
             raise ValueError(f"Unknown safety decision: safety['decision']")
+        
+        # If trust mode is enabled, automatically approve
+        if self._trust_mode:
+            termcolor.cprint(
+                "Safety confirmation auto-approved (trust mode enabled)",
+                color="green",
+            )
+            print(safety["explanation"])
+            return "CONTINUE"
+        
+        # Otherwise, ask for user confirmation
         termcolor.cprint(
             "Safety service requires explicit confirmation!",
             color="yellow",
