@@ -129,6 +129,8 @@ The `main.py` script is the command-line interface (CLI) for running the browser
 | `--env` | The computer use environment to use. Must be one of the following: `playwright`, or `browserbase` | No | N/A | All |
 | `--initial_url` | The initial URL to load when the browser starts. | No | https://www.google.com | All |
 | `--highlight_mouse` | If specified, the agent will attempt to highlight the mouse cursor's position in the screenshots. This is useful for visual debugging. | No | False (not highlighted) | `playwright` |
+| `--gcloud-auth` | Use gcloud authentication with Vertex AI. Specify the project ID. When used, this overrides API key authentication. | No | None | All |
+
 
 ### Environment Variables
 

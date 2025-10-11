@@ -20,7 +20,6 @@ from computers import BrowserbaseComputer, PlaywrightComputer
 
 PLAYWRIGHT_SCREEN_SIZE = (1440, 900)
 
-
 def main() -> int:
     parser = argparse.ArgumentParser(description="Run the browser agent with a query.")
     parser.add_argument(
@@ -54,6 +53,12 @@ def main() -> int:
         default='gemini-2.5-computer-use-preview-10-2025',
         help="Set which main model to use.",
     )
+    parser.add_argument(
+        "--gcloud-auth",
+        type=str,
+        default=None,
+        help="Use gcloud authentication with Vertex AI. Specify the project ID (e.g., mlr-generative-ai-lab).",
+    )
     args = parser.parse_args()
 
     if args.env == "playwright":
@@ -75,6 +80,7 @@ def main() -> int:
             browser_computer=browser_computer,
             query=args.query,
             model_name=args.model,
+            gcloud_project=args.gcloud_auth,
         )
         agent.agent_loop()
     return 0
