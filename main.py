@@ -13,9 +13,13 @@
 # limitations under the License.
 import argparse
 import os
+from dotenv import load_dotenv
 
 from agent import BrowserAgent
 from computers import BrowserbaseComputer, PlaywrightComputer
+
+# Load environment variables from .env file
+load_dotenv()
 
 
 PLAYWRIGHT_SCREEN_SIZE = (1440, 900)
