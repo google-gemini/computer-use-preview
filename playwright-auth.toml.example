@@ -1,0 +1,291 @@
+# ============================================================================
+# Playwright Authentication Configuration - Example File
+# ============================================================================
+#
+# This is an example configuration file showing how to set up authentication
+# for multiple websites. Copy this file to 'playwright-auth.toml' and customize
+# it with your own sites and configurations.
+#
+# IMPORTANT SECURITY NOTES:
+# - Never hardcode credentials in this file
+# - Always store credentials in the .env file
+# - Reference credentials using environment variable names
+# - The .env file should be in .gitignore (never commit it)
+#
+# ============================================================================
+
+# ----------------------------------------------------------------------------
+# Default Site Configuration
+# ----------------------------------------------------------------------------
+# Specify which site to use when --auth-site is not provided
+# This should match one of the site names defined below (e.g., "google", "github")
+default_site = "google"
+
+# ============================================================================
+# SITE CONFIGURATIONS
+# ============================================================================
+# Each site configuration follows this structure:
+#
+# [sites.SITE_NAME]
+# name = "Human-readable site name"
+# login_url = "URL of the login page"
+# success_url = "URL to navigate to after successful login (optional)"
+# username_env = "ENV_VAR_NAME_FOR_USERNAME"
+# password_env = "ENV_VAR_NAME_FOR_PASSWORD"
+#
+# [sites.SITE_NAME.selectors]
+# username_field = "CSS selector or label text for username input"
+# password_field = "CSS selector or label text for password input"
+# submit_button = "CSS selector or button text for submit button"
+# success_element = "CSS selector to verify successful login (optional)"
+# timeout = 30  # Timeout in seconds for login process
+# ============================================================================
+
+# ----------------------------------------------------------------------------
+# Example 1: Google Account Login
+# ----------------------------------------------------------------------------
+[sites.google]
+# Human-readable name for this site configuration
+name = "Google Account"
+
+# URL of the login page where authentication starts
+# This is where the browser will navigate first
+login_url = "https://accounts.google.com/signin"
+
+# URL to navigate to after successful login (optional)
+# If specified, the browser will navigate here after authentication
+# If empty, the browser stays on the page after login
+success_url = "https://mail.google.com"
+
+# Environment variable names for credentials
+# These variables must be defined in your .env file
+# Example in .env:
+#   GOOGLE_EMAIL=your.email@gmail.com
+#   GOOGLE_PASSWORD=your_secure_password
+username_env = "GOOGLE_EMAIL"
+password_env = "GOOGLE_PASSWORD"
+
+# CSS Selectors for login form elements
+[sites.google.selectors]
+# Selector for the email/username input field
+# Can be a CSS selector (e.g., "input[type='email']") or label text
+# Google uses different selectors, this is a common one:
+username_field = "input[type='email']"
+
+# Selector for the password input field
+# Note: Google has a two-step login (email first, then password)
+password_field = "input[type='password']"
+
+# Selector for the submit/sign-in button
+# Can be a CSS selector or button text (e.g., "Sign in", "Next")
+submit_button = "button[type='button']"
+
+# Optional: CSS selector to wait for after successful login
+# This helps verify that login was successful
+# Leave empty ("") if not needed
+success_element = ""
+
+# Timeout in seconds for the entire login process
+# Increase this if the site is slow to load
+timeout = 45
+
+# ----------------------------------------------------------------------------
+# Example 2: GitHub Login
+# ----------------------------------------------------------------------------
+[sites.github]
+name = "GitHub"
+login_url = "https://github.com/login"
+success_url = "https://github.com/"
+username_env = "GITHUB_USERNAME"
+password_env = "GITHUB_PASSWORD"
+
+[sites.github.selectors]
+username_field = "input[name='login']"
+password_field = "input[name='password']"
+submit_button = "input[type='submit']"
+success_element = "button[aria-label='View profile and more']"
+timeout = 30
+
+# ----------------------------------------------------------------------------
+# Example 3: LinkedIn Login
+# ----------------------------------------------------------------------------
+[sites.linkedin]
+name = "LinkedIn"
+login_url = "https://www.linkedin.com/login"
+success_url = "https://www.linkedin.com/feed/"
+username_env = "LINKEDIN_EMAIL"
+password_env = "LINKEDIN_PASSWORD"
+
+[sites.linkedin.selectors]
+username_field = "input[id='username']"
+password_field = "input[id='password']"
+submit_button = "button[type='submit']"
+success_element = ""
+timeout = 30
+
+# ============================================================================
+# HOW TO ADD A NEW SITE
+# ============================================================================
+#
+# 1. Add credentials to your .env file:
+#    MYSITE_USERNAME=your_username
+#    MYSITE_PASSWORD=your_password
+#
+# 2. Find the CSS selectors for the login form:
+#    - Open the login page in a browser
+#    - Right-click on the username field → Inspect
+#    - Look for attributes like name, id, type, or class
+#    - Common patterns:
+#      * input[name='username']
+#      * input[type='email']
+#      * input[id='login']
+#      * #username (for id="username")
+#      * .username-field (for class="username-field")
+#
+# 3. Add configuration to this file:
+#    [sites.mysite]
+#    name = "My Site Name"
+#    login_url = "https://mysite.com/login"
+#    success_url = "https://mysite.com/dashboard"
+#    username_env = "MYSITE_USERNAME"
+#    password_env = "MYSITE_PASSWORD"
+#
+#    [sites.mysite.selectors]
+#    username_field = "input[name='username']"
+#    password_field = "input[name='password']"
+#    submit_button = "button[type='submit']"
+#    success_element = ""
+#    timeout = 30
+#
+# 4. Test the configuration:
+#    python main.py --query "Describe what you see" --auth-site mysite
+#
+# ============================================================================
+
+# ============================================================================
+# CSS SELECTOR GUIDE
+# ============================================================================
+#
+# Common selector patterns:
+#
+# By attribute name:
+#   input[name='username']
+#   input[name='email']
+#   button[name='submit']
+#
+# By ID:
+#   input[id='username']
+#   #username (shorthand)
+#
+# By type:
+#   input[type='email']
+#   input[type='password']
+#   input[type='submit']
+#   button[type='submit']
+#
+# By class:
+#   input[class='login-input']
+#   .login-input (shorthand)
+#
+# By multiple attributes:
+#   input[type='text'][name='username']
+#
+# Using label text (alternative to CSS):
+#   "Email address"
+#   "Password"
+#   "Sign in"
+#
+# ============================================================================
+
+# ============================================================================
+# TROUBLESHOOTING
+# ============================================================================
+#
+# Problem: "Missing credentials" error
+# Solution: Ensure the environment variables are set in your .env file
+#
+# Problem: "Timeout waiting for selector" error
+# Solution: 
+#   - Verify the CSS selectors are correct (inspect the page)
+#   - Try using label text instead of CSS selector
+#   - Increase the timeout value
+#
+# Problem: Login fails but credentials are correct
+# Solution:
+#   - Check if the website has CAPTCHA or 2FA
+#   - Verify the login_url is correct
+#   - Try running without headless mode to see what's happening:
+#     Set PLAYWRIGHT_HEADLESS=0 in your .env file
+#
+# Problem: Can't find the right CSS selector
+# Solution:
+#   - Use browser DevTools (F12) to inspect elements
+#   - Try different selector strategies (see CSS SELECTOR GUIDE above)
+#   - You can also use label text directly (e.g., "Email address")
+#
+# Problem: Site has two-factor authentication (2FA)
+# Solution:
+#   - This system doesn't support 2FA automatically
+#   - Consider using app-specific passwords if available
+#   - Or disable 2FA for automation accounts (not recommended for production)
+#
+# ============================================================================
+
+# ============================================================================
+# SECURITY BEST PRACTICES
+# ============================================================================
+#
+# 1. Never commit the .env file to version control
+#    - Add .env to .gitignore (already done by default)
+#
+# 2. Use strong, unique passwords for each site
+#    - Consider using a password manager
+#
+# 3. Rotate credentials regularly
+#    - Update passwords periodically
+#
+# 4. Limit access to the .env file
+#    - Set appropriate file permissions (chmod 600 on Unix)
+#
+# 5. Use environment-specific .env files
+#    - .env.development
+#    - .env.staging
+#    - .env.production
+#
+# 6. Never share credentials in plain text
+#    - Don't send via email, chat, or other insecure channels
+#
+# 7. Consider using dedicated automation accounts
+#    - Create separate accounts for automation
+#    - Limit their permissions to only what's needed
+#
+# 8. Monitor for suspicious activity
+#    - Check login logs regularly
+#    - Set up alerts for unusual access patterns
+#
+# ============================================================================
+
+# ============================================================================
+# ADVANCED CONFIGURATION
+# ============================================================================
+#
+# Custom wait conditions:
+# If a site requires waiting for specific elements after login, use success_element:
+#
+# [sites.example.selectors]
+# success_element = "div[class='dashboard']"
+#
+# This will wait for the dashboard element to appear before considering login successful.
+#
+# Multiple submit buttons:
+# Some sites have multiple submit buttons. Be specific:
+#
+# submit_button = "button[type='submit'][class='primary-button']"
+#
+# Dynamic selectors:
+# If selectors change, try more stable alternatives:
+# - Use data attributes: input[data-testid='username']
+# - Use aria labels: input[aria-label='Email']
+# - Use role attributes: button[role='button']
+#
+# ============================================================================

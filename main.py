@@ -41,6 +41,12 @@ def main() -> int:
         help="The computer use environment to use.",
     )
     parser.add_argument(
+        "--auth-site",
+        type=str,
+        default=None,
+        help="Enable authentication and specify which site to login to. If specified, automatic login will be performed before agent operations. If not specified, uses default_site from config file.",
+    )
+    parser.add_argument(
         "--initial_url",
         type=str,
         default="https://www.google.com",
@@ -72,10 +78,21 @@ def main() -> int:
     args = parser.parse_args()
 
     if args.env == "playwright":
+        # Check if authentication is requested via --auth-site
+        auth_config_path = None
+        auth_site = None
+        
+        if args.auth_site is not None:
+            # Authentication enabled - always use playwright-auth.toml
+            auth_config_path = "playwright-auth.toml"
+            auth_site = args.auth_site if args.auth_site else None
+        
         env = PlaywrightComputer(
             screen_size=PLAYWRIGHT_SCREEN_SIZE,
             initial_url=args.initial_url,
             highlight_mouse=args.highlight_mouse,
+            auth_config_path=auth_config_path,
+            auth_site=auth_site,
         )
     elif args.env == "browserbase":
         env = BrowserbaseComputer(

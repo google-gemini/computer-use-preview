@@ -22,7 +22,8 @@ from ..computer import (
 )
 import playwright.sync_api
 from playwright.sync_api import sync_playwright
-from typing import Literal
+from typing import Literal, Optional
+from .auth import PlaywrightAuthenticator
 
 # Define a mapping from the user-friendly key names to Playwright's expected key names.
 # Playwright is generally good with case-insensitivity for these, but it's best to be canonical.
@@ -81,11 +82,20 @@ class PlaywrightComputer(Computer):
         initial_url: str = "https://www.google.com",
         search_engine_url: str = "https://www.google.com",
         highlight_mouse: bool = False,
+        auth_config_path: Optional[str] = None,
+        auth_site: Optional[str] = None,
     ):
         self._initial_url = initial_url
         self._screen_size = screen_size
         self._search_engine_url = search_engine_url
         self._highlight_mouse = highlight_mouse
+        self._auth_config_path = auth_config_path
+        self._auth_site = auth_site
+        self._authenticator = None
+        
+        # If authentication is configured, initialize the authenticator
+        if self._auth_config_path:
+            self._authenticator = PlaywrightAuthenticator(self._auth_config_path)
 
     def _handle_new_page(self, new_page: playwright.sync_api.Page):
         """The Computer Use model only supports a single tab at the moment.
@@ -120,7 +130,28 @@ class PlaywrightComputer(Computer):
             }
         )
         self._page = self._context.new_page()
-        self._page.goto(self._initial_url)
+        
+        # Perform authentication if configured
+        if self._authenticator:
+            try:
+                authenticated_url = self._authenticator.perform_login(
+                    self._page, 
+                    self._auth_site,
+                    verbose=True
+                )
+                # Update initial URL to the authenticated page
+                if authenticated_url:
+                    self._initial_url = authenticated_url
+            except Exception as e:
+                termcolor.cprint(
+                    f"Authentication failed: {str(e)}",
+                    color="red",
+                    attrs=["bold"],
+                )
+                raise
+        else:
+            # No authentication, just navigate to initial URL
+            self._page.goto(self._initial_url)
 
         self._context.on("page", self._handle_new_page)
 
