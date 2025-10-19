@@ -136,7 +136,7 @@ class BrowserAgent:
         elif action.name == "type_text_at":
             x = self.denormalize_x(action.args["x"])
             y = self.denormalize_y(action.args["y"])
-            press_enter = action.args.get("press_enter", False)
+            press_enter = action.args.get("press_enter", True)
             clear_before_typing = action.args.get("clear_before_typing", True)
             return self._browser_computer.type_text_at(
                 x=x,
