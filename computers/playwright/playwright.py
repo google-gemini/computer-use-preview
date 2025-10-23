@@ -114,6 +114,7 @@ class PlaywrightComputer(Computer):
             headless=bool(os.environ.get("PLAYWRIGHT_HEADLESS", False)),
         )
         self._context = self._browser.new_context(
+	    ignore_https_errors=bool(os.environ.get("PLAYWRIGHT_IGNORE_HTTPS_ERRORS", False)),
             viewport={
                 "width": self._screen_size[0],
                 "height": self._screen_size[1],
@@ -345,3 +346,4 @@ class PlaywrightComputer(Computer):
         )
         # Wait a bit for the user to see the cursor.
         time.sleep(1)
+
