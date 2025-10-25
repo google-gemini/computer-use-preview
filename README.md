@@ -2,7 +2,7 @@
 
 ## Quick Start
 
-This section will guide you through setting up and running the Computer Use Preview model. Follow these steps to get started.
+This section will guide you through setting up and running the Computer Use Preview model, either the Gemini Developer API or Vertex AI. Follow these steps to get started.
 
 ### 1. Installation
 
