@@ -14,10 +14,12 @@
 from .computer import Computer, EnvState
 from .browserbase.browserbase import BrowserbaseComputer
 from .playwright.playwright import PlaywrightComputer
+from .agentcore.agentcore import AgentCoreComputer
 
 __all__ = [
     "Computer",
     "EnvState",
     "BrowserbaseComputer",
     "PlaywrightComputer",
+    "AgentCoreComputer",
 ]

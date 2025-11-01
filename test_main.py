@@ -65,5 +65,35 @@ class TestMain(unittest.TestCase):
         mock_browser_agent.assert_called_once()
         mock_browser_agent.return_value.agent_loop.assert_called_once()
 
+    @patch('main.argparse.ArgumentParser')
+    @patch('main.AgentCoreComputer')
+    @patch('main.BrowserAgent')
+    def test_main_agentcore(self, mock_browser_agent, mock_agentcore_computer, mock_arg_parser):
+        mock_args = MagicMock()
+        mock_args.env = 'agentcore'
+        mock_args.query = 'test_query'
+        mock_args.model = 'test_model'
+        mock_args.initial_url = 'test_url'
+        mock_args.recording_bucket = 'test-bucket'
+        mock_args.recording_prefix = 'test-prefix'
+        mock_args.execution_role_arn = 'test-role-arn'
+        mock_args.create_execution_role = False
+        mock_args.browser_identifier = 'test-browser'
+        mock_arg_parser.return_value.parse_args.return_value = mock_args
+
+        main.main()
+
+        mock_agentcore_computer.assert_called_once_with(
+            screen_size=main.PLAYWRIGHT_SCREEN_SIZE,
+            initial_url='test_url',
+            recording_bucket='test-bucket',
+            recording_prefix='test-prefix',
+            execution_role_arn='test-role-arn',
+            create_execution_role=False,
+            browser_identifier='test-browser',
+        )
+        mock_browser_agent.assert_called_once()
+        mock_browser_agent.return_value.agent_loop.assert_called_once()
+
 if __name__ == '__main__':
     unittest.main()
