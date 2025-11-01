@@ -30,6 +30,11 @@ from rich.table import Table
 
 from computers import EnvState, Computer
 
+# load environment variable in .env
+from dotenv import load_dotenv
+
+load_dotenv()
+
 MAX_RECENT_TURN_WITH_SCREENSHOTS = 3
 PREDEFINED_COMPUTER_USE_FUNCTIONS = [
     "open_web_browser",
@@ -46,7 +51,6 @@ PREDEFINED_COMPUTER_USE_FUNCTIONS = [
     "key_combination",
     "drag_and_drop",
 ]
-
 
 console = Console()
 
