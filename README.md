@@ -94,6 +94,7 @@ You can specify a particular environment with the ```--env <environment>``` flag
 
 - `playwright`: Runs the browser locally using Playwright.
 - `browserbase`: Connects to a Browserbase instance.
+- `agentcore`: Connects to Amazon Bedrock AgentCore Browser.
 
 **Local Playwright**
 
@@ -117,6 +118,43 @@ Runs the agent using Browserbase as the browser backend. Ensure the proper Brows
 python main.py --query="Go to Google and type 'Hello World' into the search bar" --env="browserbase"
 ```
 
+**Amazon Bedrock AgentCore**
+
+Runs the agent using Amazon Bedrock AgentCore Browser as the backend. Requires AWS credentials configured and the `bedrock-agentcore` Python package installed.
+
+```bash
+python main.py --query="Search for great deals on Alexa devices" --env="agentcore"
+```
+
+The AWS region is automatically detected from your AWS configuration (environment variables, ~/.aws/config, or IAM role). You can override it by setting:
+
+```bash
+export AWS_REGION="us-east-1"
+```
+
+**Session Recording (AgentCore only)**
+
+Enable session recording to S3 for replay and debugging:
+
+```bash
+# Auto-create IAM role (recommended)
+python main.py --query="Search for great deals on Alexa devices" --env="agentcore" \
+  --recording_bucket="my-recordings-bucket" \
+  --create_execution_role
+
+# Or provide existing role
+python main.py --query="Search for great deals on Alexa devices" --env="agentcore" \
+  --recording_bucket="my-recordings-bucket" \
+  --recording_prefix="sessions" \
+  --execution_role_arn="arn:aws:iam::123456789012:role/AgentCoreRecordingRole"
+```
+
+The auto-created role is scoped to the specified S3 bucket/prefix with minimal permissions:
+- Trust policy: `bedrock-agentcore.amazonaws.com`
+- S3 permissions: `s3:PutObject`, `s3:ListMultipartUploadParts`, `s3:AbortMultipartUpload`
+
+Recordings can be viewed using the AgentCore session replay viewer.
+
 ## Agent CLI
 
 The `main.py` script is the command-line interface (CLI) for running the browser agent.
@@ -126,9 +164,11 @@ The `main.py` script is the command-line interface (CLI) for running the browser
 | Argument | Description | Required | Default | Supported Environment(s) |
 |-|-|-|-|-|
 | `--query` | The natural language query for the browser agent to execute. | Yes | N/A | All |
-| `--env` | The computer use environment to use. Must be one of the following: `playwright`, or `browserbase` | No | N/A | All |
+| `--env` | The computer use environment to use. Must be one of the following: `playwright`, `browserbase`, or `agentcore` | No | playwright | All |
 | `--initial_url` | The initial URL to load when the browser starts. | No | https://www.google.com | All |
 | `--highlight_mouse` | If specified, the agent will attempt to highlight the mouse cursor's position in the screenshots. This is useful for visual debugging. | No | False (not highlighted) | `playwright` |
+| `--recording_bucket` | S3 bucket name for session recording (bucket name only, not ARN). Example: `my-recordings-bucket` | No | None | `agentcore` |
+| `--recording_prefix` | S3 prefix for session recordings. | No | recordings | `agentcore` |
 
 ### Environment Variables
 
@@ -137,3 +177,4 @@ The `main.py` script is the command-line interface (CLI) for running the browser
 | GEMINI_API_KEY | Your API key for the Gemini model. | Yes |
 | BROWSERBASE_API_KEY | Your API key for Browserbase. | Yes (when using the browserbase environment) |
 | BROWSERBASE_PROJECT_ID | Your Project ID for Browserbase. | Yes (when using the browserbase environment) |
+| AWS_REGION | AWS region for AgentCore Browser. | No (auto-detected from AWS config when using agentcore environment) |

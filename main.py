@@ -15,7 +15,7 @@ import argparse
 import os
 
 from agent import BrowserAgent
-from computers import BrowserbaseComputer, PlaywrightComputer
+from computers import BrowserbaseComputer, PlaywrightComputer, AgentCoreComputer
 
 
 PLAYWRIGHT_SCREEN_SIZE = (1440, 900)
@@ -33,7 +33,7 @@ def main() -> int:
     parser.add_argument(
         "--env",
         type=str,
-        choices=("playwright", "browserbase"),
+        choices=("playwright", "browserbase", "agentcore"),
         default="playwright",
         help="The computer use environment to use.",
     )
@@ -48,6 +48,36 @@ def main() -> int:
         action="store_true",
         default=False,
         help="If possible, highlight the location of the mouse.",
+    )
+    parser.add_argument(
+        "--recording_bucket",
+        type=str,
+        default=None,
+        help="S3 bucket for AgentCore session recording (agentcore only).",
+    )
+    parser.add_argument(
+        "--recording_prefix",
+        type=str,
+        default="recordings",
+        help="S3 prefix for AgentCore session recording (agentcore only).",
+    )
+    parser.add_argument(
+        "--execution_role_arn",
+        type=str,
+        default=None,
+        help="IAM execution role ARN for AgentCore browser (required when using recording).",
+    )
+    parser.add_argument(
+        "--create_execution_role",
+        action="store_true",
+        default=False,
+        help="Auto-create IAM execution role if it doesn't exist (agentcore only).",
+    )
+    parser.add_argument(
+        "--browser_identifier",
+        type=str,
+        default=None,
+        help="Browser identifier for AgentCore (agentcore only). Defaults to AGENTCORE_BROWSER_IDENTIFIER env var or 'aws.browser.v1'.",
     )
     parser.add_argument(
         "--model",
@@ -66,6 +96,16 @@ def main() -> int:
         env = BrowserbaseComputer(
             screen_size=PLAYWRIGHT_SCREEN_SIZE,
             initial_url=args.initial_url
+        )
+    elif args.env == "agentcore":
+        env = AgentCoreComputer(
+            screen_size=PLAYWRIGHT_SCREEN_SIZE,
+            initial_url=args.initial_url,
+            recording_bucket=args.recording_bucket,
+            recording_prefix=args.recording_prefix,
+            execution_role_arn=args.execution_role_arn,
+            create_execution_role=args.create_execution_role,
+            browser_identifier=args.browser_identifier,
         )
     else:
         raise ValueError("Unknown environment: ", args.env)
