@@ -36,11 +36,18 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+ANDROID_SYSTEM_PROMPT = """
+You are operating an Android phone. Ignore any browser-specific conventions (like URLs, search bars, forward/backward navigation) unless explicitly interacting with a dedicated browser app.
+Your primary actions are tapping, typing, opening/closing apps, and navigating the home screen.
+* Do not use 'click_at', use 'tap_at' instead.
+* Use custom functions like 'open_app', 'long_press_at', and 'go_home' when appropriate.
+* The screen size you see is a mobile view.
+"""
+
 MAX_RECENT_TURN_WITH_SCREENSHOTS = 3
 PREDEFINED_COMPUTER_USE_FUNCTIONS = [
     "tap_at",
     "type_text_at",
-    "scroll_to_text",
     "wait_5_seconds",
     "go_back",
     "search",
@@ -55,7 +62,6 @@ EXCLUDED_PREDEFINED_FUNCTIONS = [
     "key_combination",
     "drag_and_drop",
     "click_at",
-    "scroll_to_text",
 ]
 
 console = Console()
@@ -126,6 +132,7 @@ class BrowserAgent:
             top_p=0.95,
             top_k=40,
             max_output_tokens=8192,
+            system_instruction=ANDROID_SYSTEM_PROMPT,
             tools=[
                 types.Tool(
                     computer_use=types.ComputerUse(
@@ -173,7 +180,7 @@ class BrowserAgent:
             y = self.denormalize_y(action.args["y"])
             return MockEnvState(
                 url=self._browser_computer.current_url(),
-                screenshot_base64=MOCK_SCREENSHOTS["after_tap"], # temp
+                screenshot_base64=MOCK_SCREENSHOTS["after_type_at"],
                 message=f"Typed '{action.args['text']}' at ({x}, {y})"
             )
         
@@ -186,7 +193,7 @@ class BrowserAgent:
                 message=f"Scrolled {action.args['direction']} at ({x}, {y})"
             )
             
-        elif action.name in ("go_back", "search", "wait_5_seconds", "scroll_to_text"):
+        elif action.name in ("go_back", "search", "wait_5_seconds"):
             return MockEnvState(
                 url=self._browser_computer.current_url(),
                 screenshot_base64=MOCK_SCREENSHOTS["after_tap"], # temp

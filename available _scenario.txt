@@ -1,0 +1,7 @@
+python main.py --query "Open Chrome App and type 'Hello World' into the search bar and show me the search result"
+
+function call:
+    open_app
+    -> type_text_at
+    -> tap_at
+    COMPLETE

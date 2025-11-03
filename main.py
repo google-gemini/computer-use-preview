@@ -24,7 +24,7 @@ from google.genai.types import (
 
 from agent import BrowserAgent
 # from computers import BrowserbaseComputer, PlaywrightComputer
-from mock import MockComputer, DUMMY_SCREENSHOT_BASE64, MOCK_SCREENSHOTS
+from mock import MockComputer, MOCK_SCREENSHOTS
 
 # PLAYWRIGHT_SCREEN_SIZE = (1440, 900)
 
@@ -62,21 +62,24 @@ def main() -> int:
         )
     )
 
-    initial_function_response = FunctionResponse(
-        name="wait_5_seconds", # 이전에 잠시 대기했고 그 결과 이 화면이 로드됨을 시뮬레이션
-        response={
-            "url": mock_computer.current_url(), 
-            "message": "Android Home screen loaded (Initial State Screenshot)."
-        },
-        parts=[initial_screenshot_part]
-    )
-
-    agent._contents.append(
+    initial_contents = [
         Content(
             role="user",
-            parts=[Part(function_response=initial_function_response)]
+            parts=[
+                Part(text=args.query),          # 사용자 쿼리
+                initial_screenshot_part,        # 초기 화면 스크린샷
+            ]
         )
+    ]
+
+    agent = BrowserAgent(
+        browser_computer=mock_computer,
+        query=args.query,
+        model_name=args.model,
+        verbose=True,
     )
+
+    agent._contents = initial_contents
 
     agent.agent_loop()
     
