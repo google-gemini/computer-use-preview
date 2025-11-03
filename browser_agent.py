@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from dotenv import load_dotenv
 from typing import Literal, Optional, Union, Any
 from google import genai
 from google.genai import types
@@ -30,24 +31,6 @@ from rich.table import Table
 
 from computers import EnvState, Computer
 
-MAX_RECENT_TURN_WITH_SCREENSHOTS = 3
-PREDEFINED_COMPUTER_USE_FUNCTIONS = [
-    "open_web_browser",
-    "click_at",
-    "hover_at",
-    "type_text_at",
-    "scroll_document",
-    "scroll_at",
-    "wait_5_seconds",
-    "go_back",
-    "go_forward",
-    "search",
-    "navigate",
-    "key_combination",
-    "drag_and_drop",
-]
-
-
 console = Console()
 
 # Built-in Computer Use tools will return "EnvState".
@@ -55,49 +38,45 @@ console = Console()
 FunctionResponseT = Union[EnvState, dict]
 
 
-def multiply_numbers(x: float, y: float) -> dict:
-    """Multiplies two numbers."""
-    return {"result": x * y}
-
-
 class BrowserAgent:
+    # 클래스 변수 선언
+    MAX_RECENT_TURN_WITH_SCREENSHOTS = 3
+    PREDEFINED_COMPUTER_USE_FUNCTIONS = [
+        "open_web_browser",
+        "click_at",
+        "hover_at",
+        "type_text_at",
+        "scroll_document",
+        "scroll_at",
+        "wait_5_seconds",
+        "go_back",
+        "go_forward",
+        "search",
+        "navigate",
+        "key_combination",
+        "drag_and_drop",
+    ]
     def __init__(
         self,
         browser_computer: Computer,
-        query: str,
-        model_name: str,
+        model_name: str = "gemini-2.5-computer-use-preview-10-2025",
         verbose: bool = True,
     ):
+        load_dotenv()
         self._browser_computer = browser_computer
-        self._query = query
         self._model_name = model_name
         self._verbose = verbose
         self.final_reasoning = None
         self._client = genai.Client(
-            api_key=os.environ.get("GEMINI_API_KEY"),
+            api_key=os.getenv("GEMINI_API_KEY"),
             vertexai=os.environ.get("USE_VERTEXAI", "0").lower() in ["true", "1"],
             project=os.environ.get("VERTEXAI_PROJECT"),
             location=os.environ.get("VERTEXAI_LOCATION"),
         )
-        self._contents: list[Content] = [
-            Content(
-                role="user",
-                parts=[
-                    Part(text=self._query),
-                ],
-            )
-        ]
+        self._contents: list[Content] = []
 
         # Exclude any predefined functions here.
         excluded_predefined_functions = []
-
-        # Add your own custom functions here.
-        custom_functions = [
-            # For example:
-            types.FunctionDeclaration.from_callable(
-                client=self._client, callable=multiply_numbers
-            )
-        ]
 
         self._generate_content_config = GenerateContentConfig(
             temperature=1,
@@ -110,8 +89,7 @@ class BrowserAgent:
                         environment=types.Environment.ENVIRONMENT_BROWSER,
                         excluded_predefined_functions=excluded_predefined_functions,
                     ),
-                ),
-                types.Tool(function_declarations=custom_functions),
+                )
             ],
         )
 
@@ -187,9 +165,6 @@ class BrowserAgent:
                 destination_x=destination_x,
                 destination_y=destination_y,
             )
-        # Handle the custom function declarations here.
-        elif action.name == multiply_numbers.__name__:
-            return multiply_numbers(x=action.args["x"], y=action.args["y"])
         else:
             raise ValueError(f"Unsupported function: {action}")
 
@@ -403,6 +378,24 @@ class BrowserAgent:
         if decision.lower() in ("n", "no"):
             return "TERMINATE"
         return "CONTINUE"
+
+    def excute_function_app(
+        self, instruction: str, app: Optional[str] = None
+    ) -> types.GenerateContentResponse:
+        self._query = instruction
+        if app:
+            self._query += f" Use the app: {app}."
+        self._contents = [
+            Content(
+                role="agent",
+                parts=[
+                    Part(text=self._query),
+                ],
+            )
+        ]
+        self.agent_loop()
+        return self.final_reasoning
+
 
     def agent_loop(self):
         status = "CONTINUE"

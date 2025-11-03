@@ -14,22 +14,14 @@
 import argparse
 import os
 
-from agent import BrowserAgent
+from chat_agent import ChatAgent
+from browser_agent import BrowserAgent
 from computers import BrowserbaseComputer, PlaywrightComputer
-
 
 PLAYWRIGHT_SCREEN_SIZE = (1440, 900)
 
-
 def main() -> int:
     parser = argparse.ArgumentParser(description="Run the browser agent with a query.")
-    parser.add_argument(
-        "--query",
-        type=str,
-        required=True,
-        help="The query for the browser agent to execute.",
-    )
-
     parser.add_argument(
         "--env",
         type=str,
@@ -51,7 +43,7 @@ def main() -> int:
     )
     parser.add_argument(
         "--model",
-        default='gemini-2.5-computer-use-preview-10-2025',
+        default='gemini-2.5-flash',
         help="Set which main model to use.",
     )
     args = parser.parse_args()
@@ -70,15 +62,15 @@ def main() -> int:
     else:
         raise ValueError("Unknown environment: ", args.env)
 
-    with env as browser_computer:
-        agent = BrowserAgent(
-            browser_computer=browser_computer,
-            query=args.query,
-            model_name=args.model,
-        )
-        agent.agent_loop()
+    browser_agent = BrowserAgent(
+        browser_computer=args.env
+    )
+    char_agent = ChatAgent(
+        model_name=args.model,
+        browser_agent=browser_agent
+    )
+    char_agent.agent_loop()
     return 0
-
 
 if __name__ == "__main__":
     main()

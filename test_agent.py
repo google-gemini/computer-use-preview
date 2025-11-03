@@ -16,7 +16,7 @@ import os
 import unittest
 from unittest.mock import MagicMock, patch
 from google.genai import types
-from agent import BrowserAgent, multiply_numbers
+from agent import ChatAgent, multiply_numbers
 from computers import EnvState
 
 class TestBrowserAgent(unittest.TestCase):
@@ -24,7 +24,7 @@ class TestBrowserAgent(unittest.TestCase):
         os.environ["GEMINI_API_KEY"] = "test_api_key"
         self.mock_browser_computer = MagicMock()
         self.mock_browser_computer.screen_size.return_value = (1000, 1000)
-        self.agent = BrowserAgent(
+        self.agent = ChatAgent(
             browser_computer=self.mock_browser_computer,
             query="test query",
             model_name="test_model"
