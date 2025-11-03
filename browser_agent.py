@@ -56,6 +56,10 @@ class BrowserAgent:
         "key_combination",
         "drag_and_drop",
     ]
+    # Exclude any predefined functions here.
+    EXCLUDED_PREDEFINED_FUNCTIONS = []
+
+
     def __init__(
         self,
         browser_computer: Computer,
@@ -75,8 +79,6 @@ class BrowserAgent:
         )
         self._contents: list[Content] = []
 
-        # Exclude any predefined functions here.
-        excluded_predefined_functions = []
 
         self._generate_content_config = GenerateContentConfig(
             temperature=1,
@@ -87,7 +89,7 @@ class BrowserAgent:
                 types.Tool(
                     computer_use=types.ComputerUse(
                         environment=types.Environment.ENVIRONMENT_BROWSER,
-                        excluded_predefined_functions=excluded_predefined_functions,
+                        excluded_predefined_functions=self.EXCLUDED_PREDEFINED_FUNCTIONS,
                     ),
                 )
             ],
@@ -379,12 +381,10 @@ class BrowserAgent:
             return "TERMINATE"
         return "CONTINUE"
 
-    def excute_function_app(
-        self, instruction: str, app: Optional[str] = None
+    def execute_function_app(
+        self, instruction: str
     ) -> types.GenerateContentResponse:
         self._query = instruction
-        if app:
-            self._query += f" Use the app: {app}."
         self._contents = [
             Content(
                 role="agent",

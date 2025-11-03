@@ -40,18 +40,21 @@ console = Console()
 FunctionResponseT = Union[EnvState, dict]
 
 # 사용자 지정 앱 조작 함수
-def control_app(user_instruction: str, app_name: Optional[str] = None) -> dict:
+def control_app(user_instruction: str) -> dict:
     """
-    사용자의 요청에 따라 모바일 앱 조작을 시작합니다.
-    이 함수는 앱 조작 에이전트(GCU Agent)에게 요청을 토스하는 데 사용됩니다.
+    사용자의 요청에 따라 모바일 앱 조작을 시작한다.
+    이 함수는 앱 조작 에이전트(App Agent)에게 요청을 토스하는 데 사용된다.
     """
-    # 이 함수는 실제로 앱을 조작하지 않고, GCU 에이전트에게 넘겨줌.
-    # GCU 에이전트에게 쿼리 그대로 전달, 받은 리턴(dictionary) 그대로 반환.
+    # 이 함수는 실제로 앱을 조작하지 않고, App Agent에게 넘겨줌.
+    # user_instruction: 사용자가 요청한 조작 내용
+    # return: 앱 조작 요청이 App Agent에게 전달되었음을 나타내는 상태메세지.
+    #
+    ### TODO: 어떤 앱이 있는지 Char Agent가 미리 알고 있어야하나? 알아야 한다면 앱 목록을 어떻게 제공하면 좋을까?
+    # 
     # 현재는 dummy.
     return {
-        "status": "GCU_AGENT_INVOKED",
-        "task": user_instruction,
-        "app_used": app_name if app_name else "default",
+        "status": "App_AGENT_INVOKED",
+        "task": user_instruction
     }
 
 class ChatAgent:
@@ -66,7 +69,6 @@ class ChatAgent:
         self._browser_agent = browser_agent
         load_dotenv()
         self._client = genai.Client(
-            # api_key=os.environ.get("GEMINI_API_KEY"),
             api_key=os.getenv("GEMINI_API_KEY"),
             vertexai=os.environ.get("USE_VERTEXAI", "0").lower() in ["true", "1"],
             project=os.environ.get("VERTEXAI_PROJECT"),
@@ -116,17 +118,14 @@ class ChatAgent:
     def handle_action(self, action: types.FunctionCall) -> FunctionResponseT:
         """Handles the action and returns the environment state."""
         if action.name == control_app.__name__:
-            user_instruction=action.args["user_instruction"],
-            app_name=action.args.get("app_name"),
+            user_instruction=action.args["user_instruction"]
 
             print(f"GCU Agent로 토스: 앱 조작 요청 수신")
             print(f"요청: {user_instruction}")
-            print(f"대상 앱: {app_name if app_name else '미지정'}")
 
             self._contents.append
-            browser_result = self._browser_agent.excute_function_app(
-                instruction=user_instruction,
-                app=app_name
+            browser_result = self._browser_agent.execute_function_app(
+                instruction=user_instruction
             )
             print(f"GCU Agent로부터 응답 수신 완료\n" + browser_result)
             return {
