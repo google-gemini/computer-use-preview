@@ -114,7 +114,7 @@ class CUAgent:
     def __init__(
         self,
         browser_computer: MockComputer,
-        model_name: str,
+        model_name: str = 'gemini-2.5-computer-use-preview-10-2025',
         verbose: bool = True,
     ):
         self._browser_computer = browser_computer
@@ -461,7 +461,7 @@ class CUAgent:
                                 part.function_response
                                 and part.function_response.parts
                                 and part.function_response.name
-                                in self.REDEFINED_COMPUTER_USE_FUNCTIONS
+                                in self.PREDEFINED_COMPUTER_USE_FUNCTIONS
                             ):
                                 part.function_response.parts = None
 
