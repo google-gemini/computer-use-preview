@@ -37,7 +37,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 ANDROID_SYSTEM_PROMPT = """
-You are operating an Android phone. Ignore any browser-specific conventions (like URLs, search bars, forward/backward navigation) unless explicitly interacting with a dedicated browser app.
+You are operating an Android phone. Ignore any browser-specific conventions 
+(like URLs, search bars, forward/backward navigation) unless explicitly interacting with a dedicated browser app.
 Your primary actions are tapping, typing, opening/closing apps, and navigating the home screen.
 * Do not use 'click_at', use 'tap_at' instead.
 * Use custom functions like 'open_app', 'long_press_at', and 'go_home' when appropriate.
@@ -82,6 +83,30 @@ def go_home() -> Dict[str, str]:
     """Navigates to the device home screen."""
     return {"status": "home_requested"}
 
+# def get_view_details(view_id: Optional[str] = None) -> Dict[str, Any]:
+#     """Retrieves detailed information (class, text, position) for a specific view element."""
+#     return {"status": "requested_view_details", "view_id": view_id}
+
+# def scroll_to_text(text: str) -> Dict[str, Any]:
+#     """Scrolls the current view until the specified text is visible."""
+#     return {"status": "requested_scroll_to_text", "text": text}
+
+# def swipe(start_x: int, start_y: int, end_x: int, end_y: int, duration: float = 0.5) -> Dict[str, Any]:
+#     """Performs a swipe/drag gesture between two normalized coordinates."""
+#     return {"status": "requested_swipe", "start_x": start_x, "start_y": start_y, "end_x": end_x, "end_y": end_y, "duration": duration}
+
+# def set_device_setting(setting_name: str, value: Any) -> Dict[str, Any]:
+#     """Changes a specific device setting (e.g., WIFI, Bluetooth)."""
+#     return {"status": "requested_set_setting", "setting_name": setting_name, "value": value}
+
+# def close_current_app() -> Dict[str, str]:
+#     """Closes the currently active application."""
+#     return {"status": "requested_close_app"}
+
+# def go_recent_apps() -> Dict[str, str]:
+#     """Navigates to the device's recent applications screen."""
+#     return {"status": "requested_recent_apps"}
+
 class BrowserAgent:
     def __init__(
         self,
@@ -125,6 +150,13 @@ class BrowserAgent:
             types.FunctionDeclaration.from_callable(
                 client=self._client, callable=go_home
             ),
+
+            # types.FunctionDeclaration.from_callable(client=self._client, callable=get_view_details),
+            # types.FunctionDeclaration.from_callable(client=self._client, callable=scroll_to_text),
+            # types.FunctionDeclaration.from_callable(client=self._client, callable=swipe),
+            # types.FunctionDeclaration.from_callable(client=self._client, callable=set_device_setting),
+            # types.FunctionDeclaration.from_callable(client=self._client, callable=close_current_app),
+            # types.FunctionDeclaration.from_callable(client=self._client, callable=go_recent_apps),
         ]
 
         self._generate_content_config = GenerateContentConfig(
@@ -166,6 +198,48 @@ class BrowserAgent:
                 url="android_home_screen",
                 screenshot_base64=MOCK_SCREENSHOTS["after_home"],
             )
+        
+        # elif action.name == get_view_details.__name__:
+        #     return MockEnvState(
+        #         url=self._browser_computer.current_url(),
+        #         screenshot_base64=MOCK_SCREENSHOTS["after_tap"], # 화면 변경 없음
+        #         message=f"Requested details for view ID: {action.args.get('view_id')}"
+        #     )
+
+        # elif action.name == scroll_to_text.__name__:
+        #     return MockEnvState(
+        #         url=self._browser_computer.current_url(),
+        #         screenshot_base64=MOCK_SCREENSHOTS["after_scroll_to_text"], # 새 Mock 스크린샷 필요
+        #         message=f"Scrolled until text found: {action.args['text']}"
+        #     )
+            
+        # elif action.name == swipe.__name__:
+        #     return MockEnvState(
+        #         url=self._browser_computer.current_url(),
+        #         screenshot_base64=MOCK_SCREENSHOTS["after_swipe"], # 새 Mock 스크린샷 필요
+        #         message=f"Swiped from {action.args['start_x']},{action.args['start_y']} to {action.args['end_x']},{action.args['end_y']}"
+        #     )
+            
+        # elif action.name == set_device_setting.__name__:
+        #     return MockEnvState(
+        #         url="system_settings",
+        #         screenshot_base64=MOCK_SCREENSHOTS["after_setting_change"], # 새 Mock 스크린샷 필요
+        #         message=f"Device setting {action.args['setting_name']} set to {action.args['value']}"
+        #     )
+            
+        # elif action.name == close_current_app.__name__:
+        #     return MockEnvState(
+        #         url="android_home_screen",
+        #         screenshot_base64=MOCK_SCREENSHOTS["after_home"], # 홈 화면으로 돌아갔다고 가정
+        #         message="Current app closed."
+        #     )
+            
+        # elif action.name == go_recent_apps.__name__:
+        #     return MockEnvState(
+        #         url="recent_apps_screen",
+        #         screenshot_base64=MOCK_SCREENSHOTS["recent_apps_view"], # 새 Mock 스크린샷 필요
+        #         message="Recent apps screen opened."
+        #     )
 
         elif action.name == "tap_at":
             x = self.denormalize_x(action.args["x"])

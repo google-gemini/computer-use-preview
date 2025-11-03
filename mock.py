@@ -36,10 +36,10 @@ TYPE_SCREENSHOT_BASE64 = (
 
 # 시나리오별 Mock 스크린샷을 관리하는 딕셔너리
 MOCK_SCREENSHOTS = {
-    "initial": HOME_SCREENSHOT_BASE64, # 초기 화면
-    "after_open_app": APP_SCREENSHOT_BASE64, # 앱 실행 후 화면
-    "after_tap": TAP_SCREENSHOT_BASE64,      # 탭 동작 후 화면
-    "after_long_press": HOME_SCREENSHOT_BASE64, # 길게 누르기 후 화면
-    "after_type_at": TYPE_SCREENSHOT_BASE64,
-    "after_home": HOME_SCREENSHOT_BASE64,    # 홈 이동 후 화면
+    "initial": HOME_SCREENSHOT_BASE64,          # 현재: 배경 화면 - agent 앱 실행 했을 당시의 화면 스크린샷으로 대체
+    "after_open_app": APP_SCREENSHOT_BASE64,    # 현재: 크롬 앱 실행 화면
+    "after_tap": TAP_SCREENSHOT_BASE64,         # 현재: 탭 동작 후 화면
+    "after_long_press": HOME_SCREENSHOT_BASE64, # 길게 누르기 후 화면 - temp
+    "after_type_at": TYPE_SCREENSHOT_BASE64,    # 현재: 입력 후 화면 (enter 입력 x)
+    "after_home": HOME_SCREENSHOT_BASE64,       # 현재: 배경 화면
 }
