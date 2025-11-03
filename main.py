@@ -13,16 +13,23 @@
 # limitations under the License.
 import argparse
 import os
+import base64
+
+from google.genai import types
+from google.genai.types import (
+    Part,
+    Content,
+    FunctionResponse,
+)
 
 from agent import BrowserAgent
-from computers import BrowserbaseComputer, PlaywrightComputer
+# from computers import BrowserbaseComputer, PlaywrightComputer
+from mock import MockComputer, DUMMY_SCREENSHOT_BASE64, MOCK_SCREENSHOTS
 
-
-PLAYWRIGHT_SCREEN_SIZE = (1440, 900)
-
+# PLAYWRIGHT_SCREEN_SIZE = (1440, 900)
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Run the browser agent with a query.")
+    parser = argparse.ArgumentParser(description="Run the Android agent with a query using Mock environment.")
     parser.add_argument(
         "--query",
         type=str,
@@ -31,52 +38,48 @@ def main() -> int:
     )
 
     parser.add_argument(
-        "--env",
-        type=str,
-        choices=("playwright", "browserbase"),
-        default="playwright",
-        help="The computer use environment to use.",
-    )
-    parser.add_argument(
-        "--initial_url",
-        type=str,
-        default="https://www.google.com",
-        help="The inital URL loaded for the computer.",
-    )
-    parser.add_argument(
-        "--highlight_mouse",
-        action="store_true",
-        default=False,
-        help="If possible, highlight the location of the mouse.",
-    )
-    parser.add_argument(
         "--model",
         default='gemini-2.5-computer-use-preview-10-2025',
         help="Set which main model to use.",
     )
     args = parser.parse_args()
 
-    if args.env == "playwright":
-        env = PlaywrightComputer(
-            screen_size=PLAYWRIGHT_SCREEN_SIZE,
-            initial_url=args.initial_url,
-            highlight_mouse=args.highlight_mouse,
-        )
-    elif args.env == "browserbase":
-        env = BrowserbaseComputer(
-            screen_size=PLAYWRIGHT_SCREEN_SIZE,
-            initial_url=args.initial_url
-        )
-    else:
-        raise ValueError("Unknown environment: ", args.env)
+    mock_computer = MockComputer()
+    
+    agent = BrowserAgent(
+        browser_computer=mock_computer,
+        query=args.query,
+        model_name=args.model,
+        verbose=True,
+    )
 
-    with env as browser_computer:
-        agent = BrowserAgent(
-            browser_computer=browser_computer,
-            query=args.query,
-            model_name=args.model,
+    # 임의의 초기 스크린샷 데이터
+    initial_screenshot_data = base64.b64decode(MOCK_SCREENSHOTS["initial"])
+    initial_screenshot_part = Part(
+        inline_data=types.FunctionResponseBlob(
+            mime_type="image/png", 
+            data=initial_screenshot_data
         )
-        agent.agent_loop()
+    )
+
+    initial_function_response = FunctionResponse(
+        name="wait_5_seconds", # 이전에 잠시 대기했고 그 결과 이 화면이 로드됨을 시뮬레이션
+        response={
+            "url": mock_computer.current_url(), 
+            "message": "Android Home screen loaded (Initial State Screenshot)."
+        },
+        parts=[initial_screenshot_part]
+    )
+
+    agent._contents.append(
+        Content(
+            role="user",
+            parts=[Part(function_response=initial_function_response)]
+        )
+    )
+
+    agent.agent_loop()
+    
     return 0
 
 

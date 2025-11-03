@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from typing import Literal, Optional, Union, Any
+from typing import Literal, Optional, Union, Any, Dict
 from google import genai
 from google.genai import types
 import termcolor
@@ -28,7 +28,8 @@ import time
 from rich.console import Console
 from rich.table import Table
 
-from computers import EnvState, Computer
+#from computers import EnvState, Computer
+from mock import MockEnvState, MockComputer, MOCK_SCREENSHOTS
 
 # load environment variable in .env
 from dotenv import load_dotenv
@@ -37,37 +38,48 @@ load_dotenv()
 
 MAX_RECENT_TURN_WITH_SCREENSHOTS = 3
 PREDEFINED_COMPUTER_USE_FUNCTIONS = [
-    "open_web_browser",
-    "click_at",
-    "hover_at",
+    "tap_at",
     "type_text_at",
-    "scroll_document",
-    "scroll_at",
+    "scroll_to_text",
     "wait_5_seconds",
     "go_back",
-    "go_forward",
     "search",
+]
+
+EXCLUDED_PREDEFINED_FUNCTIONS = [
+    "open_web_browser",
+    "hover_at",
+    "scroll_document",
+    "go_forward",
     "navigate",
     "key_combination",
     "drag_and_drop",
+    "click_at",
+    "scroll_to_text",
 ]
 
 console = Console()
 
 # Built-in Computer Use tools will return "EnvState".
 # Custom provided functions will return "dict".
-FunctionResponseT = Union[EnvState, dict]
+FunctionResponseT = Union[MockEnvState, dict]
 
+def open_app(app_name: str, intent: Optional[str] = None) -> Dict[str, Any]:
+    """Opens an app by name."""
+    return {"status": "requested_open", "app_name": app_name, "intent": intent}
 
-def multiply_numbers(x: float, y: float) -> dict:
-    """Multiplies two numbers."""
-    return {"result": x * y}
+def long_press_at(x: int, y: int) -> Dict[str, int]:
+    """Long-press at a specific screen coordinate."""
+    return {"x": x, "y": y}
 
+def go_home() -> Dict[str, str]:
+    """Navigates to the device home screen."""
+    return {"status": "home_requested"}
 
 class BrowserAgent:
     def __init__(
         self,
-        browser_computer: Computer,
+        browser_computer: MockComputer,
         query: str,
         model_name: str,
         verbose: bool = True,
@@ -93,14 +105,20 @@ class BrowserAgent:
         ]
 
         # Exclude any predefined functions here.
-        excluded_predefined_functions = []
+        excluded_predefined_functions = EXCLUDED_PREDEFINED_FUNCTIONS
 
         # Add your own custom functions here.
         custom_functions = [
             # For example:
             types.FunctionDeclaration.from_callable(
-                client=self._client, callable=multiply_numbers
-            )
+                client=self._client, callable=open_app
+            ),
+            types.FunctionDeclaration.from_callable(
+                client=self._client, callable=long_press_at
+            ),
+            types.FunctionDeclaration.from_callable(
+                client=self._client, callable=go_home
+            ),
         ]
 
         self._generate_content_config = GenerateContentConfig(
@@ -121,79 +139,60 @@ class BrowserAgent:
 
     def handle_action(self, action: types.FunctionCall) -> FunctionResponseT:
         """Handles the action and returns the environment state."""
-        if action.name == "open_web_browser":
-            return self._browser_computer.open_web_browser()
-        elif action.name == "click_at":
+        if action.name == open_app.__name__:
+            # open_app 실행 후의 Mock EnvState 반환
+            return MockEnvState(
+                url=f"app://{action.args['app_name']}",
+                screenshot_base64=MOCK_SCREENSHOTS["after_open_app"],
+            )
+            
+        elif action.name == long_press_at.__name__:
             x = self.denormalize_x(action.args["x"])
             y = self.denormalize_y(action.args["y"])
-            return self._browser_computer.click_at(
-                x=x,
-                y=y,
+            return MockEnvState(
+                url=self._browser_computer.current_url(),
+                screenshot_base64=MOCK_SCREENSHOTS["after_long_press"],
             )
-        elif action.name == "hover_at":
+
+        elif action.name == go_home.__name__:
+            return MockEnvState(
+                url="android_home_screen",
+                screenshot_base64=MOCK_SCREENSHOTS["after_home"],
+            )
+
+        elif action.name == "tap_at":
             x = self.denormalize_x(action.args["x"])
             y = self.denormalize_y(action.args["y"])
-            return self._browser_computer.hover_at(
-                x=x,
-                y=y,
+            return MockEnvState(
+                url=self._browser_computer.current_url(),
+                screenshot_base64=MOCK_SCREENSHOTS["after_tap"],
             )
+        
         elif action.name == "type_text_at":
             x = self.denormalize_x(action.args["x"])
             y = self.denormalize_y(action.args["y"])
-            press_enter = action.args.get("press_enter", False)
-            clear_before_typing = action.args.get("clear_before_typing", True)
-            return self._browser_computer.type_text_at(
-                x=x,
-                y=y,
-                text=action.args["text"],
-                press_enter=press_enter,
-                clear_before_typing=clear_before_typing,
+            return MockEnvState(
+                url=self._browser_computer.current_url(),
+                screenshot_base64=MOCK_SCREENSHOTS["after_tap"], # temp
+                message=f"Typed '{action.args['text']}' at ({x}, {y})"
             )
-        elif action.name == "scroll_document":
-            return self._browser_computer.scroll_document(action.args["direction"])
+        
         elif action.name == "scroll_at":
             x = self.denormalize_x(action.args["x"])
             y = self.denormalize_y(action.args["y"])
-            magnitude = action.args.get("magnitude", 800)
-            direction = action.args["direction"]
-
-            if direction in ("up", "down"):
-                magnitude = self.denormalize_y(magnitude)
-            elif direction in ("left", "right"):
-                magnitude = self.denormalize_x(magnitude)
-            else:
-                raise ValueError("Unknown direction: ", direction)
-            return self._browser_computer.scroll_at(
-                x=x, y=y, direction=direction, magnitude=magnitude
+            return MockEnvState(
+                url=self._browser_computer.current_url(),
+                screenshot_base64=MOCK_SCREENSHOTS["after_tap"], # temp
+                message=f"Scrolled {action.args['direction']} at ({x}, {y})"
             )
-        elif action.name == "wait_5_seconds":
-            return self._browser_computer.wait_5_seconds()
-        elif action.name == "go_back":
-            return self._browser_computer.go_back()
-        elif action.name == "go_forward":
-            return self._browser_computer.go_forward()
-        elif action.name == "search":
-            return self._browser_computer.search()
-        elif action.name == "navigate":
-            return self._browser_computer.navigate(action.args["url"])
-        elif action.name == "key_combination":
-            return self._browser_computer.key_combination(
-                action.args["keys"].split("+")
+            
+        elif action.name in ("go_back", "search", "wait_5_seconds", "scroll_to_text"):
+            return MockEnvState(
+                url=self._browser_computer.current_url(),
+                screenshot_base64=MOCK_SCREENSHOTS["after_tap"], # temp
+                message=f"Executed {action.name}"
             )
-        elif action.name == "drag_and_drop":
-            x = self.denormalize_x(action.args["x"])
-            y = self.denormalize_y(action.args["y"])
-            destination_x = self.denormalize_x(action.args["destination_x"])
-            destination_y = self.denormalize_y(action.args["destination_y"])
-            return self._browser_computer.drag_and_drop(
-                x=x,
-                y=y,
-                destination_x=destination_x,
-                destination_y=destination_y,
-            )
-        # Handle the custom function declarations here.
-        elif action.name == multiply_numbers.__name__:
-            return multiply_numbers(x=action.args["x"], y=action.args["y"])
+        
         else:
             raise ValueError(f"Unsupported function: {action}")
 
@@ -330,13 +329,14 @@ class BrowserAgent:
                     fc_result = self.handle_action(function_call)
             else:
                 fc_result = self.handle_action(function_call)
-            if isinstance(fc_result, EnvState):
+            if isinstance(fc_result, MockEnvState):
                 function_responses.append(
                     FunctionResponse(
                         name=function_call.name,
                         response={
                             "url": fc_result.url,
                             **extra_fr_fields,
+                            "message": fc_result.message if hasattr(fc_result, 'message') else "Action successful.",
                         },
                         parts=[
                             types.FunctionResponsePart(
