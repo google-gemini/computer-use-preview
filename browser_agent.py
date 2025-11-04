@@ -59,7 +59,6 @@ class BrowserAgent:
     # Exclude any predefined functions here.
     EXCLUDED_PREDEFINED_FUNCTIONS = []
 
-
     def __init__(
         self,
         browser_computer: Computer,
@@ -343,7 +342,7 @@ class BrowserAgent:
                         part.function_response
                         and part.function_response.parts
                         and part.function_response.name
-                        in PREDEFINED_COMPUTER_USE_FUNCTIONS
+                        in self.PREDEFINED_COMPUTER_USE_FUNCTIONS
                     ):
                         has_screenshot = True
                         break
@@ -351,13 +350,13 @@ class BrowserAgent:
                 if has_screenshot:
                     turn_with_screenshots_found += 1
                     # remove the screenshot image if the number of screenshots exceed the limit.
-                    if turn_with_screenshots_found > MAX_RECENT_TURN_WITH_SCREENSHOTS:
+                    if turn_with_screenshots_found > self.MAX_RECENT_TURN_WITH_SCREENSHOTS:
                         for part in content.parts:
                             if (
                                 part.function_response
                                 and part.function_response.parts
                                 and part.function_response.name
-                                in PREDEFINED_COMPUTER_USE_FUNCTIONS
+                                in self.PREDEFINED_COMPUTER_USE_FUNCTIONS
                             ):
                                 part.function_response.parts = None
 
@@ -387,7 +386,7 @@ class BrowserAgent:
         self._query = instruction
         self._contents = [
             Content(
-                role="agent",
+                role="user",
                 parts=[
                     Part(text=self._query),
                 ],

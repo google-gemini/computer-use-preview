@@ -58,6 +58,8 @@ def control_app(user_instruction: str) -> dict:
     }
 
 class ChatAgent:
+    PREDEFINED_USER_APP = ["메세지", "캘린더", "지도", "카메라", "녹음", "갤러리", "브라우저", "설정"]
+
     def __init__(
         self,
         browser_agent: BrowserAgent,
@@ -78,11 +80,25 @@ class ChatAgent:
         self._contents: list[Content] = []
 
         browser_abilities = ", ".join(BrowserAgent.PREDEFINED_COMPUTER_USE_FUNCTIONS) + " 등"
+        user_app_list = ", ".join(self.PREDEFINED_USER_APP) + " 등"
 
         # 일상 대화를 위한 system instruction
+        # 일단 browser에서 진행하는 프롬프트를 사용
         system_instruction = (
             "당신은 사용자의 일상 대화를 처리하는 친절하고 유능한 AI 비서입니다.",
+            "사용자의 대화 요청에 응대하는 것이 기본 목표이며, 브라우저 조작이 필요한지 여부를 판단하는 것이 핵심 임무입니다.",
+            "당신이 직접 브라우저를 조작하는 것이 아니고, 브라우저를 조작하도록 전담하는 Browser Agent에게 구체적인 조작 명령을 내려야 합니다.",
+            "사용자가 브라우저가 필요한 query를 요청하면, 지체 없이 control_app 함수를 사용해야 합니다.",
+            "control_app 함수 실행 결과로 앱 조작의 성공/실패 메시지를 받으면, 그 결과를 바탕으로 사용자에게 친절하고 이해하기 쉬운 최종 요약 응답을 제공하십시오."
+        )
+
+        # 일상 대화를 위한 system instruction - 앱 조작 버전
+        app_system_instruction = (
+            "당신은 사용자의 일상 대화를 처리하는 친절하고 유능한 AI 비서입니다.",
             "사용자의 대화 요청에 응대하는 것이 기본 목표이며, 앱 조작이 필요한지 여부를 판단하는 것이 핵심 임무입니다.",
+            "당신이 직접 휴대폰을 조작하는 것이 아니고, Browser Agent에게 구체적인 앱 조작 명령을 내려야 합니다.",
+            "Browser Agent는 휴대폰 앱을 조작하는 역할을 담당합니다.",
+            f"휴대폰에는 {user_app_list}과 같은 기본 앱들이 미리 설치되어 있습니다.",
             "사용자가 휴대폰 앱을 조작(클릭, 타이핑, 스크롤 등)하도록 요청하면, 지체 없이 control_app 함수를 사용해야 합니다.",
             f"당신은 앱 조작이 필요할 때 control_app 함수를 사용합니다. 이 함수를 호출받는 에이전트는 {browser_abilities}과 같은 다양한 UI 조작을 수행할 수 있습니다. "
             "control_app 함수 실행 결과로 앱 조작의 성공/실패 메시지를 받으면, 그 결과를 바탕으로 사용자에게 친절하고 이해하기 쉬운 최종 요약 응답을 제공하십시오."
@@ -105,12 +121,6 @@ class ChatAgent:
             max_output_tokens=8192,
             system_instruction=system_instruction,
             tools=[
-                # types.Tool(
-                #     computer_use=types.ComputerUse(
-                #         environment=types.Environment.ENVIRONMENT_BROWSER,
-                #         excluded_predefined_functions=excluded_predefined_functions,
-                #     ),
-                # ),
                 types.Tool(function_declarations=custom_functions),
             ],
         )
@@ -127,10 +137,11 @@ class ChatAgent:
             browser_result = self._browser_agent.execute_function_app(
                 instruction=user_instruction
             )
-            print(f"GCU Agent로부터 응답 수신 완료\n" + browser_result)
+            browser_result = browser_result if isinstance(browser_result, str) else "default result"
+            print(f"GCU Agent로부터 응답 수신 완료\n")
             return {
                 "success_status": "TASK_COMPLETED_BY_GCU",
-                "result_message": f"앱 조작 결과: {browser_result.summary}"
+                "result_message": f"앱 조작 결과: {browser_result}"
             }
         # elif:
         else:

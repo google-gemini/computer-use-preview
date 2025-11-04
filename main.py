@@ -62,14 +62,16 @@ def main() -> int:
     else:
         raise ValueError("Unknown environment: ", args.env)
 
-    browser_agent = BrowserAgent(
-        browser_computer=args.env
-    )
-    char_agent = ChatAgent(
-        model_name=args.model,
-        browser_agent=browser_agent
-    )
-    char_agent.agent_loop()
+    with env as browser_computer:
+        browser_agent = BrowserAgent(
+            browser_computer=browser_computer,
+            model_name="gemini-2.5-computer-use-preview-10-2025"
+        )
+        char_agent = ChatAgent(
+            model_name=args.model,
+            browser_agent=browser_agent
+        )
+        char_agent.agent_loop()
     return 0
 
 if __name__ == "__main__":
