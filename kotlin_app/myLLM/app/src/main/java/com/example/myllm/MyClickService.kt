@@ -25,6 +25,7 @@ import kotlinx.coroutines.launch
 class MyClickService : AccessibilityService() {
 
     private val serviceScope = CoroutineScope(Dispatchers.Main)
+    private var isScrollingToText = false
 
     private val gestureReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -57,6 +58,23 @@ class MyClickService : AccessibilityService() {
                         Log.d("MyClickService", "명령 수신: 뒤로 가기")
                         performGoBack()
                     }
+
+                    AccessibilityActions.GESTURE_OPEN_APP -> {
+                        val pkgName = intent.getStringExtra(AccessibilityActions.EXTRA_PACKAGE_NAME) ?: ""
+                        Log.d("MyClickService", "명령 수신: 앱 실행 ($pkgName)")
+                        performOpenApp(pkgName)
+                    }
+
+                    AccessibilityActions.GESTURE_GO_HOME -> {
+                        Log.d("MyClickService", "명령 수신: 홈으로 가기")
+                        performGoHome()
+                    }
+
+                    AccessibilityActions.GESTURE_SCROLL_TO_TEXT -> {
+                        val text = intent.getStringExtra(AccessibilityActions.EXTRA_TEXT) ?: ""
+                        Log.d("MyClickService", "명령 수신: 텍스트($text) 찾아 스크롤")
+                        performScrollToText(text)
+                    }
                 }
             }
         }
@@ -69,54 +87,44 @@ class MyClickService : AccessibilityService() {
         registerReceiver(gestureReceiver, filter, RECEIVER_NOT_EXPORTED)
     }
 
+    // (clickAt, clickAndTypeText, performSmartInput, ... 등등 수정 없음)
+    // ... (이전 함수들) ...
     private fun clickAt(x: Float, y: Float) {
         val path = Path().apply { moveTo(x, y) }
         val gestureBuilder = GestureDescription.Builder()
         gestureBuilder.addStroke(GestureDescription.StrokeDescription(path, 0, 1))
-
         dispatchGesture(gestureBuilder.build(), object : GestureResultCallback() {
             override fun onCompleted(gestureDescription: GestureDescription?) {
-                super.onCompleted(gestureDescription)
-                Log.d("MyClickService", "클릭 성공: ($x, $y)")
+                super.onCompleted(gestureDescription); Log.d("MyClickService", "클릭 성공: ($x, $y)")
             }
-
             override fun onCancelled(gestureDescription: GestureDescription?) {
-                super.onCancelled(gestureDescription)
-                Log.d("MyClickService", "클릭 실패")
+                super.onCancelled(gestureDescription); Log.d("MyClickService", "클릭 실패")
             }
         }, null)
     }
-
     private fun clickAndTypeText(x: Float, y: Float, text: String) {
         val path = Path().apply { moveTo(x, y) }
         val gestureBuilder = GestureDescription.Builder()
         gestureBuilder.addStroke(GestureDescription.StrokeDescription(path, 0, 1))
-
         dispatchGesture(gestureBuilder.build(), object : GestureResultCallback() {
             override fun onCompleted(gestureDescription: GestureDescription?) {
                 super.onCompleted(gestureDescription)
                 Log.d("MyClickService", "클릭 성공: ($x, $y). 0.7초 후 텍스트 입력 시도...")
-
                 serviceScope.launch {
                     delay(700)
                     performSmartInput(x, y, text)
                 }
             }
-
             override fun onCancelled(gestureDescription: GestureDescription?) {
-                super.onCancelled(gestureDescription)
-                Log.e("MyClickService", "클릭 실패. 타이핑 취소됨.")
+                super.onCancelled(gestureDescription); Log.e("MyClickService", "클릭 실패. 타이핑 취소됨.")
             }
         }, null)
     }
-
-    // (performSmartInput, findEditableNodeNear, collectAllNodes 함수는 수정 없음)
     private fun performSmartInput(x: Float, y: Float, text: String) {
         serviceScope.launch {
             val root = rootInActiveWindow
             if (root == null) {
-                Log.e("MyClickService", "rootInActiveWindow 가 null입니다.")
-                return@launch
+                Log.e("MyClickService", "rootInActiveWindow 가 null입니다."); return@launch
             }
             var node: AccessibilityNodeInfo? = root.findFocus(AccessibilityNodeInfo.FOCUS_INPUT)
             if (node == null || !node.isEditable) {
@@ -124,26 +132,22 @@ class MyClickService : AccessibilityService() {
                 node = findEditableNodeNear(x, y)
             }
             if (node == null) {
-                Log.e("MyClickService", "입력 필드 탐색 실패")
-                return@launch
+                Log.e("MyClickService", "입력 필드 탐색 실패 ❌"); return@launch
             }
-            Log.d("MyClickService", "입력 필드 발견 (${node.className})")
+            Log.d("MyClickService", "입력 필드 발견 ✅ (${node.className})")
             val args = Bundle()
-            args.putCharSequence(
-                AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE,
-                text
-            )
+            args.putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, text)
             val setTextOk = node.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args)
             if (setTextOk) {
-                Log.d("MyClickService", "ACTION_SET_TEXT 성공 (기존 내용 덮어쓰기 완료)")
+                Log.d("MyClickService", "ACTION_SET_TEXT 성공 ✅ (기존 내용 덮어쓰기 완료)")
             } else {
-                Log.w("MyClickService", "ACTION_SET_TEXT 실패 — 붙여넣기(PASTE) fallback 시도")
+                Log.w("MyClickService", "ACTION_SET_TEXT 실패 ❌ — 붙여넣기(PASTE) fallback 시도")
                 val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                 val clip = ClipData.newPlainText("myllm-paste", text)
                 clipboard.setPrimaryClip(clip)
                 val pasted = node.performAction(AccessibilityNodeInfo.ACTION_PASTE)
-                if (pasted) Log.d("MyClickService", "붙여넣기(PASTE) 성공")
-                else Log.e("MyClickService", "붙여넣기(PASTE) 실패")
+                if (pasted) Log.d("MyClickService", "붙여넣기(PASTE) 성공 ✅")
+                else Log.e("MyClickService", "붙여넣기(PASTE) 실패 ❌")
             }
             node.recycle()
         }
@@ -167,6 +171,7 @@ class MyClickService : AccessibilityService() {
                 }
             }
         }
+        nodes.forEach { it.recycle() }
         return nearest
     }
     private fun collectAllNodes(node: AccessibilityNodeInfo?, list: MutableList<AccessibilityNodeInfo>) {
@@ -176,55 +181,147 @@ class MyClickService : AccessibilityService() {
             collectAllNodes(node.getChild(i), list)
         }
     }
-
-    // scroll_at fucnction
     private fun performScroll(scrollUp: Boolean) {
-        // 화면 크기를 가져옴
         val metrics = resources.displayMetrics
-        val width = metrics.widthPixels
-        val height = metrics.heightPixels
-
-        // 스크롤 경로 설정 (화면 중앙)
+        val width = metrics.widthPixels; val height = metrics.heightPixels
         val centerX = width / 2f
-        val startY = height * 0.7f // 화면 70% 지점
-        val endY = height * 0.3f   // 화면 30% 지점
-        val duration = 300L // 0.3초 동안 스와이프
-
-        val path = Path()
-
-        if (!scrollUp) {
-            Log.d("MyClickService", "스와이프 (아래 -> 위) 수행")
-            path.moveTo(centerX, startY)
-            path.lineTo(centerX, endY)
+        val startY = height * 0.7f; val endY = height * 0.3f
+        val duration = 300L; val path = Path()
+        if (scrollUp) {
+            Log.d("MyClickService", "스와이프 (아래 -> 위) 수행"); path.moveTo(centerX, startY); path.lineTo(centerX, endY)
         } else {
-            Log.d("MyClickService", "스와이프 (위 -> 아래) 수행")
-            path.moveTo(centerX, endY)
-            path.lineTo(centerX, startY)
+            Log.d("MyClickService", "스와이프 (위 -> 아래) 수행"); path.moveTo(centerX, endY); path.lineTo(centerX, startY)
         }
-
         val gestureBuilder = GestureDescription.Builder()
         gestureBuilder.addStroke(GestureDescription.StrokeDescription(path, 0, duration))
-
         dispatchGesture(gestureBuilder.build(), object : GestureResultCallback() {
             override fun onCompleted(gestureDescription: GestureDescription?) {
-                super.onCompleted(gestureDescription)
-                Log.d("MyClickService", "스크롤 성공")
+                super.onCompleted(gestureDescription); Log.d("MyClickService", "스크롤 성공")
             }
             override fun onCancelled(gestureDescription: GestureDescription?) {
-                super.onCancelled(gestureDescription)
-                Log.e("MyClickService", "스크롤 실패")
+                super.onCancelled(gestureDescription); Log.e("MyClickService", "스크롤 실패")
             }
         }, null)
     }
-
-    // go_back function
     private fun performGoBack() {
-        // AccessibilityService.GLOBAL_ACTION_BACK은 "뒤로 가기"를 의미
         val success = performGlobalAction(AccessibilityService.GLOBAL_ACTION_BACK)
-        if (success) {
-            Log.d("MyClickService", "뒤로 가기(Global Action) 성공")
+        if (success) Log.d("MyClickService", "뒤로 가기(Global Action) 성공")
+        else Log.e("MyClickService", "뒤로 가기(Global Action) 실패")
+    }
+    private fun performOpenApp(packageName: String) {
+        if (packageName.isBlank()) {
+            Log.e("MyClickService", "앱 실행 실패: 패키지 이름이 비어있습니다."); return
+        }
+        val launchIntent = packageManager.getLaunchIntentForPackage(packageName)
+        Log.d("MyClickService", "packageName $packageName")
+        if (launchIntent != null) {
+            launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            try {
+                startActivity(launchIntent)
+                Log.d("MyClickService", "앱 실행 성공: $packageName")
+            } catch (e: Exception) {
+                Log.e("MyClickService", "앱 실행 중 예외 발생", e)
+            }
         } else {
-            Log.e("MyClickService", "뒤로 가기(Global Action) 실패")
+            Log.e("MyClickService", "앱 실행 실패: '$packageName' 앱을 찾을 수 없습니다.")
+        }
+    }
+    private fun performGoHome() {
+        val success = performGlobalAction(AccessibilityService.GLOBAL_ACTION_HOME)
+        if (success) Log.d("MyClickService", "홈으로 가기(Global Action) 성공")
+        else Log.e("MyClickService", "홈으로 가기(Global Action) 실패")
+    }
+
+    // ⭐️ [수정] "포함(contains)" 검색을 하도록 로직 변경
+    private fun findTextOnScreen(searchText: String): Boolean {
+        if (searchText.isBlank()) return false
+        val root = rootInActiveWindow
+        if (root == null) {
+            Log.w("MyClickService", "findTextOnScreen: rootInActiveWindow가 null입니다.")
+            return false
+        }
+        val allNodes = ArrayList<AccessibilityNodeInfo>()
+        collectAllNodes(root, allNodes)
+        var found = false
+        for (node in allNodes) {
+            val nodeText = node.text?.toString()
+            val nodeContentDesc = node.contentDescription?.toString()
+            if (nodeText != null && nodeText.contains(searchText, ignoreCase = true)) {
+                Log.d("MyClickService", "findTextOnScreen: 텍스트('$nodeText')에서 '$searchText' 발견!")
+                found = true
+                break
+            }
+            if (nodeContentDesc != null && nodeContentDesc.contains(searchText, ignoreCase = true)) {
+                Log.d("MyClickService", "findTextOnScreen: 내용설명('$nodeContentDesc')에서 '$searchText' 발견!")
+                found = true
+                break
+            }
+        }
+        allNodes.forEach { it.recycle() }
+        return found
+    }
+
+    private fun performScrollToText(text: String) {
+        if (isScrollingToText) {
+            Log.w("MyClickService", "이미 텍스트 검색 스크롤이 진행 중입니다.")
+            return
+        }
+        if (text.isBlank()) {
+            Log.w("MyClickService", "검색할 텍스트가 비어있습니다.")
+            return
+        }
+
+        isScrollingToText = true
+
+        serviceScope.launch {
+            val maxAttempts = 10
+
+            for (attempt in 1..maxAttempts) {
+                // 1. 현재 화면에서 텍스트 검색
+                if (findTextOnScreen(text)) {
+                    Log.d("MyClickService", "텍스트 찾기 성공!: '$text'")
+                    break // 루프 탈출
+                }
+
+                // 2. 텍스트를 못 찾았으면, '더 스크롤할 수 있는지' 확인
+                val root = rootInActiveWindow
+                if (root == null) {
+                    Log.e("MyClickService", "rootInActiveWindow is null. 중지.")
+                    break
+                }
+
+                val allNodes = ArrayList<AccessibilityNodeInfo>()
+                collectAllNodes(root, allNodes)
+
+                // ⭐️ "아래로 스크롤"(FORWARD)이 가능한 노드가 하나라도 있는지 확인
+                val canScrollDown = allNodes.any {
+                    it.isScrollable && it.actionList.any { action ->
+                        action.id == AccessibilityNodeInfo.ACTION_SCROLL_FORWARD
+                    }
+                }
+
+                allNodes.forEach { it.recycle() } // 노드 정리
+
+                // 3. 더 이상 스크롤할 수 없으면 루프 탈출
+                if (!canScrollDown) {
+                    Log.w("MyClickService", "텍스트를 찾지 못했고, 더 이상 스크롤할 수 없습니다.")
+                    break // 루프 탈출
+                }
+
+                // 4. 스크롤이 가능하면, 스크롤 실행
+                Log.d("MyClickService", "시도 ${attempt}/${maxAttempts}: 텍스트('$text') 못 찾음. 스크롤 실행.")
+                performScroll(true) // (true = 아래로 스크롤)
+
+                delay(1000) // 스크롤 애니메이션 대기
+            }
+
+            // 5. 루프가 끝나면(성공했든, 바닥에 도달했든, 타임아웃됐든) 플래그 리셋
+            isScrollingToText = false
+
+            // (최종 확인 사살)
+            if (!findTextOnScreen(text)) {
+                Log.e("MyClickService", "텍스트 찾기 최종 실패: '$text'를 찾을 수 없습니다.")
+            }
         }
     }
 

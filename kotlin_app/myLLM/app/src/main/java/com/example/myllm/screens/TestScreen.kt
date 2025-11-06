@@ -1,6 +1,7 @@
 package com.example.myllm.screens
 
 import android.content.Intent
+import android.provider.Settings
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
@@ -33,9 +34,12 @@ fun TestScreen(navController: NavController) {
     var textToType by remember { mutableStateOf("") }
     var scrollUp by remember { mutableStateOf(true) }
     var targetTextFieldValue by remember { mutableStateOf("") }
+    var packageName by remember { mutableStateOf("") }
 
     val context = LocalContext.current
     val scrollState = rememberScrollState()
+
+    var textToFind by remember { mutableStateOf("") }
 
     Scaffold(
         topBar = {
@@ -58,6 +62,21 @@ fun TestScreen(navController: NavController) {
             verticalArrangement = Arrangement.Top,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+
+            Spacer(modifier = Modifier.height(24.dp))
+            Text("권한 설정", style = MaterialTheme.typography.titleMedium, modifier = Modifier.fillMaxWidth())
+            Spacer(modifier = Modifier.height(8.dp))
+            Button(
+                onClick = {
+                    // "접근성 설정" 화면으로 바로 이동하는 Intent
+                    val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+                    context.startActivity(intent)
+                    println("접근성 설정 바로가기 실행")
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("접근성 설정 바로가기")
+            }
 
             Text(
                 "테스트 대상",
@@ -207,7 +226,30 @@ fun TestScreen(navController: NavController) {
                 Text("스크롤 수행")
             }
 
-            // ⭐️ [새로 추가] 4. 뒤로 가기 버튼 ⭐️
+            Spacer(modifier = Modifier.height(8.dp))
+            TextField(
+                value = textToFind,
+                onValueChange = { textToFind = it },
+                label = { Text("찾을 텍스트 (예: 더미 아이템 25)") },
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Button(
+                onClick = {
+                    val intent = Intent(AccessibilityActions.ACTION_PERFORM_GESTURE).apply {
+                        putExtra(AccessibilityActions.GESTURE_TYPE, AccessibilityActions.GESTURE_SCROLL_TO_TEXT)
+                        putExtra(AccessibilityActions.EXTRA_TEXT, textToFind)
+                        setPackage(context.packageName)
+                    }
+                    context.sendBroadcast(intent)
+                    println("텍스트($textToFind) 찾기 스크롤 방송 보냄")
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("이 텍스트까지 스크롤 (아래로)")
+            }
+
+            // --- 4. 시스템 액션 ---
             Spacer(modifier = Modifier.height(24.dp))
             Text("4. 시스템 액션", style = MaterialTheme.typography.titleMedium, modifier = Modifier.fillMaxWidth())
             Spacer(modifier = Modifier.height(8.dp))
@@ -224,7 +266,47 @@ fun TestScreen(navController: NavController) {
             ) {
                 Text("뒤로 가기")
             }
-            // ⭐️ --- 여기까지 추가 ---
+
+            Spacer(modifier = Modifier.height(8.dp)) // 버튼 사이 간격
+            Button(
+                onClick = {
+                    val intent = Intent(AccessibilityActions.ACTION_PERFORM_GESTURE).apply {
+                        putExtra(AccessibilityActions.GESTURE_TYPE, AccessibilityActions.GESTURE_GO_HOME)
+                        setPackage(context.packageName)
+                    }
+                    context.sendBroadcast(intent)
+                    println("홈으로 가기 방송 보냄")
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("홈으로 가기")
+            }
+
+
+            // --- 5. 앱 실행 ---
+            Spacer(modifier = Modifier.height(24.dp))
+            Text("5. 앱 실행", style = MaterialTheme.typography.titleMedium, modifier = Modifier.fillMaxWidth())
+            TextField(
+                value = packageName,
+                onValueChange = { packageName = it },
+                label = { Text("앱 패키지 이름 (예: com.kakao.talk)") },
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Button(
+                onClick = {
+                    val intent = Intent(AccessibilityActions.ACTION_PERFORM_GESTURE).apply {
+                        putExtra(AccessibilityActions.GESTURE_TYPE, AccessibilityActions.GESTURE_OPEN_APP)
+                        putExtra(AccessibilityActions.EXTRA_PACKAGE_NAME, packageName)
+                        setPackage(context.packageName)
+                    }
+                    context.sendBroadcast(intent)
+                    println("앱 실행 방송 보냄: $packageName")
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("앱 실행")
+            }
 
             Spacer(modifier = Modifier.height(48.dp))
             HorizontalDivider()
