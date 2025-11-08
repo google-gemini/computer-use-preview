@@ -22,6 +22,12 @@ from mock import MockComputer, MOCK_SCREENSHOTS
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Run the Android agent with a query using Mock environment.")
+    # parser.add_argument(
+    #     "--query",
+    #     type=str,
+    #     required=True,
+    #     help="The query for the browser agent to execute.",
+    # )
     parser.add_argument(
         "--model",
         default='gemini-2.5-flash',
