@@ -25,11 +25,18 @@ from google.genai.types import (
 from chat_agent import ChatAgent
 from browser_agent import BrowserAgent
 from computers import BrowserbaseComputer, PlaywrightComputer
+# from mock import MockComputer, MOCK_SCREENSHOTS
 
 PLAYWRIGHT_SCREEN_SIZE = (1440, 900)
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Run the Android agent with a query using Mock environment.")
+    # parser.add_argument(
+    #     "--query",
+    #     type=str,
+    #     required=True,
+    #     help="The query for the browser agent to execute.",
+    # )
     parser.add_argument(
         "--env",
         type=str,
@@ -56,14 +63,51 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    mock_computer = MockComputer()
+    if args.env == "playwright":
+        env = PlaywrightComputer(
+            screen_size=PLAYWRIGHT_SCREEN_SIZE,
+            initial_url=args.initial_url,
+            highlight_mouse=args.highlight_mouse,
+        )
+    elif args.env == "browserbase":
+        env = BrowserbaseComputer(
+            screen_size=PLAYWRIGHT_SCREEN_SIZE,
+            initial_url=args.initial_url
+        )
+    else:
+        raise ValueError("Unknown environment: ", args.env)
+
+    # mock_computer = MockComputer()
     
-    agent = BrowserAgent(
-        browser_computer=mock_computer,
-        query=args.query,
-        model_name=args.model,
-        verbose=True,
-    )
+    # agent = BrowserAgent(
+    #     browser_computer=mock_computer,
+    #     query=args.query,
+    #     model_name=args.model,
+    #     verbose=True,
+    # )
+
+    # 임의의 초기 스크린샷 데이터
+    # initial_screenshot_data = base64.b64decode(MOCK_SCREENSHOTS["initial"])
+    # initial_screenshot_part = Part(
+    #     inline_data=types.FunctionResponseBlob(
+    #         mime_type="image/png", 
+    #         data=initial_screenshot_data
+    #     )
+    # )
+
+    # initial_contents = [
+    #     Content(
+    #         role="user",
+    #         parts=[
+    #             Part(text=args.query),
+    #             initial_screenshot_part,
+    #         ]
+    #     )
+    # ]
+
+    # agent._contents = initial_contents
+
+    # agent.agent_loop()
 
     with env as browser_computer:
         browser_agent = BrowserAgent(
