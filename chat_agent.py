@@ -29,15 +29,17 @@ import time
 from rich.console import Console
 from rich.table import Table
 
-from computers import EnvState, Computer
+# from computers import EnvState, Computer
 
-from browser_agent import BrowserAgent
+# from browser_agent import BrowserAgent
+from cu_agent import CUAgent
 
 console = Console()
 
 # Built-in Computer Use tools will return "EnvState".
 # Custom provided functions will return "dict".
-FunctionResponseT = Union[EnvState, dict]
+# -> chat agent에서는 dict만 반환하도록 수정
+FunctionResponseT = dict
 
 # 사용자 지정 앱 조작 함수
 def control_app(user_instruction: str) -> dict:
@@ -62,13 +64,13 @@ class ChatAgent:
 
     def __init__(
         self,
-        browser_agent: BrowserAgent,
-        model_name: str,
+        cu_agent: CUAgent,
+        model_name: str = 'gemini-2.5-flash',
         verbose: bool = True,
     ):
         self._model_name = model_name
         self._verbose = verbose
-        self._browser_agent = browser_agent
+        self._cu_agent = cu_agent
         load_dotenv()
         self._client = genai.Client(
             api_key=os.getenv("GEMINI_API_KEY"),
@@ -79,18 +81,18 @@ class ChatAgent:
         # 유저 쿼리와 LLM 응답이 저장되는 리스트
         self._contents: list[Content] = []
 
-        browser_abilities = ", ".join(BrowserAgent.PREDEFINED_COMPUTER_USE_FUNCTIONS) + " 등"
+        cu_abilities = ", ".join(self._cu_agent.PREDEFINED_COMPUTER_USE_FUNCTIONS) + " 등"
         user_app_list = ", ".join(self.PREDEFINED_USER_APP) + " 등"
 
         # 일상 대화를 위한 system instruction
         # 일단 browser에서 진행하는 프롬프트를 사용
-        system_instruction = (
-            "당신은 사용자의 일상 대화를 처리하는 친절하고 유능한 AI 비서입니다.",
-            "사용자의 대화 요청에 응대하는 것이 기본 목표이며, 브라우저 조작이 필요한지 여부를 판단하는 것이 핵심 임무입니다.",
-            "당신이 직접 브라우저를 조작하는 것이 아니고, 브라우저를 조작하도록 전담하는 Browser Agent에게 구체적인 조작 명령을 내려야 합니다.",
-            "사용자가 브라우저가 필요한 query를 요청하면, 지체 없이 control_app 함수를 사용해야 합니다.",
-            "control_app 함수 실행 결과로 앱 조작의 성공/실패 메시지를 받으면, 그 결과를 바탕으로 사용자에게 친절하고 이해하기 쉬운 최종 요약 응답을 제공하십시오."
-        )
+        # system_instruction = (
+        #     "당신은 사용자의 일상 대화를 처리하는 친절하고 유능한 AI 비서입니다.",
+        #     "사용자의 대화 요청에 응대하는 것이 기본 목표이며, 브라우저 조작이 필요한지 여부를 판단하는 것이 핵심 임무입니다.",
+        #     "당신이 직접 브라우저를 조작하는 것이 아니고, 브라우저를 조작하도록 전담하는 Browser Agent에게 구체적인 조작 명령을 내려야 합니다.",
+        #     "사용자가 브라우저가 필요한 query를 요청하면, 지체 없이 control_app 함수를 사용해야 합니다.",
+        #     "control_app 함수 실행 결과로 앱 조작의 성공/실패 메시지를 받으면, 그 결과를 바탕으로 사용자에게 친절하고 이해하기 쉬운 최종 요약 응답을 제공하십시오."
+        # )
 
         # 일상 대화를 위한 system instruction - 앱 조작 버전
         app_system_instruction = (
@@ -100,12 +102,12 @@ class ChatAgent:
             "Browser Agent는 휴대폰 앱을 조작하는 역할을 담당합니다.",
             f"휴대폰에는 {user_app_list}과 같은 기본 앱들이 미리 설치되어 있습니다.",
             "사용자가 휴대폰 앱을 조작(클릭, 타이핑, 스크롤 등)하도록 요청하면, 지체 없이 control_app 함수를 사용해야 합니다.",
-            f"당신은 앱 조작이 필요할 때 control_app 함수를 사용합니다. 이 함수를 호출받는 에이전트는 {browser_abilities}과 같은 다양한 UI 조작을 수행할 수 있습니다. "
+            f"당신은 앱 조작이 필요할 때 control_app 함수를 사용합니다. 이 함수를 호출받는 에이전트는 {cu_abilities}과 같은 다양한 UI 조작을 수행할 수 있습니다. "
             "control_app 함수 실행 결과로 앱 조작의 성공/실패 메시지를 받으면, 그 결과를 바탕으로 사용자에게 친절하고 이해하기 쉬운 최종 요약 응답을 제공하십시오."
         )
 
         # Exclude any predefined functions here.
-        excluded_predefined_functions = []
+        # excluded_predefined_functions = []
 
         # Add your own custom functions here.
         custom_functions = [
@@ -119,29 +121,61 @@ class ChatAgent:
             top_p=0.95,
             top_k=40,
             max_output_tokens=8192,
-            system_instruction=system_instruction,
+            system_instruction=app_system_instruction,
             tools=[
                 types.Tool(function_declarations=custom_functions),
             ],
         )
 
     def handle_action(self, action: types.FunctionCall) -> FunctionResponseT:
-        """Handles the action and returns the environment state."""
+        """ChatAgent가 control_app을 호출하면 CUAgent로 명령을 토스"""
         if action.name == control_app.__name__:
             user_instruction=action.args["user_instruction"]
 
-            print(f"GCU Agent로 토스: 앱 조작 요청 수신")
+            print(f"CU Agent로 토스: 앱 조작 요청 수신")
             print(f"요청: {user_instruction}")
 
-            self._contents.append
-            browser_result = self._browser_agent.execute_function_app(
-                instruction=user_instruction
+            # 1. GCUAgent가 필요로 하는 초기 스크린샷 Content 생성 (Mocking)
+            # ChatAgent는 이중 에이전트의 상위 계층이므로, 스크린샷은 ChatAgent가 가지고 있다가 GCUAgent에게 넘겨주어야 함.
+            # 하지만 현재 ChatAgent는 스크린샷을 가지고 있지 않으므로, GCUAgent의 MockComputer를 통해 생성하도록 합니다.
+            
+            import base64
+            from mock import MOCK_SCREENSHOTS, MockComputer # MockComputer 임포트
+
+            mock_computer = MockComputer()
+            initial_screenshot_data = base64.b64decode(MOCK_SCREENSHOTS["initial"])
+            
+            # 1. 초기 스크린샷 Content 구조 단순화 (FunctionResponse 제거)
+            initial_screenshot_content = Content(
+                role="user",
+                parts=[
+                    Part(
+                        inline_data=types.FunctionResponseBlob(
+                            mime_type="image/png", data=initial_screenshot_data
+                        )
+                    )
+                ]
             )
-            browser_result = browser_result if isinstance(browser_result, str) else "default result"
-            print(f"GCU Agent로부터 응답 수신 완료\n")
+
+            # 2. CU Agent 실행 및 결과 반환 받기
+            browser_result_reasoning = self._cu_agent.execute_task(
+                instruction=user_instruction,
+                initial_screenshot_content=initial_screenshot_content # 단순화된 Content 전달
+            )
+            
+            if browser_result_reasoning is None:
+                final_message = "ERROR: 앱 조작 에이전트가 작업을 완료하지 못했습니다. 다시 시도하거나 작업을 변경해 주세요."
+                status_tag = "TASK_FAILED"
+            else:
+                final_message = browser_result_reasoning
+                status_tag = "TASK_COMPLETED"
+                
+            print("\n--- CU Agent로부터 응답 수신 완료 ---")
+            print(f"결과: {final_message}\n")
+
             return {
-                "success_status": "TASK_COMPLETED_BY_GCU",
-                "result_message": f"앱 조작 결과: {browser_result}"
+                "success_status": status_tag,
+                "result_message": final_message
             }
         # elif:
         else:
@@ -198,7 +232,7 @@ class ChatAgent:
                 ret.append(part.function_call)
         return ret
 
-    # 중요
+    # 검증 필요 : 중요 수정: function_calls가 없으면 최종 응답을 출력하고 COMPLETE (종료)
     def run_one_iteration(self) -> Literal["COMPLETE", "CONTINUE"]:
         # Generate a response from the model.
         if self._verbose:
@@ -238,9 +272,9 @@ class ChatAgent:
             return "CONTINUE"
 
         if not function_calls:
-            print(f"{reasoning}")
+            print(f"Chat Agent Response: {reasoning}") # 최종 응답 출력
             self.final_reasoning = reasoning
-            return "CONTINUE"
+            return "COMPLETE" # COMPLETE로 수정: 최종 응답 후 루프 종료
 
         function_call_strs = []
         for function_call in function_calls:
@@ -265,15 +299,7 @@ class ChatAgent:
         function_responses = []
         for function_call in function_calls:
             extra_fr_fields = {}
-            if function_call.args and (
-                safety := function_call.args.get("safety_decision")
-            ):
-                decision = self._get_safety_confirmation(safety)
-                if decision == "TERMINATE":
-                    print("Terminating agent loop")
-                    return "COMPLETE"
-                # Explicitly mark the safety check as acknowledged.
-                extra_fr_fields["safety_acknowledgement"] = "true"
+            
             if self._verbose:
                 with console.status(
                     "Sending command to Computer...", spinner_style=None
@@ -281,24 +307,7 @@ class ChatAgent:
                     fc_result = self.handle_action(function_call)
             else:
                 fc_result = self.handle_action(function_call)
-            if isinstance(fc_result, EnvState):
-                function_responses.append(
-                    FunctionResponse(
-                        name=function_call.name,
-                        response={
-                            "url": fc_result.url,
-                            **extra_fr_fields,
-                        },
-                        parts=[
-                            types.FunctionResponsePart(
-                                inline_data=types.FunctionResponseBlob(
-                                    mime_type="image/png", data=fc_result.screenshot
-                                )
-                            )
-                        ],
-                    )
-                )
-            elif isinstance(fc_result, dict):
+            if isinstance(fc_result, dict):
                 function_responses.append(
                     FunctionResponse(name=function_call.name, response=fc_result)
                 )
@@ -311,36 +320,35 @@ class ChatAgent:
         )
         return "CONTINUE"
 
-    def _get_safety_confirmation(
-        self, safety: dict[str, Any]
-    ) -> Literal["CONTINUE", "TERMINATE"]:
-        if safety["decision"] != "require_confirmation":
-            raise ValueError(f"Unknown safety decision: safety['decision']")
-        termcolor.cprint(
-            "Safety service requires explicit confirmation!",
-            color="yellow",
-            attrs=["bold"],
-        )
-        print(safety["explanation"])
-        decision = ""
-        while decision.lower() not in ("y", "n", "ye", "yes", "no"):
-            decision = input("Do you wish to proceed? [Yes]/[No]\n")
-        if decision.lower() in ("n", "no"):
-            return "TERMINATE"
-        return "CONTINUE"
-
-    def agent_loop(self):
-        status = "CONTINUE"
-        while status == "CONTINUE":
-            user_query = input("Enter your query (or '-q' to quit): ")
-            if( user_query.lower() in ('-q', 'exit', '--quit')):
-                print("Exiting the agent loop.")
-                status = "COMPLETE"
+    def start_chat_loop(self):
+        """사용자 입력을 반복적으로 받아 다중 턴 채팅을 처리하는 루프."""
+        print("\n--- 계층적 에이전트 채팅 시작 (CU Agent 활성화) ---")
+        print("--- 'q' 또는 'quit' 입력 시 종료됩니다. ---")
+        
+        # 1. 무한 루프 시작
+        while True:
+            # 2. 사용자 입력 받기
+            user_query = input("\n사용자 쿼리 입력: ")
+            
+            if user_query.lower() in ('q', 'quit', 'exit'):
+                print("채팅을 종료합니다.")
+                break
+            
+            if not user_query.strip():
                 continue
+                
+            # 3. 새로운 쿼리를 contents에 추가 (이전 대화 내용 유지)
             self._contents.append(Content(
-                    role="user",
-                    parts=[
-                        Part(text=user_query),
-                    ],
-                ))
-            status = self.run_one_iteration()
+                role="user",
+                parts=[
+                    Part(text=user_query),
+                ],
+            ))
+            
+            # 4. 쿼리 처리를 위한 run_one_iteration 루프 실행
+            # (ChatAgent가 CU Agent를 호출하고 최종 응답을 출력할 때까지)
+            status = "CONTINUE"
+            while status == "CONTINUE":
+                status = self.run_one_iteration()
+                
+            # run_one_iteration이 COMPLETE를 반환하면 루프 종료 및 다음 사용자 입력 대기

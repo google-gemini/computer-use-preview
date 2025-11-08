@@ -28,7 +28,6 @@ import time
 from rich.console import Console
 from rich.table import Table
 
-#from computers import EnvState, Computer
 from mock import MockEnvState, MockComputer, MOCK_SCREENSHOTS
 
 # load environment variable in .env
@@ -36,34 +35,17 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# 계층 구조로 바꾼뒨 custom_function callable 전달이 안됨 
+# - PREDEFINED_COMPUTER_USE_FUNCTIONS를 아래 프롬프트에 삽입해야 될 것으로 보임
 ANDROID_SYSTEM_PROMPT = """
 You are operating an Android phone. Ignore any browser-specific conventions 
 (like URLs, search bars, forward/backward navigation) unless explicitly interacting with a dedicated browser app.
 Your primary actions are tapping, typing, opening/closing apps, and navigating the home screen.
-* Do not use 'click_at', use 'tap_at' instead.
 * Use custom functions like 'open_app', 'long_press_at', and 'go_home' when appropriate.
 * The screen size you see is a mobile view.
 """
 
 MAX_RECENT_TURN_WITH_SCREENSHOTS = 3
-PREDEFINED_COMPUTER_USE_FUNCTIONS = [
-    "tap_at",
-    "type_text_at",
-    "wait_5_seconds",
-    "go_back",
-    "search",
-]
-
-EXCLUDED_PREDEFINED_FUNCTIONS = [
-    "open_web_browser",
-    "hover_at",
-    "scroll_document",
-    "go_forward",
-    "navigate",
-    "key_combination",
-    "drag_and_drop",
-    "click_at",
-]
 
 console = Console()
 
@@ -107,16 +89,35 @@ def go_home() -> Dict[str, str]:
 #     """Navigates to the device's recent applications screen."""
 #     return {"status": "requested_recent_apps"}
 
-class BrowserAgent:
+class CUAgent:
+    PREDEFINED_COMPUTER_USE_FUNCTIONS = [
+        "click_at",
+        "type_text_at",
+        "scroll_at",
+        "wait_5_seconds",
+        "go_back",
+        "search",
+        "open_app",
+        "long_press_at",
+        "go_home",
+    ]
+    EXCLUDED_PREDEFINED_FUNCTIONS = [
+        "open_web_browser",
+        "hover_at",
+        "scroll_document",
+        "go_forward",
+        "navigate",
+        "key_combination",
+        "drag_and_drop",
+    ]
+
     def __init__(
         self,
         browser_computer: MockComputer,
-        query: str,
         model_name: str,
         verbose: bool = True,
     ):
         self._browser_computer = browser_computer
-        self._query = query
         self._model_name = model_name
         self._verbose = verbose
         self.final_reasoning = None
@@ -126,38 +127,30 @@ class BrowserAgent:
             project=os.environ.get("VERTEXAI_PROJECT"),
             location=os.environ.get("VERTEXAI_LOCATION"),
         )
-        self._contents: list[Content] = [
-            Content(
-                role="user",
-                parts=[
-                    Part(text=self._query),
-                ],
-            )
-        ]
+        self._contents: list[Content] = []
 
         # Exclude any predefined functions here.
-        excluded_predefined_functions = EXCLUDED_PREDEFINED_FUNCTIONS
+        excluded_predefined_functions = self.EXCLUDED_PREDEFINED_FUNCTIONS
 
         # Add your own custom functions here.
-        custom_functions = [
-            # For example:
-            types.FunctionDeclaration.from_callable(
-                client=self._client, callable=open_app
-            ),
-            types.FunctionDeclaration.from_callable(
-                client=self._client, callable=long_press_at
-            ),
-            types.FunctionDeclaration.from_callable(
-                client=self._client, callable=go_home
-            ),
+        # custom_functions = [
+        #     types.FunctionDeclaration.from_callable(
+        #         client=self._client, callable=open_app
+        #     ),
+        #     types.FunctionDeclaration.from_callable(
+        #         client=self._client, callable=long_press_at
+        #     ),
+        #     types.FunctionDeclaration.from_callable(
+        #         client=self._client, callable=go_home
+        #     ),
 
-            # types.FunctionDeclaration.from_callable(client=self._client, callable=get_view_details),
-            # types.FunctionDeclaration.from_callable(client=self._client, callable=scroll_to_text),
-            # types.FunctionDeclaration.from_callable(client=self._client, callable=swipe),
-            # types.FunctionDeclaration.from_callable(client=self._client, callable=set_device_setting),
-            # types.FunctionDeclaration.from_callable(client=self._client, callable=close_current_app),
-            # types.FunctionDeclaration.from_callable(client=self._client, callable=go_recent_apps),
-        ]
+        #     # types.FunctionDeclaration.from_callable(client=self._client, callable=get_view_details),
+        #     # types.FunctionDeclaration.from_callable(client=self._client, callable=scroll_to_text),
+        #     # types.FunctionDeclaration.from_callable(client=self._client, callable=swipe),
+        #     # types.FunctionDeclaration.from_callable(client=self._client, callable=set_device_setting),
+        #     # types.FunctionDeclaration.from_callable(client=self._client, callable=close_current_app),
+        #     # types.FunctionDeclaration.from_callable(client=self._client, callable=go_recent_apps),
+        # ]
 
         self._generate_content_config = GenerateContentConfig(
             temperature=1,
@@ -171,8 +164,11 @@ class BrowserAgent:
                         environment=types.Environment.ENVIRONMENT_BROWSER,
                         excluded_predefined_functions=excluded_predefined_functions,
                     ),
+                    
                 ),
-                types.Tool(function_declarations=custom_functions),
+                # chat_agent - cu_agent 계층구조로 바꾼 뒤로 AFC 에러가 뜸
+                #   custom_functions을 없애고 ANDROID_SYSTEM_PROMPT로 커스텀 함수 종류를 알려주는 식으로 해야할 듯
+                # types.Tool(function_declarations=custom_functions)
             ],
         )
 
@@ -241,7 +237,7 @@ class BrowserAgent:
         #         message="Recent apps screen opened."
         #     )
 
-        elif action.name == "tap_at":
+        elif action.name == "click_at":
             x = self.denormalize_x(action.args["x"])
             y = self.denormalize_y(action.args["y"])
             return MockEnvState(
@@ -451,7 +447,7 @@ class BrowserAgent:
                         part.function_response
                         and part.function_response.parts
                         and part.function_response.name
-                        in PREDEFINED_COMPUTER_USE_FUNCTIONS
+                        in self.PREDEFINED_COMPUTER_USE_FUNCTIONS
                     ):
                         has_screenshot = True
                         break
@@ -465,7 +461,7 @@ class BrowserAgent:
                                 part.function_response
                                 and part.function_response.parts
                                 and part.function_response.name
-                                in PREDEFINED_COMPUTER_USE_FUNCTIONS
+                                in self.REDEFINED_COMPUTER_USE_FUNCTIONS
                             ):
                                 part.function_response.parts = None
 
@@ -488,6 +484,34 @@ class BrowserAgent:
         if decision.lower() in ("n", "no"):
             return "TERMINATE"
         return "CONTINUE"
+    
+    def execute_task(
+        self, instruction: str, initial_screenshot_content: Content
+    ) -> str:
+        # 1. initial_screenshot_content에서 순수 이미지 Part 추출
+        image_part = None
+        for content_part in initial_screenshot_content.parts:
+            if content_part.inline_data:
+                image_part = content_part.inline_data
+                break
+
+        parts = [Part(text=instruction)]
+        if image_part:
+            # 쿼리와 이미지 Part를 합칩니다.
+            parts.append(Part(inline_data=image_part))
+
+        # 2. _contents를 단일 Content(쿼리+이미지)로 초기화
+        # 이로써 FunctionResponse 규칙 위반(INVALID_ARGUMENT) 문제가 해결됩니다.
+        self._contents = [
+            Content(
+                role="user",
+                parts=parts,
+            )
+        ]
+        
+        # 3. 루프 실행
+        self.agent_loop()
+        return self.final_reasoning
 
     def agent_loop(self):
         status = "CONTINUE"
