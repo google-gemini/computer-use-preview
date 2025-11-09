@@ -37,8 +37,6 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# 계층 구조로 바꾼뒨 custom_function callable 전달이 안됨 
-# - PREDEFINED_COMPUTER_USE_FUNCTIONS를 아래 프롬프트에 삽입해야 될 것으로 보임
 ANDROID_SYSTEM_PROMPT = """
 You are an intelligent agent tasked with operating an Android phone to complete user instructions.
 
@@ -186,8 +184,7 @@ class CUAgent:
                     ),
                     
                 ),
-                # chat_agent - cu_agent 계층구조로 바꾼 뒤로 AFC 에러가 뜸
-                #   custom_functions을 없애고 ANDROID_SYSTEM_PROMPT로 커스텀 함수 종류를 알려주는 식으로 해야할 듯
+                # AFC 에러? 메시지 해결 필요
                 types.Tool(function_declarations=custom_functions)
             ],
         )
