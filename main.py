@@ -28,12 +28,12 @@ def main() -> int:
     #     required=True,
     #     help="The query for the browser agent to execute.",
     # )
-    parser.add_argument(
-        "--model",
-        default='gemini-2.5-flash',
-        help="Set the model to use for the Chat Agent.",
-    )
-    args = parser.parse_args()
+    # parser.add_argument(
+    #     "--model",
+    #     default='gemini-2.5-flash',
+    #     help="Set the model to use for the Chat Agent.",
+    # )
+    # args = parser.parse_args()
 
     mock_computer = MockComputer()
 
@@ -45,7 +45,7 @@ def main() -> int:
 
     chat_agent = ChatAgent(
         cu_agent=cu_agent, # GCUAgent 주입
-        model_name=args.model,
+        model_name='gemini-2.5-flash',
         verbose=True,
     )
 
