@@ -11,7 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 import os
+import base64
 from typing import Literal, Optional, Union, Any, Dict
 from google import genai
 from google.genai import types
@@ -38,11 +40,25 @@ load_dotenv()
 # 계층 구조로 바꾼뒨 custom_function callable 전달이 안됨 
 # - PREDEFINED_COMPUTER_USE_FUNCTIONS를 아래 프롬프트에 삽입해야 될 것으로 보임
 ANDROID_SYSTEM_PROMPT = """
-You are operating an Android phone. Ignore any browser-specific conventions 
-(like URLs, search bars, forward/backward navigation) unless explicitly interacting with a dedicated browser app.
-Your primary actions are tapping, typing, opening/closing apps, and navigating the home screen.
-* Use custom functions like 'open_app', 'long_press_at', and 'go_home' when appropriate.
-* The screen size you see is a mobile view.
+You are an intelligent agent tasked with operating an Android phone to complete user instructions.
+
+### Your Environment and Capabilities
+1.  **Device View:** All interactions occur on a **mobile-sized screen** (normalized coordinates 0-1000).
+2.  **Core Actions (Predefined):** You can perform basic UI interactions like **click_at**, **type_text_at**, **scroll_at**, **wait_5_seconds**, and **go_back**.
+3.  **Advanced Actions (Custom):** You have access to the following specialized functions for high-level mobile operations:
+    * `open_app(app_name)`: To launch any application (e.g., '카메라', '설정').
+    * `go_home()`: To navigate directly to the Android home screen.
+    * `long_press_at(x, y)`: For long-press interactions.
+    * `scroll_to_text(text)`: To efficiently find and bring specific text into view.
+    * `swipe(start_x, start_y, end_x, end_y)`: To perform drag/swipe gestures.
+    * `set_device_setting(setting_name, value)`: To change device-level settings (e.g., Wi-Fi, Bluetooth).
+    * `close_current_app()`: To close the foreground application.
+    * `go_recent_apps()`: To access the recent applications screen.
+4.  **Browser Conventions:** Ignore conventions related to web browsers (URLs, forward/backward buttons, document scrolling) unless the current action is explicitly within a dedicated **browser app** (like '크롬').
+
+### Strategy Guidelines
+* **Action Clarity:** Always state your **reasoning** before calling a function.
+* **Efficiency:** Use the advanced custom functions (e.g., `open_app`, `scroll_to_text`) whenever they offer a clear efficiency advantage over basic actions (e.g., multiple taps or scrolls).
 """
 
 MAX_RECENT_TURN_WITH_SCREENSHOTS = 3
@@ -69,25 +85,25 @@ def go_home() -> Dict[str, str]:
 #     """Retrieves detailed information (class, text, position) for a specific view element."""
 #     return {"status": "requested_view_details", "view_id": view_id}
 
-# def scroll_to_text(text: str) -> Dict[str, Any]:
-#     """Scrolls the current view until the specified text is visible."""
-#     return {"status": "requested_scroll_to_text", "text": text}
+def scroll_to_text(text: str) -> Dict[str, Any]:
+    """Scrolls the current view until the specified text is visible."""
+    return {"status": "requested_scroll_to_text", "text": text}
 
-# def swipe(start_x: int, start_y: int, end_x: int, end_y: int, duration: float = 0.5) -> Dict[str, Any]:
-#     """Performs a swipe/drag gesture between two normalized coordinates."""
-#     return {"status": "requested_swipe", "start_x": start_x, "start_y": start_y, "end_x": end_x, "end_y": end_y, "duration": duration}
+def swipe(start_x: int, start_y: int, end_x: int, end_y: int, duration: float = 0.5) -> Dict[str, Any]:
+    """Performs a swipe/drag gesture between two normalized coordinates."""
+    return {"status": "requested_swipe", "start_x": start_x, "start_y": start_y, "end_x": end_x, "end_y": end_y, "duration": duration}
 
-# def set_device_setting(setting_name: str, value: Any) -> Dict[str, Any]:
-#     """Changes a specific device setting (e.g., WIFI, Bluetooth)."""
-#     return {"status": "requested_set_setting", "setting_name": setting_name, "value": value}
+def set_device_setting(setting_name: str, value: Any) -> Dict[str, Any]:
+    """Changes a specific device setting (e.g., WIFI, Bluetooth)."""
+    return {"status": "requested_set_setting", "setting_name": setting_name, "value": value}
 
-# def close_current_app() -> Dict[str, str]:
-#     """Closes the currently active application."""
-#     return {"status": "requested_close_app"}
+def close_current_app() -> Dict[str, str]:
+    """Closes the currently active application."""
+    return {"status": "requested_close_app"}
 
-# def go_recent_apps() -> Dict[str, str]:
-#     """Navigates to the device's recent applications screen."""
-#     return {"status": "requested_recent_apps"}
+def go_recent_apps() -> Dict[str, str]:
+    """Navigates to the device's recent applications screen."""
+    return {"status": "requested_recent_apps"}
 
 class CUAgent:
     PREDEFINED_COMPUTER_USE_FUNCTIONS = [
@@ -96,10 +112,14 @@ class CUAgent:
         "scroll_at",
         "wait_5_seconds",
         "go_back",
-        "search",
-        "open_app",
+        "open_app", 
         "long_press_at",
         "go_home",
+        "scroll_to_text",
+        "swipe",
+        "set_device_setting",
+        "close_current_app",
+        "go_recent_apps",
     ]
     EXCLUDED_PREDEFINED_FUNCTIONS = [
         "open_web_browser",
@@ -109,6 +129,7 @@ class CUAgent:
         "navigate",
         "key_combination",
         "drag_and_drop",
+        "search",
     ]
 
     def __init__(
@@ -133,24 +154,23 @@ class CUAgent:
         excluded_predefined_functions = self.EXCLUDED_PREDEFINED_FUNCTIONS
 
         # Add your own custom functions here.
-        # custom_functions = [
-        #     types.FunctionDeclaration.from_callable(
-        #         client=self._client, callable=open_app
-        #     ),
-        #     types.FunctionDeclaration.from_callable(
-        #         client=self._client, callable=long_press_at
-        #     ),
-        #     types.FunctionDeclaration.from_callable(
-        #         client=self._client, callable=go_home
-        #     ),
+        custom_functions = [
+            types.FunctionDeclaration.from_callable(
+                client=self._client, callable=open_app
+            ),
+            types.FunctionDeclaration.from_callable(
+                client=self._client, callable=long_press_at
+            ),
+            types.FunctionDeclaration.from_callable(
+                client=self._client, callable=go_home
+            ),
 
-        #     # types.FunctionDeclaration.from_callable(client=self._client, callable=get_view_details),
-        #     # types.FunctionDeclaration.from_callable(client=self._client, callable=scroll_to_text),
-        #     # types.FunctionDeclaration.from_callable(client=self._client, callable=swipe),
-        #     # types.FunctionDeclaration.from_callable(client=self._client, callable=set_device_setting),
-        #     # types.FunctionDeclaration.from_callable(client=self._client, callable=close_current_app),
-        #     # types.FunctionDeclaration.from_callable(client=self._client, callable=go_recent_apps),
-        # ]
+            types.FunctionDeclaration.from_callable(client=self._client, callable=scroll_to_text),
+            types.FunctionDeclaration.from_callable(client=self._client, callable=swipe),
+            types.FunctionDeclaration.from_callable(client=self._client, callable=set_device_setting),
+            types.FunctionDeclaration.from_callable(client=self._client, callable=close_current_app),
+            types.FunctionDeclaration.from_callable(client=self._client, callable=go_recent_apps),
+        ]
 
         self._generate_content_config = GenerateContentConfig(
             temperature=1,
@@ -168,7 +188,7 @@ class CUAgent:
                 ),
                 # chat_agent - cu_agent 계층구조로 바꾼 뒤로 AFC 에러가 뜸
                 #   custom_functions을 없애고 ANDROID_SYSTEM_PROMPT로 커스텀 함수 종류를 알려주는 식으로 해야할 듯
-                # types.Tool(function_declarations=custom_functions)
+                types.Tool(function_declarations=custom_functions)
             ],
         )
 
@@ -202,40 +222,40 @@ class CUAgent:
         #         message=f"Requested details for view ID: {action.args.get('view_id')}"
         #     )
 
-        # elif action.name == scroll_to_text.__name__:
-        #     return MockEnvState(
-        #         url=self._browser_computer.current_url(),
-        #         screenshot_base64=MOCK_SCREENSHOTS["after_scroll_to_text"], # 새 Mock 스크린샷 필요
-        #         message=f"Scrolled until text found: {action.args['text']}"
-        #     )
+        elif action.name == scroll_to_text.__name__:
+            return MockEnvState(
+                url=self._browser_computer.current_url(),
+                screenshot_base64=MOCK_SCREENSHOTS["after_home"], # 새 Mock 스크린샷 필요
+                message=f"Scrolled until text found: {action.args['text']}"
+            )
             
-        # elif action.name == swipe.__name__:
-        #     return MockEnvState(
-        #         url=self._browser_computer.current_url(),
-        #         screenshot_base64=MOCK_SCREENSHOTS["after_swipe"], # 새 Mock 스크린샷 필요
-        #         message=f"Swiped from {action.args['start_x']},{action.args['start_y']} to {action.args['end_x']},{action.args['end_y']}"
-        #     )
+        elif action.name == swipe.__name__:
+            return MockEnvState(
+                url=self._browser_computer.current_url(),
+                screenshot_base64=MOCK_SCREENSHOTS["after_home"], # 새 Mock 스크린샷 필요
+                message=f"Swiped from {action.args['start_x']},{action.args['start_y']} to {action.args['end_x']},{action.args['end_y']}"
+            )
             
-        # elif action.name == set_device_setting.__name__:
-        #     return MockEnvState(
-        #         url="system_settings",
-        #         screenshot_base64=MOCK_SCREENSHOTS["after_setting_change"], # 새 Mock 스크린샷 필요
-        #         message=f"Device setting {action.args['setting_name']} set to {action.args['value']}"
-        #     )
+        elif action.name == set_device_setting.__name__:
+            return MockEnvState(
+                url="system_settings",
+                screenshot_base64=MOCK_SCREENSHOTS["after_home"], # 새 Mock 스크린샷 필요
+                message=f"Device setting {action.args['setting_name']} set to {action.args['value']}"
+            )
             
-        # elif action.name == close_current_app.__name__:
-        #     return MockEnvState(
-        #         url="android_home_screen",
-        #         screenshot_base64=MOCK_SCREENSHOTS["after_home"], # 홈 화면으로 돌아갔다고 가정
-        #         message="Current app closed."
-        #     )
+        elif action.name == close_current_app.__name__:
+            return MockEnvState(
+                url="android_home_screen",
+                screenshot_base64=MOCK_SCREENSHOTS["after_home"], # 홈 화면으로 돌아갔다고 가정
+                message="Current app closed."
+            )
             
-        # elif action.name == go_recent_apps.__name__:
-        #     return MockEnvState(
-        #         url="recent_apps_screen",
-        #         screenshot_base64=MOCK_SCREENSHOTS["recent_apps_view"], # 새 Mock 스크린샷 필요
-        #         message="Recent apps screen opened."
-        #     )
+        elif action.name == go_recent_apps.__name__:
+            return MockEnvState(
+                url="recent_apps_screen",
+                screenshot_base64=MOCK_SCREENSHOTS["after_home"], # 새 Mock 스크린샷 필요
+                message="Recent apps screen opened."
+            )
 
         elif action.name == "click_at":
             x = self.denormalize_x(action.args["x"])
@@ -486,19 +506,20 @@ class CUAgent:
         return "CONTINUE"
     
     def execute_task(
-        self, instruction: str, initial_screenshot_content: Content
+        self, instruction: str
     ) -> str:
-        # 1. initial_screenshot_content에서 순수 이미지 Part 추출
-        image_part = None
-        for content_part in initial_screenshot_content.parts:
-            if content_part.inline_data:
-                image_part = content_part.inline_data
-                break
+        # 1. GCUAgent가 필요로 하는 초기 스크린샷 Content 생성 (Mocking)
+        mock_computer = MockComputer()
+        initial_screenshot_data = base64.b64decode(MOCK_SCREENSHOTS["initial"])
+        
+        image_part = Part(inline_data=types.Blob(
+            mime_type="image/png", data=initial_screenshot_data
+        ))
 
         parts = [Part(text=instruction)]
         if image_part:
             # 쿼리와 이미지 Part를 합칩니다.
-            parts.append(Part(inline_data=image_part))
+            parts.append(image_part)
 
         # 2. _contents를 단일 Content(쿼리+이미지)로 초기화
         # 이로써 FunctionResponse 규칙 위반(INVALID_ARGUMENT) 문제가 해결됩니다.
