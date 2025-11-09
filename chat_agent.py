@@ -65,7 +65,7 @@ class ChatAgent:
     def __init__(
         self,
         cu_agent: CUAgent,
-        model_name: str = 'gemini-2.5-flash',
+        model_name: str,
         verbose: bool = True,
     ):
         self._model_name = model_name
@@ -135,33 +135,12 @@ class ChatAgent:
             print(f"CU Agent로 토스: 앱 조작 요청 수신")
             print(f"요청: {user_instruction}")
 
-            # 1. GCUAgent가 필요로 하는 초기 스크린샷 Content 생성 (Mocking)
-            # ChatAgent는 이중 에이전트의 상위 계층이므로, 스크린샷은 ChatAgent가 가지고 있다가 GCUAgent에게 넘겨주어야 함.
-            # 하지만 현재 ChatAgent는 스크린샷을 가지고 있지 않으므로, GCUAgent의 MockComputer를 통해 생성하도록 합니다.
-            
-            import base64
-            from mock import MOCK_SCREENSHOTS, MockComputer # MockComputer 임포트
-
-            mock_computer = MockComputer()
-            initial_screenshot_data = base64.b64decode(MOCK_SCREENSHOTS["initial"])
-            
-            # 1. 초기 스크린샷 Content 구조 단순화 (FunctionResponse 제거)
-            initial_screenshot_content = Content(
-                role="user",
-                parts=[
-                    Part(
-                        inline_data=types.FunctionResponseBlob(
-                            mime_type="image/png", data=initial_screenshot_data
-                        )
-                    )
-                ]
-            )
-
             # 2. CU Agent 실행 및 결과 반환 받기
+            self._verbose = False
             browser_result_reasoning = self._cu_agent.execute_task(
                 instruction=user_instruction,
-                initial_screenshot_content=initial_screenshot_content # 단순화된 Content 전달
             )
+            self._verbose = True
             
             if browser_result_reasoning is None:
                 final_message = "ERROR: 앱 조작 에이전트가 작업을 완료하지 못했습니다. 다시 시도하거나 작업을 변경해 주세요."
@@ -236,13 +215,11 @@ class ChatAgent:
     def run_one_iteration(self) -> Literal["COMPLETE", "CONTINUE"]:
         # Generate a response from the model.
         if self._verbose:
-            with console.status(
-                "Generating response from Gemini Computer Use...", spinner_style=None
-            ):
-                try:
-                    response = self.get_model_response()
-                except Exception as e:
-                    return "COMPLETE"
+            print("Generating response from Gemini ...")
+            try:
+                response = self.get_model_response()
+            except Exception as e:
+                return "COMPLETE"
         else:
             try:
                 response = self.get_model_response()
@@ -301,10 +278,8 @@ class ChatAgent:
             extra_fr_fields = {}
             
             if self._verbose:
-                with console.status(
-                    "Sending command to Computer...", spinner_style=None
-                ):
-                    fc_result = self.handle_action(function_call)
+                print("Sending command to Computer...")
+                fc_result = self.handle_action(function_call)
             else:
                 fc_result = self.handle_action(function_call)
             if isinstance(fc_result, dict):
