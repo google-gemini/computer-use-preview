@@ -41,9 +41,9 @@ LONG_SCREENSHOT_BASE64 = (
 # 시나리오별 Mock 스크린샷을 관리하는 딕셔너리
 MOCK_SCREENSHOTS = {
     "initial": HOME_SCREENSHOT_BASE64,          # 현재: 배경 화면 - agent 앱 실행 했을 당시의 화면 스크린샷으로 대체
-    "after_open_app": APP_SCREENSHOT_BASE64,    # 현재: 크롬 앱 실행 화면
-    "after_tap": TAP_SCREENSHOT_BASE64,         # 현재: 탭 동작 후 화면
-    "after_long_press": LONG_SCREENSHOT_BASE64, # 길게 누르기 후 화면
-    "after_type_at": TYPE_SCREENSHOT_BASE64,    # 현재: 입력 후 화면 (enter 입력 x)
+    "after_open_app": HOME_SCREENSHOT_BASE64,#APP_SCREENSHOT_BASE64,    # 현재: 크롬 앱 실행 화면
+    "after_tap": HOME_SCREENSHOT_BASE64,#TAP_SCREENSHOT_BASE64,         # 현재: 탭 동작 후 화면
+    "after_long_press": HOME_SCREENSHOT_BASE64,#LONG_SCREENSHOT_BASE64, # 길게 누르기 후 화면
+    "after_type_at": HOME_SCREENSHOT_BASE64,#TYPE_SCREENSHOT_BASE64,    # 현재: 입력 후 화면 (enter 입력 x)
     "after_home": HOME_SCREENSHOT_BASE64,       # 현재: 배경 화면
 }
