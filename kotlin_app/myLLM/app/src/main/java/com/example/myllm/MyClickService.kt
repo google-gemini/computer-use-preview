@@ -81,6 +81,12 @@ class MyClickService : AccessibilityService() {
                         Log.d("MyClickService", "명령 수신: 롱 클릭 ($x, $y)")
                         performLongPress(x, y)
                     }
+                    AccessibilityActions.GESTURE_SWIPE_HORIZONTAL -> {
+                        val swipeRight = intent.getBooleanExtra(AccessibilityActions.EXTRA_SWIPE_RIGHT, false)
+                        val direction = if (swipeRight) "오른쪽" else "왼쪽"
+                        Log.d("MyClickService", "명령 수신: 좌우 스와이프 ($direction)")
+                        performHorizontalSwipe(swipeRight)
+                    }
                 }
             }
         }
@@ -224,6 +230,47 @@ class MyClickService : AccessibilityService() {
             }
             override fun onCancelled(gestureDescription: GestureDescription?) {
                 super.onCancelled(gestureDescription); Log.e("MyClickService", "스크롤 실패")
+            }
+        }, null)
+    }
+
+    private fun performHorizontalSwipe(swipeRight: Boolean) {
+        val metrics = resources.displayMetrics
+        val width = metrics.widthPixels
+        val height = metrics.heightPixels
+
+        // Y축은 화면 중앙
+        val centerY = height / 2f
+        // X축은 화면 20% <-> 80%
+        val startX = width * 0.8f // 오른쪽
+        val endX = width * 0.2f   // 왼쪽
+        val duration = 300L
+
+        val path = Path()
+
+        if (swipeRight) {
+            // "오른쪽" 스와이프 = 손가락이 왼쪽(endX)에서 오른쪽(startX)으로
+            Log.d("MyClickService", "스와이프 (왼쪽 -> 오른쪽) 수행")
+            path.moveTo(endX, centerY)
+            path.lineTo(startX, centerY)
+        } else {
+            // "왼쪽" 스와이프 = 손가락이 오른쪽(startX)에서 왼쪽(endX)으로
+            Log.d("MyClickService", "스와이프 (오른쪽 -> 왼쪽) 수행")
+            path.moveTo(startX, centerY)
+            path.lineTo(endX, centerY)
+        }
+
+        val gestureBuilder = GestureDescription.Builder()
+        gestureBuilder.addStroke(GestureDescription.StrokeDescription(path, 0, duration))
+
+        dispatchGesture(gestureBuilder.build(), object : GestureResultCallback() {
+            override fun onCompleted(gestureDescription: GestureDescription?) {
+                super.onCompleted(gestureDescription)
+                Log.d("MyClickService", "좌우 스와이프 성공")
+            }
+            override fun onCancelled(gestureDescription: GestureDescription?) {
+                super.onCancelled(gestureDescription)
+                Log.e("MyClickService", "좌우 스와이프 실패")
             }
         }, null)
     }

@@ -39,6 +39,8 @@ fun TestScreen(navController: NavController) {
     var xPixelLong by remember { mutableStateOf("") }
     var yPixelLong by remember { mutableStateOf("") }
 
+    var swipeRight by remember { mutableStateOf(false) }
+
     val context = LocalContext.current
     val scrollState = rememberScrollState()
 
@@ -349,6 +351,37 @@ fun TestScreen(navController: NavController) {
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("특정 픽셀 롱 클릭")
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+            Text("8. 좌우 스와이프", style = MaterialTheme.typography.titleMedium, modifier = Modifier.fillMaxWidth())
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Text(if (swipeRight) "오른쪽" else "왼쪽")
+                Spacer(modifier = Modifier.width(16.dp))
+                Switch(
+                    checked = swipeRight,
+                    onCheckedChange = { swipeRight = it }
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Button(
+                onClick = {
+                    val intent = Intent(AccessibilityActions.ACTION_PERFORM_GESTURE).apply {
+                        putExtra(AccessibilityActions.GESTURE_TYPE, AccessibilityActions.GESTURE_SWIPE_HORIZONTAL)
+                        putExtra(AccessibilityActions.EXTRA_SWIPE_RIGHT, swipeRight)
+                        setPackage(context.packageName)
+                    }
+                    context.sendBroadcast(intent)
+                    val direction = if (swipeRight) "오른쪽" else "왼쪽"
+                    println("좌우 스와이프 방송 보냄: $direction")
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("좌우 스와이프 수행")
             }
 
             Spacer(modifier = Modifier.height(48.dp))
