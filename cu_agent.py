@@ -139,7 +139,7 @@ class CUAgent:
         self._browser_computer = browser_computer
         self._model_name = model_name
         self._verbose = verbose
-        self.final_reasoning = None
+        self.final_reasoning = str = ""
         self._client = genai.Client(
             api_key=os.environ.get("GEMINI_API_KEY"),
             vertexai=os.environ.get("USE_VERTEXAI", "0").lower() in ["true", "1"],
@@ -185,7 +185,9 @@ class CUAgent:
                     
                 ),
                 # AFC 에러? 메시지 해결 필요
-                types.Tool(function_declarations=custom_functions)
+                types.Tool(
+                    function_declarations=custom_functions
+                )
             ],
         )
 
@@ -503,32 +505,48 @@ class CUAgent:
         return "CONTINUE"
     
     def execute_task(
-        self, instruction: str
-    ) -> str:
-        # 1. GCUAgent가 필요로 하는 초기 스크린샷 Content 생성 (Mocking)
-        mock_computer = MockComputer()
-        initial_screenshot_data = base64.b64decode(MOCK_SCREENSHOTS["initial"])
-        
-        image_part = Part(inline_data=types.Blob(
-            mime_type="image/png", data=initial_screenshot_data
-        ))
-
+        self, 
+        instruction: str, 
+        screenshot_data: bytes = None, # ChatAgent가 전달한 초기 상태
+        url_or_activity: str = None # ChatAgent가 전달한 초기 상태
+    ) -> Optional[Dict[str, Any]]:
+        """
+        ChatAgent로부터 전체 작업을 위임받아, 완료될 때까지 내부적으로 여러 턴을 실행하고 최종 결과를 문자열로 반환합니다.
+        """
+        # 1. 초기 Content 구성
         parts = [Part(text=instruction)]
-        if image_part:
-            # 쿼리와 이미지 Part를 합칩니다.
-            parts.append(image_part)
+        
+        current_screenshot_data = screenshot_data
+        current_url = url_or_activity
+        
+        # Mocking: 외부 데이터가 없으면 MockComputer를 사용하여 초기 데이터 구성
+        if current_screenshot_data is None:
+            mock_computer = MockComputer()
+            current_screenshot_data = base64.b64decode(MOCK_SCREENSHOTS["initial"])
+            current_url = mock_computer.current_url()
 
-        # 2. _contents를 단일 Content(쿼리+이미지)로 초기화
-        # 이로써 FunctionResponse 규칙 위반(INVALID_ARGUMENT) 문제가 해결됩니다.
+        # 스크린샷 Part 추가
+        image_part = Part(inline_data=types.Blob(
+            mime_type="image/png", data=current_screenshot_data
+        ))
+        parts.append(image_part)
+        
+        # URL/Activity 상태 정보 추가
+        parts.append(Part(text=f"현재 화면 상태: {current_url}"))
+
+        # 2. _contents 초기화 (단일 턴 응답을 위한 시작)
         self._contents = [
             Content(
                 role="user",
                 parts=parts,
             )
         ]
+        self.final_reasoning = ""
         
-        # 3. 루프 실행
+        # 3. 내부 루프 실행: run_one_iteration을 반복하여 작업 완료
         self.agent_loop()
+        
+        # 4. 최종 결과 반환
         return self.final_reasoning
 
     def agent_loop(self):

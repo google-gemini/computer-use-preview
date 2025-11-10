@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from dotenv import load_dotenv
-from typing import Literal, Optional, Union, Any
+import base64
+from typing import Literal, Optional, Union, Any, Dict
 from google import genai
 from google.genai import types
 import termcolor
@@ -29,16 +29,13 @@ import time
 from rich.console import Console
 from rich.table import Table
 
-# from computers import EnvState, Computer
-
-# from browser_agent import BrowserAgent
 from cu_agent import CUAgent
+from mock import MockComputer, MOCK_SCREENSHOTS 
+from dotenv import load_dotenv
 
+load_dotenv()
 console = Console()
 
-# Built-in Computer Use tools will return "EnvState".
-# Custom provided functions will return "dict".
-# -> chat agent에서는 dict만 반환하도록 수정
 FunctionResponseT = dict
 
 # 사용자 지정 앱 조작 함수
@@ -47,20 +44,14 @@ def control_app(user_instruction: str) -> dict:
     사용자의 요청에 따라 모바일 앱 조작을 시작한다.
     이 함수는 앱 조작 에이전트(App Agent)에게 요청을 토스하는 데 사용된다.
     """
-    # 이 함수는 실제로 앱을 조작하지 않고, App Agent에게 넘겨줌.
-    # user_instruction: 사용자가 요청한 조작 내용
-    # return: 앱 조작 요청이 App Agent에게 전달되었음을 나타내는 상태메세지.
-    #
-    ### TODO: 어떤 앱이 있는지 Char Agent가 미리 알고 있어야하나? 알아야 한다면 앱 목록을 어떻게 제공하면 좋을까?
-    # 
-    # 현재는 dummy.
+    # ChatAgent의 handle_action에서 실제 CUAgent 호출 및 결과 처리를 수행합니다.
     return {
         "status": "App_AGENT_INVOKED",
         "task": user_instruction
     }
 
 class ChatAgent:
-    PREDEFINED_USER_APP = ["메세지", "캘린더", "지도", "카메라", "녹음", "갤러리", "브라우저", "설정"]
+    PREDEFINED_USER_APP = ["Chrome", "메세지", "캘린더", "지도", "카메라", "녹음", "갤러리", "브라우저", "설정"]
 
     def __init__(
         self,
@@ -97,13 +88,13 @@ class ChatAgent:
         # 일상 대화를 위한 system instruction - 앱 조작 버전
         app_system_instruction = (
             "당신은 사용자의 일상 대화를 처리하는 친절하고 유능한 AI 비서입니다.",
-            "사용자의 대화 요청에 응대하는 것이 기본 목표이며, 앱 조작이 필요한지 여부를 판단하는 것이 핵심 임무입니다.",
-            "당신이 직접 휴대폰을 조작하는 것이 아니고, Browser Agent에게 구체적인 앱 조작 명령을 내려야 합니다.",
-            "Browser Agent는 휴대폰 앱을 조작하는 역할을 담당합니다.",
-            f"휴대폰에는 {user_app_list}과 같은 기본 앱들이 미리 설치되어 있습니다.",
-            "사용자가 휴대폰 앱을 조작(클릭, 타이핑, 스크롤 등)하도록 요청하면, 지체 없이 control_app 함수를 사용해야 합니다.",
-            f"당신은 앱 조작이 필요할 때 control_app 함수를 사용합니다. 이 함수를 호출받는 에이전트는 {cu_abilities}과 같은 다양한 UI 조작을 수행할 수 있습니다. "
-            "control_app 함수 실행 결과로 앱 조작의 성공/실패 메시지를 받으면, 그 결과를 바탕으로 사용자에게 친절하고 이해하기 쉬운 최종 요약 응답을 제공하십시오."
+            "사용자의 의도를 파악하여 앱 조작이 필요한지 여부를 판단하는 것이 핵심 임무입니다.",
+            "당신이 직접 휴대폰을 조작하는 것이 아니고, CU Agent에게 구체적인 앱 조작 명령을 전달해야 합니다.",
+            "CU Agent는 휴대폰 앱 조작을 담당합니다.",
+            f"휴대폰에는 {user_app_list}과 같은 기본 앱들이 설치되어 있습니다.",
+            "사용자가 휴대폰 앱을 조작(검색, 클릭, 타이핑, 스크롤 등)하도록 요청하면, 지체 없이 control_app 함수를 호출하십시오.",
+            f"control_app 함수는 CU Agent에게 작업을 토스합니다. CU Agent는 {cu_abilities}과 같은 다양한 UI 조작을 수행할 수 있습니다. "
+            "control_app 함수 실행 결과로 앱 조작의 결과를 받으면, 그 결과를 바탕으로 사용자에게 친절하고 이해하기 쉬운 최종 요약 응답을 제공하십시오."
         )
 
         # Exclude any predefined functions here.
@@ -132,33 +123,30 @@ class ChatAgent:
         if action.name == control_app.__name__:
             user_instruction=action.args["user_instruction"]
 
+            # Mock 데이터는 CUAgent가 내부적으로 처리할 수 있도록 명령만 전달
+            
             print(f"CU Agent로 토스: 앱 조작 요청 수신")
             print(f"요청: {user_instruction}")
 
-            # 2. CU Agent 실행 및 결과 반환 받기
-            self._verbose = False
-            browser_result_reasoning = self._cu_agent.execute_task(
+            # CU Agent 실행 (단일 실행) -> Action JSON 또는 최종 응답 반환
+            # CU Agent의 execute_task는 이제 단일 실행을 처리하고 Dict를 반환합니다.
+            final_result_text = self._cu_agent.execute_task(
                 instruction=user_instruction,
+                # ChatAgent에서 초기 스크린샷 데이터를 준비하여 전달합니다.
+                screenshot_data=base64.b64decode(MOCK_SCREENSHOTS["initial"]), 
+                url_or_activity=MockComputer().current_url()
             )
-            self._verbose = True
             
-            if browser_result_reasoning is None:
-                final_message = "ERROR: 앱 조작 에이전트가 작업을 완료하지 못했습니다. 다시 시도하거나 작업을 변경해 주세요."
-                status_tag = "TASK_FAILED"
-            else:
-                final_message = browser_result_reasoning
-                status_tag = "TASK_COMPLETED"
-                
-            print("\n--- CU Agent로부터 응답 수신 완료 ---")
-            print(f"결과: {final_message}\n")
-
+            print("\n--- CU Agent로부터 최종 결과 수신 완료 ---")
+            
+            # ChatAgent가 LLM에게 전달할 FunctionResponse 반환
+            # CU Agent가 작업을 완료했으므로, 최종 결과 메시지를 반환합니다.
             return {
-                "success_status": status_tag,
-                "result_message": final_message
+                "status": "CU_AGENT_TASK_COMPLETE",
+                "message": final_result_text
             }
-        # elif:
         else:
-            raise ValueError(f"Unsupported function: {action}")
+            raise ValueError(f"Unsupported function: {action.name}")
 
     def get_model_response(
         self, max_retries=5, base_delay_s=1
