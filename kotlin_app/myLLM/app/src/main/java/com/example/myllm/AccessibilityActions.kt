@@ -16,13 +16,15 @@ object AccessibilityActions {
     const val GESTURE_SCROLL = "SCROLL"
     const val GESTURE_GO_BACK = "GO_BACK"
     const val GESTURE_OPEN_APP = "OPEN_APP"
-    const val EXTRA_PACKAGE_NAME = "EXTRA_PACKAGE_NAME"
+
     const val GESTURE_GO_HOME = "GO_HOME"
     const val GESTURE_SCROLL_TO_TEXT = "SCROLL_TO_TEXT"
+    const val GESTURE_LONG_PRESS = "LONG_PRESS"
 
     // 4. 동작에 필요한 데이터를 담을 키
     const val EXTRA_X = "EXTRA_X"
     const val EXTRA_Y = "EXTRA_Y"
     const val EXTRA_TEXT = "EXTRA_TEXT"
     const val EXTRA_SCROLL_UP = "EXTRA_SCROLL_UP"
+    const val EXTRA_PACKAGE_NAME = "EXTRA_PACKAGE_NAME"
 }

@@ -36,6 +36,9 @@ fun TestScreen(navController: NavController) {
     var targetTextFieldValue by remember { mutableStateOf("") }
     var packageName by remember { mutableStateOf("") }
 
+    var xPixelLong by remember { mutableStateOf("") }
+    var yPixelLong by remember { mutableStateOf("") }
+
     val context = LocalContext.current
     val scrollState = rememberScrollState()
 
@@ -306,6 +309,46 @@ fun TestScreen(navController: NavController) {
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("앱 실행")
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+            Text("7. 롱 클릭", style = MaterialTheme.typography.titleMedium, modifier = Modifier.fillMaxWidth())
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                TextField(
+                    value = xPixelLong,
+                    onValueChange = { xPixelLong = it },
+                    label = { Text("X 픽셀") },
+                    modifier = Modifier.weight(1f),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                )
+                TextField(
+                    value = yPixelLong,
+                    onValueChange = { yPixelLong = it },
+                    label = { Text("Y 픽셀") },
+                    modifier = Modifier.weight(1f),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Button(
+                onClick = {
+                    val x = xPixelLong.toFloatOrNull() ?: 0f
+                    val y = yPixelLong.toFloatOrNull() ?: 0f
+                    val intent = Intent(AccessibilityActions.ACTION_PERFORM_GESTURE).apply {
+                        putExtra(AccessibilityActions.GESTURE_TYPE, AccessibilityActions.GESTURE_LONG_PRESS)
+                        putExtra(AccessibilityActions.EXTRA_X, x)
+                        putExtra(AccessibilityActions.EXTRA_Y, y)
+                        setPackage(context.packageName)
+                    }
+                    context.sendBroadcast(intent)
+                    println("롱 클릭 방송 보냄: ($x, $y)")
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("특정 픽셀 롱 클릭")
             }
 
             Spacer(modifier = Modifier.height(48.dp))

@@ -75,6 +75,12 @@ class MyClickService : AccessibilityService() {
                         Log.d("MyClickService", "명령 수신: 텍스트($text) 찾아 스크롤")
                         performScrollToText(text)
                     }
+                    AccessibilityActions.GESTURE_LONG_PRESS -> {
+                        val x = intent.getFloatExtra(AccessibilityActions.EXTRA_X, 0f)
+                        val y = intent.getFloatExtra(AccessibilityActions.EXTRA_Y, 0f)
+                        Log.d("MyClickService", "명령 수신: 롱 클릭 ($x, $y)")
+                        performLongPress(x, y)
+                    }
                 }
             }
         }
@@ -99,6 +105,24 @@ class MyClickService : AccessibilityService() {
             }
             override fun onCancelled(gestureDescription: GestureDescription?) {
                 super.onCancelled(gestureDescription); Log.d("MyClickService", "클릭 실패")
+            }
+        }, null)
+    }
+
+    private fun performLongPress(x: Float, y: Float) {
+        val path = Path().apply { moveTo(x, y) }
+        val gestureBuilder = GestureDescription.Builder()
+
+        gestureBuilder.addStroke(GestureDescription.StrokeDescription(path, 0, 600L))
+
+        dispatchGesture(gestureBuilder.build(), object : GestureResultCallback() {
+            override fun onCompleted(gestureDescription: GestureDescription?) {
+                super.onCompleted(gestureDescription)
+                Log.d("MyClickService", "롱 클릭 성공: ($x, $y)")
+            }
+            override fun onCancelled(gestureDescription: GestureDescription?) {
+                super.onCancelled(gestureDescription)
+                Log.e("MyClickService", "롱 클릭 실패")
             }
         }, null)
     }
