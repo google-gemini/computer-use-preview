@@ -8,14 +8,14 @@ import io
 
 from chat_agent import ChatAgent
 from cu_agent import CUAgent
-from mock import MockComputer # 초기화용 (실제론 사용 안 함)
+# from mock import MockComputer # 초기화용 (실제론 사용 안 함)
 
 app = FastAPI()
 
 # 전역 에이전트 인스턴스 생성 (서버 실행 시 1회 초기화)
-mock_computer = MockComputer() # CUAgent 초기화에 필요하지만 실제로는 요청 데이터 사용
+# mock_computer = MockComputer() # CUAgent 초기화에 필요하지만 실제로는 요청 데이터 사용
 cu_agent = CUAgent(
-    browser_computer=mock_computer,
+    # browser_computer=mock_computer,
     model_name='gemini-2.5-computer-use-preview-10-2025',
     verbose=True
 )

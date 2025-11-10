@@ -174,7 +174,7 @@ class CUAgent:
                     ),
                     
                 ),
-                # AFC 에러? 메시지 해결 필요
+                # AFC 메시지 해결 필요
                 types.Tool(
                     function_declarations=custom_functions
                 )

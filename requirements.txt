@@ -6,3 +6,6 @@ browserbase==1.4.0
 rich
 pytest
 dotenv
+uvicorn
+fastapi
+python-multipart
