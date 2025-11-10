@@ -30,7 +30,7 @@ from rich.console import Console
 from rich.table import Table
 
 from cu_agent import CUAgent
-from mock import MockComputer, MOCK_SCREENSHOTS 
+# from mock import MockComputer, MOCK_SCREENSHOTS 
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -62,7 +62,6 @@ class ChatAgent:
         self._model_name = model_name
         self._verbose = verbose
         self._cu_agent = cu_agent
-        load_dotenv()
         self._client = genai.Client(
             api_key=os.getenv("GEMINI_API_KEY"),
             vertexai=os.environ.get("USE_VERTEXAI", "0").lower() in ["true", "1"],
@@ -72,18 +71,11 @@ class ChatAgent:
         # 유저 쿼리와 LLM 응답이 저장되는 리스트
         self._contents: list[Content] = []
 
+        self._current_screenshot_bytes: Optional[bytes] = None # 현재 요청의 스크린샷 저장용
+        self._current_activity: str = "unknown"
+
         cu_abilities = ", ".join(self._cu_agent.PREDEFINED_COMPUTER_USE_FUNCTIONS) + " 등"
         user_app_list = ", ".join(self.PREDEFINED_USER_APP) + " 등"
-
-        # 일상 대화를 위한 system instruction
-        # 일단 browser에서 진행하는 프롬프트를 사용
-        # system_instruction = (
-        #     "당신은 사용자의 일상 대화를 처리하는 친절하고 유능한 AI 비서입니다.",
-        #     "사용자의 대화 요청에 응대하는 것이 기본 목표이며, 브라우저 조작이 필요한지 여부를 판단하는 것이 핵심 임무입니다.",
-        #     "당신이 직접 브라우저를 조작하는 것이 아니고, 브라우저를 조작하도록 전담하는 Browser Agent에게 구체적인 조작 명령을 내려야 합니다.",
-        #     "사용자가 브라우저가 필요한 query를 요청하면, 지체 없이 control_app 함수를 사용해야 합니다.",
-        #     "control_app 함수 실행 결과로 앱 조작의 성공/실패 메시지를 받으면, 그 결과를 바탕으로 사용자에게 친절하고 이해하기 쉬운 최종 요약 응답을 제공하십시오."
-        # )
 
         # 일상 대화를 위한 system instruction - 앱 조작 버전
         app_system_instruction = (
@@ -119,32 +111,45 @@ class ChatAgent:
         )
 
     def handle_action(self, action: types.FunctionCall) -> FunctionResponseT:
-        """ChatAgent가 control_app을 호출하면 CUAgent로 명령을 토스"""
+        """
+        LLM이 요청한 control_app 도구 호출을 처리합니다.
+        CUAgent에게 실제 작업을 위임하고, 결과를 저장합니다.
+        """
         if action.name == control_app.__name__:
-            user_instruction=action.args["user_instruction"]
+            user_instruction = action.args["user_instruction"]
 
-            # Mock 데이터는 CUAgent가 내부적으로 처리할 수 있도록 명령만 전달
-            
-            print(f"CU Agent로 토스: 앱 조작 요청 수신")
-            print(f"요청: {user_instruction}")
+            if self._verbose:
+                print(f"[ChatAgent] CU Agent에게 지시 전달: {user_instruction}")
 
-            # CU Agent 실행 (단일 실행) -> Action JSON 또는 최종 응답 반환
-            # CU Agent의 execute_task는 이제 단일 실행을 처리하고 Dict를 반환합니다.
-            final_result_text = self._cu_agent.execute_task(
+            # CUAgent에게 단일 실행 요청
+            # process_request에서 저장해 둔 현재 요청의 스크린샷 데이터를 사용합니다.
+            action_json = self._cu_agent.execute_task(
                 instruction=user_instruction,
-                # ChatAgent에서 초기 스크린샷 데이터를 준비하여 전달합니다.
-                screenshot_data=base64.b64decode(MOCK_SCREENSHOTS["initial"]), 
-                url_or_activity=MockComputer().current_url()
+                screenshot_data=self._current_screenshot_bytes, 
+                url_or_activity=self._current_activity
             )
+
+            # 결과를 멤버 변수에 저장하여 process_request 메서드가 반환할 수 있게 함
+            self._latest_action_result = action_json
+
+            if self._verbose:
+                print(f"[ChatAgent] CU Agent 결과 수신 완료: {action_json}")
+
+            # ChatAgent의 LLM에게 도구 실행 결과를 반환 (대화 흐름 유지를 위해)
+            if action_json:
+                if "action" in action_json:
+                    return {
+                        "status": "ACTION_GENERATED", 
+                        "message": f"CU Agent가 다음 액션을 생성했습니다: {action_json['action']}"
+                    }
+                elif "final_response" in action_json:
+                     return {
+                        "status": "TASK_COMPLETE", 
+                        "message": "CU Agent가 작업을 완료하고 최종 응답을 반환했습니다."
+                    }
             
-            print("\n--- CU Agent로부터 최종 결과 수신 완료 ---")
-            
-            # ChatAgent가 LLM에게 전달할 FunctionResponse 반환
-            # CU Agent가 작업을 완료했으므로, 최종 결과 메시지를 반환합니다.
-            return {
-                "status": "CU_AGENT_TASK_COMPLETE",
-                "message": final_result_text
-            }
+            return {"status": "ERROR", "message": "CU Agent 실행 중 오류가 발생했습니다."}
+
         else:
             raise ValueError(f"Unsupported function: {action.name}")
 
@@ -199,7 +204,6 @@ class ChatAgent:
                 ret.append(part.function_call)
         return ret
 
-    # 검증 필요 : 중요 수정: function_calls가 없으면 최종 응답을 출력하고 COMPLETE (종료)
     def run_one_iteration(self) -> Literal["COMPLETE", "CONTINUE"]:
         # Generate a response from the model.
         if self._verbose:
@@ -283,6 +287,52 @@ class ChatAgent:
         )
         return "CONTINUE"
 
+    def process_request(self, query: str, screenshot_bytes: bytes, activity: str = "unknown") -> Dict[str, Any]:    
+        """서버로부터 받은 단일 요청을 처리하고 결과를 반환합니다."""
+        # 1. 현재 요청 데이터 저장 (handle_action에서 사용하기 위함)
+        self._current_screenshot_bytes = screenshot_bytes
+        self._current_activity = activity
+
+        # 2. 사용자 쿼리를 히스토리에 추가
+        self._contents.append(
+            Content(
+                role="user", 
+                parts=[Part(text=query)]
+            )
+        )
+        
+        # 3. ChatAgent 단일 턴 실행
+        # (루프가 아니라 1회만 실행하여 CU Agent 호출 여부나 최종 응답을 확인)
+        try:
+            # run_one_iteration()을 호출하여 LLM의 응답을 생성합니다.
+            # 이 과정에서 handle_action이 호출되어 CUAgent가 실행될 수 있습니다.
+            # 서버 응답을 위해 run_one_iteration의 반환값이나 내부 상태를 확인해야 합니다.
+            
+            # 단순화를 위해 여기서는 run_one_iteration을 약간 수정하거나,
+            # handle_action의 결과를 저장하여 반환하는 방식이 필요할 수 있습니다.
+            
+            # (임시 방편: handle_action의 결과를 멤버 변수에 저장하도록 수정 필요)
+            self._latest_action_result = None 
+            status = self.run_one_iteration()
+            
+            if self._latest_action_result:
+                return self._latest_action_result
+            elif self.final_reasoning:
+                return {
+                    "status": "COMPLETE", 
+                    "message": self.final_reasoning
+                }
+            else:
+                return {
+                    "status": "CONTINUE", 
+                    "message": "Thinking..."
+                } # 다중 턴이 필요한 경우
+
+        finally:
+            # 요청 처리 후 데이터 초기화
+            self._current_screenshot_bytes = None
+
+    # 서버 형태에선 사용하지 않는 메소드
     def start_chat_loop(self):
         """사용자 입력을 반복적으로 받아 다중 턴 채팅을 처리하는 루프."""
         print("\n--- 계층적 에이전트 채팅 시작 (CU Agent 활성화) ---")
@@ -315,3 +365,5 @@ class ChatAgent:
                 status = self.run_one_iteration()
                 
             # run_one_iteration이 COMPLETE를 반환하면 루프 종료 및 다음 사용자 입력 대기
+
+    
