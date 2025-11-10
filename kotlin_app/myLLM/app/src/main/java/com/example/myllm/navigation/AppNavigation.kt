@@ -1,6 +1,7 @@
 package com.example.myllm.navigation // ⬅️ [중요] 패키지 선언
 
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -37,3 +38,10 @@ fun AppNavigation() {
         }
     }
 }
+
+@Preview
+@Composable
+fun AppNavigationPreview() {
+    AppNavigation()
+}
+
