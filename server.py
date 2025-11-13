@@ -1,21 +1,15 @@
 # server.py
 import uvicorn
 from fastapi import FastAPI, File, UploadFile, Form
-from pydantic import BaseModel
-from typing import Optional
-import base64
-import io
+from typing import Optional, Dict, Any
 
 from chat_agent import ChatAgent
 from cu_agent import CUAgent
-# from mock import MockComputer # 초기화용 (실제론 사용 안 함)
 
 app = FastAPI()
 
-# 전역 에이전트 인스턴스 생성 (서버 실행 시 1회 초기화)
-# mock_computer = MockComputer() # CUAgent 초기화에 필요하지만 실제로는 요청 데이터 사용
+# 전역 에이전트 인스턴스 생성
 cu_agent = CUAgent(
-    # browser_computer=mock_computer,
     model_name='gemini-2.5-computer-use-preview-10-2025',
     verbose=True
 )
@@ -25,30 +19,41 @@ chat_agent = ChatAgent(
     verbose=True
 )
 
-@app.post("/chat")
-async def chat_endpoint(
-    query: str = Form(...),
-    screenshot: UploadFile = File(...),
-    activity: str = Form("unknown_activity")
-):
+@app.post("/chat/query")
+async def chat_query(
+    query: str = Form(...)
+) -> Dict[str, Any]:
     """
-    앱으로부터 쿼리와 스크린샷을 받아 에이전트를 실행하고 결과를 반환합니다.
+    클라이언트의 모든 '초기 텍스트 쿼리'를 처리합니다.
+    - 일상 채팅: 텍스트 응답 반환
+    - 작업 요청: 스크린샷 요청 반환
     """
-    print(f"\n[Server] Request Received: Query='{query}', Screenshot={screenshot.filename}")
+    print(f"\n[Server] /chat/query: Query='{query}'")
+    
+    # ChatAgent에 쿼리 처리 요청
+    response_data = chat_agent.process_query(query)
 
-    # 1. 수신한 스크린샷 이미지 파일 읽기
+    print(f"[Server] Response: {response_data}")
+    return response_data
+
+@app.post("/chat/step")
+async def chat_step(
+    screenshot: UploadFile = File(...),
+    activity: Optional[str] = Form(None)
+) -> Dict[str, Any]:
+    """
+    클라이언트가 서버의 요청에 따라 '스크린샷'을 전송하면,
+    ChatAgent/CUAgent가 다음 액션 또는 최종 응답을 반환합니다.
+    """
+    print(f"\n[Server] /chat/step: New screenshot received.")
+
     screenshot_bytes = await screenshot.read()
 
-    # 2. ChatAgent에게 작업 위임 (Mock 데이터 대신 실제 수신 데이터 전달)
-    response_data = chat_agent.execute_task(
-        query=query,
-        screenshot_bytes=screenshot_bytes,
-        activity=activity
-    )
+    # ChatAgent에 작업 계속/시작 요청
+    response_data = chat_agent.process_step(screenshot_bytes, activity or "unknown_activity")
 
-    print(f"[Server] Response sending: {response_data}")
+    print(f"[Server] Response: {response_data}")
     return response_data
 
 if __name__ == "__main__":
-    # 서버 실행: 0.0.0.0:8000
     uvicorn.run(app, host="0.0.0.0", port=8000)
