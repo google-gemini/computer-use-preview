@@ -87,6 +87,21 @@ class MyClickService : AccessibilityService() {
                         Log.d("MyClickService", "명령 수신: 좌우 스와이프 ($direction)")
                         performHorizontalSwipe(swipeRight)
                     }
+                    AccessibilityActions.GESTURE_WAIT -> {
+                        val duration = intent.getLongExtra(AccessibilityActions.EXTRA_DURATION_MS, 5000L)
+                        Log.d("MyClickService", "명령 수신: $duration ms 대기")
+                        performWait(duration)
+                    }
+                    AccessibilityActions.GESTURE_RUN_MACRO -> {
+                        // ArrayList<String> 형태로 명령어 리스트를 받음
+                        val commands = intent.getStringArrayListExtra(AccessibilityActions.EXTRA_MACRO_COMMANDS)
+                        if (commands != null) {
+                            Log.d("MyClickService", "명령 수신: 매크로 실행 $commands")
+                            performMacro(commands) // ⭐️ 새 함수 호출
+                        } else {
+                            Log.e("MyClickService", "매크로 실행 실패: 명령어 리스트가 null입니다.")
+                        }
+                    }
                 }
             }
         }
@@ -393,6 +408,98 @@ class MyClickService : AccessibilityService() {
             if (!findTextOnScreen(text)) {
                 Log.e("MyClickService", "텍스트 찾기 최종 실패: '$text'를 찾을 수 없습니다.")
             }
+        }
+    }
+
+    private fun performWait(durationMs: Long) {
+        // BroadcastReceiver는 메인 스레드에서 실행되므로,
+        // 딜레이가 서비스 전체를 멈추지 않도록 코루틴에서 실행
+        serviceScope.launch {
+            Log.d("MyClickService", "대기 시작... ($durationMs ms)")
+            delay(durationMs)
+            Log.d("MyClickService", "대기 완료.")
+        }
+    }
+
+    private fun performMacro(commands: List<String>) {
+        // [필수] delay가 포함된 순차 작업을 위해 코루틴 사용
+        serviceScope.launch {
+            Log.d("MyClickService", "--- 매크로 시작 ---")
+
+            for (command in commands) {
+                // 1. 명령어 파싱: "action(param)" 형식
+                // 예: "click(500,1000)" -> parts = ["click", "500,1000"]
+                // 예: "go_home" -> parts = ["go_home"]
+                val parts = command.replace(")", "").split("(", limit = 2)
+                val action = parts[0]
+                val param = if (parts.size > 1) parts[1] else null
+
+                Log.d("MyClickService", "매크로 실행: $action($param)")
+
+                // 2. 파싱된 "함수 이름"(action)에 따라 분기
+                when (action) {
+                    // --- 파라미터가 없는 함수들 ---
+                    "go_home" -> performGoHome()
+                    "go_back" -> performGoBack()
+
+                    // --- 파라미터가 1개인 함수들 ---
+                    "wait" -> {
+                        val duration = param?.toLongOrNull() ?: 1000L
+                        Log.d("MyClickService", "매크로: $duration ms 대기 시작")
+                        delay(duration) // 코루틴이 멈춤 (서비스는 안 멈춤)
+                        Log.d("MyClickService", "매크로: 대기 완료")
+                    }
+                    "open_app" -> performOpenApp(param ?: "")
+                    "scroll_to_text" -> {
+                        // (참고: 이 함수는 내부적으로 코루틴을 또 실행함)
+                        performScrollToText(param ?: "")
+                    }
+                    "scroll" -> {
+                        val scrollUp = param != "down" // "down"이 아니면 무조건 "up"
+                        performScroll(scrollUp)
+                    }
+                    "swipe" -> {
+                        val swipeRight = param == "right" // "right"일 때만 true
+                        performHorizontalSwipe(swipeRight)
+                    }
+
+                    // --- 파라미터가 2개 이상인 함수들 ---
+                    "click" -> {
+                        val coords = param?.split(",")
+                        val x = coords?.getOrNull(0)?.trim()?.toFloatOrNull() ?: 0f
+                        val y = coords?.getOrNull(1)?.trim()?.toFloatOrNull() ?: 0f
+                        clickAt(x, y)
+                    }
+                    "long_press" -> {
+                        val coords = param?.split(",")
+                        val x = coords?.getOrNull(0)?.trim()?.toFloatOrNull() ?: 0f
+                        val y = coords?.getOrNull(1)?.trim()?.toFloatOrNull() ?: 0f
+                        performLongPress(x, y)
+                    }
+                    "type" -> {
+                        // 예: "type(500,1000,안녕하세요)"
+                        val params = param?.split(",")
+                        val x = params?.getOrNull(0)?.trim()?.toFloatOrNull() ?: 0f
+                        val y = params?.getOrNull(1)?.trim()?.toFloatOrNull() ?: 0f
+                        val text = params?.getOrNull(2)?.trim() ?: ""
+
+                        // [중요] clickAndTypeText는 내부적으로 delay를 포함하므로
+                        // 여기서는 await/join을 하지 않아도 순차 실행 보장됨
+                        clickAndTypeText(x, y, text)
+                        // (하지만 정확히는 콜백 기반이라 다음 명령이 바로 실행될 수 있음.
+                        // 이 매크로 파서를 더 견고하게 만들려면
+                        // clickAndTypeText를 Suspend function으로 바꿔야 함.
+                        // 지금은 우선 이대로 테스트.)
+                    }
+
+                    else -> Log.e("MyClickService", "매크로 오류: 알 수 없는 명령어 '$action'")
+                }
+
+                // (선택사항) 각 명령어 사이에 약간의 딜레이를 줘서 안정성 확보
+                // delay(250)
+            }
+
+            Log.d("MyClickService", "--- 매크로 종료 ---")
         }
     }
 

@@ -41,6 +41,11 @@ fun TestScreen(navController: NavController) {
 
     var swipeRight by remember { mutableStateOf(false) }
 
+    var waitDuration by remember { mutableStateOf("5000") }
+    var macroScript by remember {
+        mutableStateOf("go_home; wait(3000); open_app(com.google.android.youtube)")
+    }
+
     val context = LocalContext.current
     val scrollState = rememberScrollState()
 
@@ -81,6 +86,38 @@ fun TestScreen(navController: NavController) {
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("접근성 설정 바로가기")
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+            Text("10. 매크로 실행", style = MaterialTheme.typography.titleMedium, modifier = Modifier.fillMaxWidth())
+            // 스크립트 입력창
+            TextField(
+                value = macroScript,
+                onValueChange = { macroScript = it },
+                label = { Text("매크로 스크립트 (세미콜론 ; 으로 구분)") },
+                modifier = Modifier.fillMaxWidth().height(120.dp), // 여러 줄 보이게
+                placeholder = { Text("go_home; wait(3000); open_app(package.name)...") }
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Button(
+                onClick = {
+                    // 스크립트를 ; 기준으로 쪼개서 리스트로 만듦
+                    val commands = macroScript.split(';')
+                        .map { it.trim() } // 앞뒤 공백 제거
+                        .filter { it.isNotEmpty() } // 빈 줄 제거
+
+                    val intent = Intent(AccessibilityActions.ACTION_PERFORM_GESTURE).apply {
+                        putExtra(AccessibilityActions.GESTURE_TYPE, AccessibilityActions.GESTURE_RUN_MACRO)
+                        // ⭐️ [수정] String List를 ArrayList로 변환해서 보냄
+                        putStringArrayListExtra(AccessibilityActions.EXTRA_MACRO_COMMANDS, ArrayList(commands))
+                        setPackage(context.packageName)
+                    }
+                    context.sendBroadcast(intent)
+                    println("매크로 방송 보냄: $commands")
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("매크로 실행")
             }
 
             Text(
@@ -382,6 +419,32 @@ fun TestScreen(navController: NavController) {
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("좌우 스와이프 수행")
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+            Text("9. 대기", style = MaterialTheme.typography.titleMedium, modifier = Modifier.fillMaxWidth())
+            TextField(
+                value = waitDuration,
+                onValueChange = { waitDuration = it },
+                label = { Text("대기 시간 (ms)") },
+                modifier = Modifier.fillMaxWidth(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Button(
+                onClick = {
+                    val duration = waitDuration.toLongOrNull() ?: 5000L
+                    val intent = Intent(AccessibilityActions.ACTION_PERFORM_GESTURE).apply {
+                        putExtra(AccessibilityActions.GESTURE_TYPE, AccessibilityActions.GESTURE_WAIT)
+                        putExtra(AccessibilityActions.EXTRA_DURATION_MS, duration)
+                        setPackage(context.packageName)
+                    }
+                    context.sendBroadcast(intent)
+                    println("대기 방송 보냄: $duration ms")
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("대기 (Wait)")
             }
 
             Spacer(modifier = Modifier.height(48.dp))

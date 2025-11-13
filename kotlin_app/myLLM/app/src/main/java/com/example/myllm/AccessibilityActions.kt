@@ -21,6 +21,8 @@ object AccessibilityActions {
     const val GESTURE_SCROLL_TO_TEXT = "SCROLL_TO_TEXT"
     const val GESTURE_LONG_PRESS = "LONG_PRESS"
     const val GESTURE_SWIPE_HORIZONTAL = "SWIPE_HORIZONTAL"
+    const val GESTURE_WAIT = "WAIT"
+    const val GESTURE_RUN_MACRO = "RUN_MACRO"
 
     // 4. 동작에 필요한 데이터를 담을 키
     const val EXTRA_X = "EXTRA_X"
@@ -29,4 +31,6 @@ object AccessibilityActions {
     const val EXTRA_SCROLL_UP = "EXTRA_SCROLL_UP"
     const val EXTRA_PACKAGE_NAME = "EXTRA_PACKAGE_NAME"
     const val EXTRA_SWIPE_RIGHT = "EXTRA_SWIPE_RIGHT"
+    const val EXTRA_DURATION_MS = "EXTRA_DURATION_MS"
+    const val EXTRA_MACRO_COMMANDS = "EXTRA_MACRO_COMMANDS"
 }
