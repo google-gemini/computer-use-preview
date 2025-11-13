@@ -1,5 +1,8 @@
 package com.example.myllm.screens // ⬅️ [중요] 패키지 선언
 
+import android.content.Context
+import android.util.Log
+import androidx.annotation.DrawableRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -30,6 +33,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -42,9 +46,20 @@ import com.aallam.openai.api.chat.ChatRole
 import com.aallam.openai.api.model.ModelId
 import com.aallam.openai.client.OpenAI
 import com.example.myllm.BuildConfig
+import com.example.myllm.R
 import com.example.myllm.data.AppChatMessage // ⬅️ [중요] import 경로
+import com.example.myllm.data.network.AgentRequest
+import com.example.myllm.data.network.AgentResponseDto
+import com.example.myllm.data.network.RetrofitClient
 import com.example.myllm.ui.theme.MyLLMTheme
 import kotlinx.coroutines.launch
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.toRequestBody
+import java.io.ByteArrayOutputStream
+import java.io.InputStream
+import kotlin.collections.listOf
+import kotlin.collections.plus
 
 // 채팅 화면 Composable
 @OptIn(ExperimentalMaterial3Api::class)
@@ -54,6 +69,8 @@ fun ChatScreen(navController: NavController) {
     var messages by remember { mutableStateOf(listOf<AppChatMessage>()) }
     var isLoading by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+
+    val context = LocalContext.current
 
     val openai = remember {
         OpenAI(BuildConfig.OPENAI_API_KEY)
@@ -108,6 +125,7 @@ fun ChatScreen(navController: NavController) {
 
                             val userMessage = AppChatMessage(userInput, true)
                             val currentInput = userInput
+                            // append message list
                             messages = messages + userMessage
 
                             val chatHistory = messages.map {
@@ -122,19 +140,16 @@ fun ChatScreen(navController: NavController) {
                                 scope.launch {
                                     isLoading = true
                                     try {
-                                        val chatCompletionRequest = ChatCompletionRequest(
-                                            model = ModelId("gpt-3.5-turbo"),
-                                            messages = chatHistory
+                                        val request = AgentRequest(
+                                            userId = "Hong-GilDong",
+                                            message = currentInput.substring(1)
                                         )
-                                        val completion = openai.chatCompletion(chatCompletionRequest)
-                                        val replyText = completion.choices.first().message.content ?: "응답이 없습니다."
-                                        val llmMessage = AppChatMessage(replyText, false)
-                                        messages = messages + llmMessage
-
+                                        Log.i("AgentRequest", "Chat Sending request: ${request.toString()}")
+                                        val agentResponse = RetrofitClient.service.sendMessage(request)
+                                        val response = AppChatMessage(agentResponse.toString(), false)
+                                        messages = messages + response
                                     } catch (e: Exception) {
-                                        val errorMessage = AppChatMessage("오류 발생: ${e.message}", false)
-                                        messages = messages + errorMessage
-                                        e.printStackTrace()
+                                        Log.e("AgentRequest", "Chat 오류: ${e.message}", e)
                                     } finally {
                                         isLoading = false
                                     }
@@ -146,13 +161,72 @@ fun ChatScreen(navController: NavController) {
                             }
                         }
                     },
-                    enabled = !isLoading
+                    enabled = userInput.isNotBlank()
                 ) {
-                    Text("전송")
+                Text("텍스트 전송")
+                }
+                Button(
+                    onClick = {
+                        scope.launch {
+                            try {
+                                Log.d("AgentRequest", "Observation 사진 데이터 업로드 시작")
+
+                                // MultipartBody.Part 생성
+                                val filePart = createMultipartImagePart(
+                                    context=context,
+                                    drawableId = R.drawable.sample_screenshot
+                                )
+
+                                // 앱 상태 XML
+                                val contextstr = "<state><app name='WeatherApp'/></state>"
+                                // 상태 XML RequestBody 생성 (텍스트 데이터는 plain/text로 전송)
+                                val contextBody = contextstr.toRequestBody("text/plain".toMediaTypeOrNull())
+
+                                // 통신 호출
+                                val agentResponse = RetrofitClient.service.uploadObservation(filePart, contextBody)
+                                val response = AppChatMessage(agentResponse.toString(), false)
+                                messages = messages + response
+                                response
+                            } catch (e: Exception) {
+                                Log.e("AgentRequest", "File Upload 통신 오류: ${e.message}", e)
+                            } finally {
+                                isLoading = false
+                            }
+                        }
+                    }
+                ) {
+                    Text("사진 전송")
                 }
             }
         }
     }
+}
+
+fun createMultipartImagePart(
+    context: Context,
+    @DrawableRes drawableId: Int, // 리소스 ID (R.drawable.sample_screenshot)
+    partName: String = "imagePart", // 서버가 기대하는 파트 이름 ("imagePart")
+    fileName: String = "sample_screenshot.jpg", // 서버에 표시될 파일 이름
+    mediaType: String = "image/jpeg" // 파일의 MIME 타입 (JPEG)
+): MultipartBody.Part {
+    // 리소스에서 InputStream을 얻음.
+    val inputStream: InputStream = context.resources.openRawResource(drawableId)
+
+    // InputStream의 내용을 ByteArray로 변환.
+    val byteBuffer = ByteArrayOutputStream()
+    val buffer = ByteArray(1024)
+    var len: Int
+    while (inputStream.read(buffer).also { len = it } != -1) {
+        byteBuffer.write(buffer, 0, len)
+    }
+    val imageBytes = byteBuffer.toByteArray()
+
+    // 바이트 배열을 RequestBody로 변환. (MIME 타입 명시)
+    val requestBody = imageBytes.toRequestBody(mediaType.toMediaTypeOrNull(), 0, imageBytes.size)
+
+    // MultipartBody.Part 객체 생성 및 반환합니다.
+    // 첫 번째 인수는 서버가 기대하는 이름 ("imagePart"), 두 번째는 파일 이름, 세 번째는 RequestBody입니다.
+    return MultipartBody.Part.createFormData(partName, fileName, requestBody)
 }
 
 // 말풍선 Composable

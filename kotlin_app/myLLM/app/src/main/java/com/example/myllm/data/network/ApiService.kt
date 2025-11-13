@@ -1,4 +1,4 @@
-package com.example.myllm.network
+package com.example.myllm.data.network
 
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import kotlinx.serialization.json.Json
@@ -21,7 +21,7 @@ interface ApiService {
      * @return Response<AgentRequest> (텍스트 응답 또는 기능 호출 JSON)
      */
     @POST("chat")
-    suspend fun sendMessage(@Body request: AgentRequest): AgentResponse
+    suspend fun sendMessage(@Body request: AgentRequest): AgentResponseDto
 
     /**
      * 스크린샷과 XML 상태 데이터를 서버에 전송
@@ -34,7 +34,7 @@ interface ApiService {
     suspend fun uploadObservation(
         @Part imagePart: MultipartBody.Part,
         @Part("context_data") contextData: RequestBody
-    ): AgentResponse
+    ): AgentResponseDto
 }
 
 /*
