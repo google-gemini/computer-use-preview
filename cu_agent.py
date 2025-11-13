@@ -223,7 +223,7 @@ class CUAgent:
                 ret.append(part.function_call)
         return ret
     
-    def _run_one_iteration(self) -> Literal["COMPLETE", "CONTINUE"]:
+    def _run_and_parse_response(self) -> Literal["COMPLETE", "CONTINUE"]:
         """[CUAgent 내부] LLM을 호출하고 응답을 파싱합니다."""
         if self._verbose:
             print("[CUAgent] Gemini Thinking...")
@@ -290,8 +290,8 @@ class CUAgent:
             
         parts = [Part(text=instruction)]
         if screenshot_data:
-             parts.append(Part(inline_data=types.Blob(mime_type="image/png", data=screenshot_data)))
-             parts.append(Part(text=f"현재 화면 상태: {url_or_activity or 'unknown'}"))
+            parts.append(Part(inline_data=types.Blob(mime_type="image/png", data=screenshot_data)))
+            parts.append(Part(text=f"현재 화면 상태: {url_or_activity or 'unknown'}"))
         else:
             parts.append(Part(text="현재 화면 정보 없음."))
             
@@ -310,7 +310,10 @@ class CUAgent:
                     Part(
                         function_response=FunctionResponse(
                             name=previous_action['action'],
-                            response={"result": "Action executed by client successfully."},
+                            response={
+                                "result": "Action executed by client successfully.",
+                                "url": current_activity or "unknown_activity"
+                            },
                         )
                     ),
                     Part(inline_data=types.Blob(mime_type="image/png", data=current_screenshot_data)),
