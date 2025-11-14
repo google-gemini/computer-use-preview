@@ -1,4 +1,4 @@
-package com.example.myllm.data.network
+package com.example.myllm.network
 
 import kotlinx.serialization.Serializable
 

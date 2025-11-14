@@ -40,17 +40,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
-import com.aallam.openai.api.chat.ChatCompletionRequest
 import com.aallam.openai.api.chat.ChatMessage
 import com.aallam.openai.api.chat.ChatRole
-import com.aallam.openai.api.model.ModelId
 import com.aallam.openai.client.OpenAI
 import com.example.myllm.BuildConfig
 import com.example.myllm.R
 import com.example.myllm.data.AppChatMessage // ⬅️ [중요] import 경로
-import com.example.myllm.data.network.AgentRequest
-import com.example.myllm.data.network.AgentResponseDto
-import com.example.myllm.data.network.RetrofitClient
+import com.example.myllm.network.AgentRequest
+import com.example.myllm.network.RetrofitClient
 import com.example.myllm.ui.theme.MyLLMTheme
 import kotlinx.coroutines.launch
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
