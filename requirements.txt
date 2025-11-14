@@ -5,3 +5,7 @@ playwright==1.55.0
 browserbase==1.4.0
 rich
 pytest
+dotenv
+uvicorn
+fastapi
+python-multipart
