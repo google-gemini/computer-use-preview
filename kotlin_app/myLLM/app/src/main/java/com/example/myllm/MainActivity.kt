@@ -6,10 +6,12 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import com.example.myllm.ui.theme.MyLLMTheme
 import com.example.myllm.navigation.AppNavigation
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
         setContent {
             MyLLMTheme {
                 // 내비게이션 Composable만 호출

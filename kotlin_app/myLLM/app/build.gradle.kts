@@ -11,6 +11,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    kotlin("plugin.serialization") version "1.9.20"
 }
 
 android {
@@ -67,8 +68,10 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
     implementation("androidx.navigation:navigation-compose:2.7.7")
+
 // (버전은 다를 수 있음)
     // OpenAI Kotlin 라이브러리
     implementation("com.aallam.openai:openai-client:3.8.0")
@@ -77,6 +80,15 @@ dependencies {
     // openai-kotlin이 네트워크 요청을 위해 필요로 합니다.
     implementation("io.ktor:ktor-client-okhttp:2.3.11")
 
+    // Retrofit (HTTP Client)
+    implementation("com.squareup.retrofit2:retrofit:2.11.0")
+
+    // OkHttp (Retrofit 기반, 파일 전송에 필수)
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+
+    // Kotlinx Serialization (JSON Converter)
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
+    implementation("com.jakewharton.retrofit:retrofit2-kotlinx-serialization-converter:1.0.0")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
