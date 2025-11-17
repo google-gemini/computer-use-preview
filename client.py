@@ -8,6 +8,7 @@
 import requests
 import os
 import json
+import uuid
 
 # --- 설정 ---
 SERVER_URL = "http://localhost:8000"
@@ -28,6 +29,8 @@ def main():
     # 세션을 사용하여 연결을 유지합니다 (선택 사항이지만 권장).
     session = requests.Session()
 
+    session_id = str(uuid.uuid4())
+
     while True:
         try:
             # --- 1. 초기 쿼리 전송 (/chat/query) ---
@@ -39,7 +42,11 @@ def main():
                 continue
 
             print(f"[클라이언트] -> /chat/query (쿼리: {query})")
-            response = session.post(QUERY_ENDPOINT, data={'query': query})
+            query_data = {
+                'query': query,
+                'session_id': session_id 
+            }
+            response = session.post(QUERY_ENDPOINT, data=query_data)
             response.raise_for_status() # HTTP 오류 발생 시 예외 처리
             server_data = response.json()
             print(f"[서버] <- {server_data}")
@@ -75,8 +82,8 @@ def main():
                             'screenshot': (screenshot_filename, f, 'image/png')
                         }
                         data = {
-                            # 실제 앱에서는 현재 Activity 이름을 전송합니다.
-                            'activity': 'simulated.activity.name' 
+                            'activity': 'simulated.activity.name',
+                            'session_id': session_id
                         }
                         
                         print(f"[클라이언트] -> /chat/step (파일: {screenshot_filename})")
