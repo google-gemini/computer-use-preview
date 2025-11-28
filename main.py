@@ -54,13 +54,48 @@ def main() -> int:
         default='gemini-2.5-computer-use-preview-10-2025',
         help="Set which main model to use.",
     )
+    parser.add_argument(
+        "--chrome_profile",
+        type=str,
+        default=None,
+        help="Path to Chrome user data directory (profile) to use. You can use your regular Chrome profile. "
+             "Common locations: macOS: ~/Library/Application Support/Google/Chrome/User Data/Profile 1, "
+             "Linux: ~/.config/google-chrome/Default, Windows: %%LOCALAPPDATA%%\\Google\\Chrome\\User Data\\Default. "
+             "Find your exact path in Chrome by visiting chrome://version/ and looking for 'Profile Path'. "
+             "If not specified, a temporary profile will be used.",
+    )
+    parser.add_argument(
+        "--use_system_chrome",
+        action="store_true",
+        default=False,
+        help="Use system Chrome executable instead of Playwright's bundled Chromium. "
+             "This can work better with existing Chrome profiles and managed profiles.",
+    )
     args = parser.parse_args()
+
+    # Expand user profile path if provided
+    user_data_dir = None
+    if args.chrome_profile:
+        # Expand ~ to home directory
+        user_data_dir = os.path.expanduser(args.chrome_profile)
+        # Convert to absolute path
+        user_data_dir = os.path.abspath(user_data_dir)
+        
+        # Validate that the directory exists
+        if not os.path.isdir(user_data_dir):
+            print(f"Error: Chrome profile directory does not exist: {user_data_dir}")
+            print(f"Please check the path and ensure Chrome is closed before using the profile.")
+            return 1
+        
+        print(f"Using Chrome profile: {user_data_dir}")
 
     if args.env == "playwright":
         env = PlaywrightComputer(
             screen_size=PLAYWRIGHT_SCREEN_SIZE,
             initial_url=args.initial_url,
             highlight_mouse=args.highlight_mouse,
+            user_data_dir=user_data_dir,
+            use_system_chrome=args.use_system_chrome,
         )
     elif args.env == "browserbase":
         env = BrowserbaseComputer(

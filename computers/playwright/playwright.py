@@ -81,11 +81,15 @@ class PlaywrightComputer(Computer):
         initial_url: str = "https://www.google.com",
         search_engine_url: str = "https://www.google.com",
         highlight_mouse: bool = False,
+        user_data_dir: str | None = None,
+        use_system_chrome: bool = False,
     ):
         self._initial_url = initial_url
         self._screen_size = screen_size
         self._search_engine_url = search_engine_url
         self._highlight_mouse = highlight_mouse
+        self._user_data_dir = user_data_dir
+        self._use_system_chrome = use_system_chrome
 
     def _handle_new_page(self, new_page: playwright.sync_api.Page):
         """The Computer Use model only supports a single tab at the moment.
@@ -100,28 +104,133 @@ class PlaywrightComputer(Computer):
     def __enter__(self):
         print("Creating session...")
         self._playwright = sync_playwright().start()
-        self._browser = self._playwright.chromium.launch(
-            args=[
-                "--disable-extensions",
-                "--disable-file-system",
-                "--disable-plugins",
-                "--disable-dev-shm-usage",
-                "--disable-background-networking",
-                "--disable-default-apps",
-                "--disable-sync",
-                # No '--no-sandbox' arg means the sandbox is on.
-            ],
-            headless=bool(os.environ.get("PLAYWRIGHT_HEADLESS", False)),
-        )
-        self._context = self._browser.new_context(
-            viewport={
-                "width": self._screen_size[0],
-                "height": self._screen_size[1],
-            }
-        )
-        self._page = self._context.new_page()
+        
+        if self._user_data_dir:
+            # Handle Chrome profile path: .../Chrome/Profile 1 -> .../Chrome/User Data
+            profile_dir = None
+            user_data_dir = self._user_data_dir
+            current_name = os.path.basename(user_data_dir)
+            parent_dir = os.path.dirname(user_data_dir)
+            
+            # If provided path is a profile directory (Profile 1, Profile 2, etc.), 
+            # find the "User Data" parent directory
+            if current_name in ("Default", "Profile 1", "Profile 2", "Profile 3", "Profile 4", "Profile 5"):
+                user_data_candidate = os.path.join(parent_dir, "User Data")
+                if os.path.isdir(user_data_candidate):
+                    profile_dir = current_name
+                    user_data_dir = user_data_candidate
+                    termcolor.cprint(
+                        f"Detected profile: {profile_dir}, using User Data directory: {user_data_dir}",
+                        color="cyan",
+                    )
+                elif os.path.basename(parent_dir) == "User Data":
+                    # Already pointing to User Data/Profile X
+                    profile_dir = current_name
+                    user_data_dir = parent_dir
+                    termcolor.cprint(
+                        f"Detected profile: {profile_dir}, using User Data directory: {user_data_dir}",
+                        color="cyan",
+                    )
+            
+            # Check for Chrome lock file - indicates Chrome might still be running
+            lock_file = os.path.join(user_data_dir, "SingletonLock")
+            if os.path.exists(lock_file):
+                termcolor.cprint(
+                    f"Warning: Chrome lock file detected. Make sure Chrome is completely closed before using the profile.",
+                    color="yellow",
+                )
+            
+            # Use persistent context for Chrome profile support
+            # For managed profiles with extensions and SSO, we need to:
+            # - Enable extensions (remove --disable-extensions)
+            # - Enable sync (remove --disable-sync) for device enrollment and SSO
+            # - Enable file system access for profile data
+            # - Keep other optimizations that don't interfere with enterprise features
+            try:
+                args = [
+                    # Extensions, sync, and file system are enabled for managed profiles
+                    # to support browsing protection, device identification, and SSO
+                    "--disable-plugins",
+                    "--disable-dev-shm-usage",
+                    "--disable-background-networking",
+                    "--disable-default-apps",
+                    # No '--no-sandbox' arg means the sandbox is on.
+                ]
+                
+                # If we detected a specific profile, use --profile-directory argument
+                if profile_dir:
+                    args.append(f"--profile-directory={profile_dir}")
+                
+                # Option to use system Chrome instead of Playwright's bundled Chromium
+                # This can work better with existing Chrome profiles
+                executable_path = None
+                if self._use_system_chrome:
+                    # Try to find system Chrome on macOS
+                    chrome_paths = [
+                        "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+                        "/Applications/Chromium.app/Contents/MacOS/Chromium",
+                    ]
+                    for path in chrome_paths:
+                        if os.path.exists(path):
+                            executable_path = path
+                            termcolor.cprint(
+                                f"Using system Chrome: {executable_path}",
+                                color="cyan",
+                            )
+                            break
+                    if not executable_path:
+                        termcolor.cprint(
+                            "Warning: System Chrome not found, using Playwright's Chromium",
+                            color="yellow",
+                        )
+                
+                self._context = self._playwright.chromium.launch_persistent_context(
+                    user_data_dir=user_data_dir,
+                    viewport={
+                        "width": self._screen_size[0],
+                        "height": self._screen_size[1],
+                    },
+                    args=args,
+                    headless=bool(os.environ.get("PLAYWRIGHT_HEADLESS", False)),
+                    executable_path=executable_path,
+                )
+                # With persistent context, pages are managed differently
+                self._page = self._context.pages[0] if self._context.pages else self._context.new_page()
+                self._browser = None  # Persistent context manages browser internally
+            except Exception as e:
+                termcolor.cprint(
+                    f"Error launching Chromium with profile: {e}",
+                    color="red",
+                )
+                termcolor.cprint(
+                    f"Make sure Chrome is completely closed and the profile path is correct: {self._user_data_dir}",
+                    color="yellow",
+                )
+                raise
+        else:
+            # Original behavior without profile - disable extensions and sync
+            self._browser = self._playwright.chromium.launch(
+                args=[
+                    "--disable-extensions",
+                    "--disable-file-system",
+                    "--disable-plugins",
+                    "--disable-dev-shm-usage",
+                    "--disable-background-networking",
+                    "--disable-default-apps",
+                    "--disable-sync",
+                    # No '--no-sandbox' arg means the sandbox is on.
+                ],
+                headless=bool(os.environ.get("PLAYWRIGHT_HEADLESS", False)),
+            )
+            self._context = self._browser.new_context(
+                viewport={
+                    "width": self._screen_size[0],
+                    "height": self._screen_size[1],
+                }
+            )
+            self._page = self._context.new_page()
+        
         self._page.goto(self._initial_url)
-
         self._context.on("page", self._handle_new_page)
 
         termcolor.cprint(
@@ -134,16 +243,17 @@ class PlaywrightComputer(Computer):
     def __exit__(self, exc_type, exc_val, exc_tb):
         if self._context:
             self._context.close()
-        try:
-            self._browser.close()
-        except Exception as e:
-            # Browser was already shut down because of SIGINT or such.
-            if "Browser.close: Connection closed while reading from the driver" in str(
-                e
-            ):
-                pass
-            else:
-                raise
+        if self._browser:
+            try:
+                self._browser.close()
+            except Exception as e:
+                # Browser was already shut down because of SIGINT or such.
+                if "Browser.close: Connection closed while reading from the driver" in str(
+                    e
+                ):
+                    pass
+                else:
+                    raise
 
         self._playwright.stop()
 
