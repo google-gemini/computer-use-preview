@@ -71,7 +71,6 @@ class FunctionRegistry:
             if resolved:
                 self._specs[spec.name] = spec
                 self._callables[spec.name] = resolved
-        print(f"debugging: loaded custom functions {list(self._specs.keys())}")
 
     def _import_callable(self, spec: FunctionSpec) -> Optional[Callable]:
         """Import callable from module according to spec."""
@@ -120,7 +119,6 @@ class FunctionRegistry:
                     f"Failed to build declaration for {name}: {exc}",
                     color="red",
                 )
-        print(f"debugging: built {len(declarations)} function declarations")
         return declarations
 
     def has_function(self, name: str) -> bool:
@@ -150,6 +148,5 @@ class FunctionRegistry:
                 color="red",
             )
             raise
-        print(f"debugging: executing custom function {name} with args {bound_args.arguments}")
         return func(*bound_args.args, **bound_args.kwargs)
 

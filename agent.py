@@ -408,8 +408,7 @@ class BrowserAgent:
         decision = ""
         while decision.lower() not in ("y", "n", "ye", "yes", "no"):
             decision = input("Do you wish to execute? [Yes]/[No]\n")
-        print(f"debugging: user decision for {action.name} -> {decision}")
-        return decision.lower() in ("y", "yes")
+        return decision.lower() in ("y", "ye", "yes")
 
     def _get_safety_confirmation(
         self, safety: dict[str, Any]
