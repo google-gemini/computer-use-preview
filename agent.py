@@ -27,8 +27,10 @@ from google.genai.types import (
 import time
 from rich.console import Console
 from rich.table import Table
+from pathlib import Path
 
 from computers import EnvState, Computer
+from function_registry import FunctionRegistry
 
 MAX_RECENT_TURN_WITH_SCREENSHOTS = 3
 PREDEFINED_COMPUTER_USE_FUNCTIONS = [
@@ -55,11 +57,6 @@ console = Console()
 FunctionResponseT = Union[EnvState, dict]
 
 
-def multiply_numbers(x: float, y: float) -> dict:
-    """Multiplies two numbers."""
-    return {"result": x * y}
-
-
 class BrowserAgent:
     def __init__(
         self,
@@ -79,6 +76,14 @@ class BrowserAgent:
             project=os.environ.get("VERTEXAI_PROJECT"),
             location=os.environ.get("VERTEXAI_LOCATION"),
         )
+        config_path = os.environ.get(
+            "FUNCTION_CONFIG_PATH",
+            str(Path(__file__).parent / "config" / "functions.json"),
+        )
+        self._function_registry = FunctionRegistry(
+            config_path=config_path,
+            client=self._client,
+        )
         self._contents: list[Content] = [
             Content(
                 role="user",
@@ -91,13 +96,7 @@ class BrowserAgent:
         # Exclude any predefined functions here.
         excluded_predefined_functions = []
 
-        # Add your own custom functions here.
-        custom_functions = [
-            # For example:
-            types.FunctionDeclaration.from_callable(
-                client=self._client, callable=multiply_numbers
-            )
-        ]
+        custom_functions = self._function_registry.function_declarations()
 
         self._generate_content_config = GenerateContentConfig(
             temperature=1,
@@ -187,9 +186,15 @@ class BrowserAgent:
                 destination_x=destination_x,
                 destination_y=destination_y,
             )
-        # Handle the custom function declarations here.
-        elif action.name == multiply_numbers.__name__:
-            return multiply_numbers(x=action.args["x"], y=action.args["y"])
+        elif self._function_registry.has_function(action.name):
+            if not self._function_registry.is_whitelisted(action.name):
+                if not self._confirm_custom_function(action):
+                    termcolor.cprint(
+                        f"Custom function {action.name} denied by user.",
+                        color="yellow",
+                    )
+                    return {"status": "rejected", "reason": "user_denied"}
+            return self._function_registry.execute(action.name, action.args)
         else:
             raise ValueError(f"Unsupported function: {action}")
 
@@ -385,6 +390,26 @@ class BrowserAgent:
                                 part.function_response.parts = None
 
         return "CONTINUE"
+
+    def _confirm_custom_function(
+        self, action: types.FunctionCall
+    ) -> bool:
+        """Prompt user before executing non-whitelisted custom functions."""
+        termcolor.cprint(
+            "Custom function requires confirmation!",
+            color="yellow",
+            attrs=["bold"],
+        )
+        print(f"Function: {action.name}")
+        print(f"Args: {action.args}")
+        risk_note = self._function_registry.risk_note(action.name)
+        if risk_note:
+            print(f"Risk: {risk_note}")
+        decision = ""
+        while decision.lower() not in ("y", "n", "ye", "yes", "no"):
+            decision = input("Do you wish to execute? [Yes]/[No]\n")
+        print(f"debugging: user decision for {action.name} -> {decision}")
+        return decision.lower() in ("y", "yes")
 
     def _get_safety_confirmation(
         self, safety: dict[str, Any]
