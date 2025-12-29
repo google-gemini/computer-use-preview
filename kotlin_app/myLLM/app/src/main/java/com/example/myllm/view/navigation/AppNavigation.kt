@@ -1,13 +1,13 @@
-package com.example.myllm.navigation // ⬅️ [중요] 패키지 선언
+package com.example.myllm.view.navigation // ⬅️ [중요] 패키지 선언
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.myllm.screens.ChatScreen     // ⬅️ [중요] import 경로
-import com.example.myllm.screens.StartScreen  // ⬅️ [중요] import 경로
-import com.example.myllm.screens.TestScreen   // ⬅️ [중요] import 경로
+import com.example.myllm.view.screens.ChatScreen     // ⬅️ [중요] import 경로
+import com.example.myllm.view.screens.StartScreen  // ⬅️ [중요] import 경로
+import com.example.myllm.view.screens.TestScreen   // ⬅️ [중요] import 경로
 
 // 화면 경로(Route)를 정의하는 객체
 object AppRoutes {

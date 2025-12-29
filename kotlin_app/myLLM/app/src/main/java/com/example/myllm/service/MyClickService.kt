@@ -1,26 +1,26 @@
-package com.example.myllm
+package com.example.myllm.service
 
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.GestureDescription
-import android.graphics.Path
-import android.graphics.Rect
-import android.util.Log
-import android.view.accessibility.AccessibilityEvent
-import android.view.accessibility.AccessibilityNodeInfo
 import android.content.BroadcastReceiver
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.content.ClipboardManager
-import android.content.ClipData
+import android.graphics.Path
+import android.graphics.Rect
 import android.os.Bundle
-import android.content.Context.RECEIVER_NOT_EXPORTED
+import android.util.Log
+import android.view.accessibility.AccessibilityEvent
+import android.view.accessibility.AccessibilityNodeInfo
+import com.example.myllm.AccessibilityActions
+import com.example.myllm.data.Action
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-
 
 class MyClickService : AccessibilityService() {
 
@@ -110,8 +110,38 @@ class MyClickService : AccessibilityService() {
     override fun onServiceConnected() {
         super.onServiceConnected()
         Log.d("MyClickService", "서비스 연결됨. UI 명령 수신 대기 시작.")
-        val filter = IntentFilter(AccessibilityActions.ACTION_PERFORM_GESTURE)
-        registerReceiver(gestureReceiver, filter, RECEIVER_NOT_EXPORTED)
+        
+        // BroadcastReceiver 대신 Flow를 구독
+        // ChatRepository에서 SharedFlow로 실행함
+        serviceScope.launch {
+            ActionController.actionFlow.collect { action ->
+                Log.d("MyClickService", "명령 수신: $action")
+                executeAction(action)
+            }
+        }
+//        val filter = IntentFilter(AccessibilityActions.ACTION_PERFORM_GESTURE)
+//        registerReceiver(gestureReceiver, filter, RECEIVER_NOT_EXPORTED)
+    }
+
+    private fun CoroutineScope.executeAction(action: Action) {
+        when (action) {
+            is Action.ClickAt -> clickAt(action.x, action.y)
+            is Action.PerformLongPress -> performLongPress(action.x, action.y)
+            is Action.PerformSmartInput -> performSmartInput(action.x, action.y, action.text)
+            is Action.ClickAndTypeText -> clickAndTypeText(action.x, action.y, action.text)
+            is Action.FindEditableNodeNear -> findEditableNodeNear(action.x, action.y)
+            is Action.CollectAllNodes -> collectAllNodes(action.node, action.list)
+            is Action.PerformScroll -> performScroll(action.scrollUp)
+            is Action.PerformHorizontalSwipe -> performHorizontalSwipe(action.swipeRight)
+            is Action.PerformGoBack -> performGoBack()
+            is Action.PerformGoHome -> performGoHome()
+            is Action.PerformOpenApp -> performOpenApp(action.packageName)
+            is Action.FindTextOnScreen -> findTextOnScreen(action.searchText)
+            is Action.PerformScrollToText -> performScrollToText(action.text)
+            is Action.PerformWait -> performWait(action.durationMs)
+            is Action.PerformMacro -> performMacro(action.commands)
+            else -> Log.w("MyClickService", "미구현 액션: $action")
+        }
     }
 
     // (clickAt, clickAndTypeText, performSmartInput, ... 등등 수정 없음)
@@ -187,7 +217,7 @@ class MyClickService : AccessibilityService() {
                 Log.d("MyClickService", "ACTION_SET_TEXT 성공 ✅ (기존 내용 덮어쓰기 완료)")
             } else {
                 Log.w("MyClickService", "ACTION_SET_TEXT 실패 ❌ — 붙여넣기(PASTE) fallback 시도")
-                val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
                 val clip = ClipData.newPlainText("myllm-paste", text)
                 clipboard.setPrimaryClip(clip)
                 val pasted = node.performAction(AccessibilityNodeInfo.ACTION_PASTE)
@@ -290,7 +320,7 @@ class MyClickService : AccessibilityService() {
         }, null)
     }
     private fun performGoBack() {
-        val success = performGlobalAction(AccessibilityService.GLOBAL_ACTION_BACK)
+        val success = performGlobalAction(GLOBAL_ACTION_BACK)
         if (success) Log.d("MyClickService", "뒤로 가기(Global Action) 성공")
         else Log.e("MyClickService", "뒤로 가기(Global Action) 실패")
     }
@@ -313,7 +343,7 @@ class MyClickService : AccessibilityService() {
         }
     }
     private fun performGoHome() {
-        val success = performGlobalAction(AccessibilityService.GLOBAL_ACTION_HOME)
+        val success = performGlobalAction(GLOBAL_ACTION_HOME)
         if (success) Log.d("MyClickService", "홈으로 가기(Global Action) 성공")
         else Log.e("MyClickService", "홈으로 가기(Global Action) 실패")
     }
@@ -505,7 +535,12 @@ class MyClickService : AccessibilityService() {
 
     override fun onInterrupt() {
         Log.d("MyClickService", "서비스 중단됨. UI 명령 수신 종료.")
-        unregisterReceiver(gestureReceiver)
+//        unregisterReceiver(gestureReceiver)
+        serviceScope.cancel()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
         serviceScope.cancel()
     }
 

@@ -1,4 +1,4 @@
-package com.example.myllm.screens
+package com.example.myllm.view.screens
 
 import android.content.Intent
 import android.provider.Settings

@@ -1,4 +1,4 @@
-package com.example.myllm.screens // ⬅️ [중요] 패키지 선언
+package com.example.myllm.view.screens // ⬅️ [중요] 패키지 선언
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -17,7 +17,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
-import com.example.myllm.navigation.AppRoutes // ⬅️ [중요] import 경로
+import com.example.myllm.view.navigation.AppRoutes // ⬅️ [중요] import 경로
 import com.example.myllm.ui.theme.MyLLMTheme
 
 // 시작 화면 Composable
