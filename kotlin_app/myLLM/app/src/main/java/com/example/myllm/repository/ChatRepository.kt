@@ -47,15 +47,19 @@ class ChatRepository(
             "click_at" -> {
                 // args가 Map<String, Any> 형태라고 가정할 때의 파싱
                 val x = dto.args?.get("x")?.toFloat() ?: 0f
-                val y = dto.args?.get("x")?.toFloat() ?: 0f
+                val y = dto.args?.get("y")?.toFloat() ?: 0f
                 Action.ClickAt(x, y)
             }
             "go_home" -> {
                 Action.PerformGoHome
             }
+            "open_app" ->{
+                val appName = dto.args?.get("name") ?: ""
+                Action.PerformOpenApp(appName)
+            }
 
             "INPUT" -> {
-                val text = dto.args?.get("text") as? String ?: ""
+                val text = dto.args?.get("text") ?: ""
                 Log.i("ChatRepository", text)
                 Action.ClickAt(0f, 0f)
             }

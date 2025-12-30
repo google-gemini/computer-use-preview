@@ -176,3 +176,6 @@ cython_debug/
 
 # Node stuff
 node_modules/
+
+buildOutputCleanup.lock
+fileHashes.lock
