@@ -12,12 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import json
 import os
+import tempfile
 import unittest
 from unittest.mock import MagicMock, patch
 from google.genai import types
-from agent import BrowserAgent, multiply_numbers
+from agent import BrowserAgent
 from computers import EnvState
+from function_registry import FunctionRegistry
+from custom_functions.math import multiply_numbers
 
 class TestBrowserAgent(unittest.TestCase):
     def setUp(self):
@@ -61,6 +65,44 @@ class TestBrowserAgent(unittest.TestCase):
         action = types.FunctionCall(name="navigate", args={"url": "https://example.com"})
         self.agent.handle_action(action)
         self.mock_browser_computer.navigate.assert_called_once_with("https://example.com")
+
+    def test_function_registry_load_and_execute(self):
+        config_payload = {
+            "functions": [
+                {
+                    "name": "multiply_numbers",
+                    "module": "custom_functions.math",
+                    "attribute": "multiply_numbers",
+                    "description": "Multiply two numbers.",
+                    "whitelist": True,
+                }
+            ]
+        }
+        with tempfile.NamedTemporaryFile("w", delete=False, suffix=".json") as temp_config:
+            json.dump(config_payload, temp_config)
+            temp_path = temp_config.name
+        registry = FunctionRegistry(config_path=temp_path, client=MagicMock())
+        self.assertTrue(registry.has_function("multiply_numbers"))
+        self.assertTrue(registry.is_whitelisted("multiply_numbers"))
+        self.assertEqual(
+            registry.execute("multiply_numbers", {"x": 2, "y": 3}),
+            {"result": 6},
+        )
+        os.remove(temp_path)
+
+    @patch("agent.input", return_value="yes")
+    def test_handle_action_custom_function_requires_confirmation(self, mock_input):
+        mock_registry = MagicMock()
+        mock_registry.has_function.return_value = True
+        mock_registry.is_whitelisted.return_value = False
+        mock_registry.risk_note.return_value = "Risky operation"
+        mock_registry.execute.return_value = {"status": "ok"}
+        self.agent._function_registry = mock_registry
+        action = types.FunctionCall(name="custom_fn", args={"x": 1})
+        result = self.agent.handle_action(action)
+        self.assertEqual(result, {"status": "ok"})
+        mock_registry.execute.assert_called_once_with("custom_fn", {"x": 1})
+        mock_input.assert_called()
 
     def test_handle_action_unknown_function(self):
         action = types.FunctionCall(name="unknown_function", args={})
