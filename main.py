@@ -23,13 +23,19 @@ PLAYWRIGHT_SCREEN_SIZE = (1440, 900)
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Run the browser agent with a query.")
-    parser.add_argument(
+    query_group = parser.add_mutually_exclusive_group(required=True)
+    query_group.add_argument(
         "--query",
         type=str,
-        required=True,
         help="The query for the browser agent to execute.",
     )
-
+    query_group.add_argument(
+        "--query_file",
+        type=argparse.FileType("r", encoding="utf-8"),
+        help=(
+            "Path to a file containing the query for the browser agent to execute."
+        ),
+    )
     parser.add_argument(
         "--env",
         type=str,
@@ -56,6 +62,18 @@ def main() -> int:
     )
     args = parser.parse_args()
 
+    if args.query_file:
+        with args.query_file as f:
+            filename = f.name
+            query = f.read()
+        if not query.strip():
+            raise ValueError(
+                f"Query file '{filename}' is empty or contains only whitespace."
+            )
+    else:
+        # This branch is taken if --query is used.
+        query = args.query
+
     if args.env == "playwright":
         env = PlaywrightComputer(
             screen_size=PLAYWRIGHT_SCREEN_SIZE,
@@ -73,7 +91,7 @@ def main() -> int:
     with env as browser_computer:
         agent = BrowserAgent(
             browser_computer=browser_computer,
-            query=args.query,
+            query=query,
             model_name=args.model,
         )
         agent.agent_loop()
