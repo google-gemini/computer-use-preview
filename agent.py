@@ -72,7 +72,6 @@ class BrowserAgent:
         self._query = query
         self._model_name = model_name
         self._verbose = verbose
-        self.final_reasoning = None
         self._client = genai.Client(
             api_key=os.environ.get("GEMINI_API_KEY"),
             vertexai=os.environ.get("USE_VERTEXAI", "0").lower() in ["true", "1"],
@@ -287,7 +286,6 @@ class BrowserAgent:
 
         if not function_calls:
             print(f"Agent Loop Complete: {reasoning}")
-            self.final_reasoning = reasoning
             return "COMPLETE"
 
         function_call_strs = []
