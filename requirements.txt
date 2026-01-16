@@ -5,3 +5,5 @@ playwright==1.55.0
 browserbase==1.4.0
 rich
 pytest
+python-dotenv==1.0.0
+toml==0.10.2

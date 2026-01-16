@@ -60,6 +60,90 @@ def multiply_numbers(x: float, y: float) -> dict:
     return {"result": x * y}
 
 
+def get_available_credentials() -> dict:
+    """Returns information about which credentials are available without exposing their values.
+    
+    This function checks environment variables for stored credentials and returns
+    metadata about what's available. The actual credential values are never exposed
+    to the model - they remain secure in environment variables.
+    
+    Returns:
+        A dictionary containing:
+        - available_sites: list of sites for which credentials are configured
+        - credential_keys: list of available credential identifiers (without values)
+    """
+    available_creds = {}
+    available_sites = []
+    
+    # Check for common credential patterns in environment variables
+    # Format: SITE_USERNAME, SITE_PASSWORD (e.g., GITHUB_USERNAME, GITHUB_PASSWORD)
+    import os
+    env_vars = os.environ.keys()
+    
+    for var in env_vars:
+        if var.endswith('_USERNAME') or var.endswith('_USER'):
+            site = var.replace('_USERNAME', '').replace('_USER', '')
+            password_var = f"{site}_PASSWORD"
+            if password_var in env_vars:
+                available_sites.append(site.lower())
+                available_creds[site.lower()] = {
+                    "username_key": var,
+                    "password_key": password_var,
+                    "has_credentials": True
+                }
+    
+    return {
+        "available_sites": available_sites,
+        "message": f"Credentials are securely stored for: {', '.join(available_sites) if available_sites else 'no sites'}. Use perform_secure_login() to authenticate."
+    }
+
+
+def perform_secure_login(site: str) -> dict:
+    """Performs a secure login using stored credentials without exposing them.
+    
+    This function retrieves credentials from environment variables and returns
+    them in a way that they can be used by the browser automation, but the actual
+    values are never shown in the conversation history or logs.
+    
+    Args:
+        site: The site identifier (e.g., 'github', 'linkedin', 'mediaset')
+        
+    Returns:
+        A dictionary with:
+        - success: boolean indicating if credentials were found
+        - message: status message (without credential values)
+        - username: the actual username (to be used internally)
+        - password: the actual password (to be used internally)
+    """
+    import os
+    
+    site_upper = site.upper()
+    username_key = f"{site_upper}_USERNAME"
+    password_key = f"{site_upper}_PASSWORD"
+    
+    # Try alternative key format
+    if username_key not in os.environ:
+        username_key = f"{site_upper}_USER"
+    
+    username = os.environ.get(username_key)
+    password = os.environ.get(password_key)
+    
+    if username and password:
+        return {
+            "success": True,
+            "message": f"Credentials retrieved for {site}. Ready to perform login.",
+            "username": username,
+            "password": password
+        }
+    else:
+        return {
+            "success": False,
+            "message": f"No credentials found for {site}. Expected environment variables: {username_key} and {password_key}",
+            "username": None,
+            "password": None
+        }
+
+
 class BrowserAgent:
     def __init__(
         self,
@@ -67,18 +151,31 @@ class BrowserAgent:
         query: str,
         model_name: str,
         verbose: bool = True,
+        gcloud_project: Optional[str] = None,
+        trust_mode: bool = False,
     ):
         self._browser_computer = browser_computer
         self._query = query
         self._model_name = model_name
         self._verbose = verbose
+        self._trust_mode = trust_mode
         self.final_reasoning = None
-        self._client = genai.Client(
-            api_key=os.environ.get("GEMINI_API_KEY"),
-            vertexai=os.environ.get("USE_VERTEXAI", "0").lower() in ["true", "1"],
-            project=os.environ.get("VERTEXAI_PROJECT"),
-            location=os.environ.get("VERTEXAI_LOCATION"),
-        )
+        self._temp_credentials = {}  # Temporary storage for credentials during login
+        
+        # Configure client based on authentication method
+        if gcloud_project:
+            self._client = genai.Client(
+                vertexai=True,
+                project=gcloud_project,
+                location="global",  # europe-west1
+            )
+        else:
+            self._client = genai.Client(
+                api_key=os.environ.get("GEMINI_API_KEY"),
+                vertexai=os.environ.get("USE_VERTEXAI", "0").lower() in ["true", "1"],
+                project=os.environ.get("VERTEXAI_PROJECT"),
+                location=os.environ.get("VERTEXAI_LOCATION"),
+            )
         self._contents: list[Content] = [
             Content(
                 role="user",
@@ -96,7 +193,14 @@ class BrowserAgent:
             # For example:
             types.FunctionDeclaration.from_callable(
                 client=self._client, callable=multiply_numbers
-            )
+            ),
+            # Secure credential management functions
+            types.FunctionDeclaration.from_callable(
+                client=self._client, callable=get_available_credentials
+            ),
+            types.FunctionDeclaration.from_callable(
+                client=self._client, callable=perform_secure_login
+            ),
         ]
 
         self._generate_content_config = GenerateContentConfig(
@@ -141,10 +245,18 @@ class BrowserAgent:
             y = self.denormalize_y(action.args["y"])
             press_enter = action.args.get("press_enter", False)
             clear_before_typing = action.args.get("clear_before_typing", True)
+            
+            # Handle special placeholders for secure credentials
+            text = action.args["text"]
+            if text == "{{USERNAME}}" and "username" in self._temp_credentials:
+                text = self._temp_credentials["username"]
+            elif text == "{{PASSWORD}}" and "password" in self._temp_credentials:
+                text = self._temp_credentials["password"]
+            
             return self._browser_computer.type_text_at(
                 x=x,
                 y=y,
-                text=action.args["text"],
+                text=text,
                 press_enter=press_enter,
                 clear_before_typing=clear_before_typing,
             )
@@ -193,6 +305,23 @@ class BrowserAgent:
         # Handle the custom function declarations here.
         elif action.name == multiply_numbers.__name__:
             return multiply_numbers(x=action.args["x"], y=action.args["y"])
+        elif action.name == get_available_credentials.__name__:
+            return get_available_credentials()
+        elif action.name == perform_secure_login.__name__:
+            result = perform_secure_login(site=action.args["site"])
+            # Remove sensitive data from the response that goes back to the model
+            safe_result = {
+                "success": result["success"],
+                "message": result["message"]
+            }
+            # Store credentials temporarily for the agent to use
+            if result["success"]:
+                self._temp_credentials = {
+                    "username": result["username"],
+                    "password": result["password"]
+                }
+                safe_result["instruction"] = "Credentials loaded. Use type_text_at with {{USERNAME}} and {{PASSWORD}} placeholders to enter credentials in the appropriate fields."
+            return safe_result
         else:
             raise ValueError(f"Unsupported function: {action}")
 
@@ -394,6 +523,17 @@ class BrowserAgent:
     ) -> Literal["CONTINUE", "TERMINATE"]:
         if safety["decision"] != "require_confirmation":
             raise ValueError(f"Unknown safety decision: safety['decision']")
+        
+        # If trust mode is enabled, automatically approve
+        if self._trust_mode:
+            termcolor.cprint(
+                "Safety confirmation auto-approved (trust mode enabled)",
+                color="green",
+            )
+            print(safety["explanation"])
+            return "CONTINUE"
+        
+        # Otherwise, ask for user confirmation
         termcolor.cprint(
             "Safety service requires explicit confirmation!",
             color="yellow",

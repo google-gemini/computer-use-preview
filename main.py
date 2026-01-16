@@ -13,13 +13,16 @@
 # limitations under the License.
 import argparse
 import os
+from dotenv import load_dotenv
 
 from agent import BrowserAgent
 from computers import BrowserbaseComputer, PlaywrightComputer
 
+# Load environment variables from .env file
+load_dotenv()
+
 
 PLAYWRIGHT_SCREEN_SIZE = (1440, 900)
-
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Run the browser agent with a query.")
@@ -38,6 +41,12 @@ def main() -> int:
         help="The computer use environment to use.",
     )
     parser.add_argument(
+        "--auth-site",
+        type=str,
+        default=None,
+        help="Enable authentication and specify which site to login to. If specified, automatic login will be performed before agent operations. If not specified, uses default_site from config file.",
+    )
+    parser.add_argument(
         "--initial_url",
         type=str,
         default="https://www.google.com",
@@ -54,13 +63,36 @@ def main() -> int:
         default='gemini-2.5-computer-use-preview-10-2025',
         help="Set which main model to use.",
     )
+    parser.add_argument(
+        "--gcloud-auth",
+        type=str,
+        default=None,
+        help="Use gcloud authentication with Vertex AI. Specify the project ID (e.g., mlr-generative-ai-lab).",
+    )
+    parser.add_argument(
+        "--trust",
+        action="store_true",
+        default=False,
+        help="Automatically approve all safety confirmations without prompting.",
+    )
     args = parser.parse_args()
 
     if args.env == "playwright":
+        # Check if authentication is requested via --auth-site
+        auth_config_path = None
+        auth_site = None
+        
+        if args.auth_site is not None:
+            # Authentication enabled - always use playwright-auth.toml
+            auth_config_path = "playwright-auth.toml"
+            auth_site = args.auth_site if args.auth_site else None
+        
         env = PlaywrightComputer(
             screen_size=PLAYWRIGHT_SCREEN_SIZE,
             initial_url=args.initial_url,
             highlight_mouse=args.highlight_mouse,
+            auth_config_path=auth_config_path,
+            auth_site=auth_site,
         )
     elif args.env == "browserbase":
         env = BrowserbaseComputer(
@@ -75,6 +107,8 @@ def main() -> int:
             browser_computer=browser_computer,
             query=args.query,
             model_name=args.model,
+            gcloud_project=args.gcloud_auth,
+            trust_mode=args.trust,
         )
         agent.agent_loop()
     return 0
