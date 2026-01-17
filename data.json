@@ -1,0 +1,13 @@
+{
+  "business_name": "Gemini Solutions",
+  "business_type": "llc",
+  "tax_id": "12-3456789",
+  "business_description": "Providing AI-powered solutions for everyday tasks.",
+  "owner_name": "Heiko Hotz",
+  "owner_email": "heiko.hotz@example.com",
+  "owner_phone": "123-456-7890",
+  "address_street": "123 AI Street",
+  "address_city": "Googleville",
+  "address_state": "CA",
+  "address_zip": "94043"
+}
