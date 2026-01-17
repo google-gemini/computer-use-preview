@@ -40,7 +40,7 @@ def main() -> int:
     parser.add_argument(
         "--initial_url",
         type=str,
-        default="https://www.google.com",
+        default="https://www.google.com/?hl=en",
         help="The inital URL loaded for the computer.",
     )
     parser.add_argument(
