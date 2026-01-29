@@ -117,6 +117,14 @@ Runs the agent using Browserbase as the browser backend. Ensure the proper Brows
 python main.py --query="Go to Google and type 'Hello World' into the search bar" --env="browserbase"
 ```
 
+**Available Models:**
+
+You can choose the model to use by specifying the ```--model <model name>``` flag. Available options:
+
+- `gemini-2.5-computer-use-preview-10-2025`: This is the default model.
+- `gemini-3-flash-preview`: The preview version of Gemini 3 Flash.
+- `gemini-3-pro-preview`: The preview version of Gemini 3 Pro.
+
 ## Agent CLI
 
 The `main.py` script is the command-line interface (CLI) for running the browser agent.
@@ -129,6 +137,7 @@ The `main.py` script is the command-line interface (CLI) for running the browser
 | `--env` | The computer use environment to use. Must be one of the following: `playwright`, or `browserbase` | No | N/A | All |
 | `--initial_url` | The initial URL to load when the browser starts. | No | https://www.google.com | All |
 | `--highlight_mouse` | If specified, the agent will attempt to highlight the mouse cursor's position in the screenshots. This is useful for visual debugging. | No | False (not highlighted) | `playwright` |
+| `--model` | The model to use. See the "Available Models" section for more information. | No | `gemini-2.5-computer-use-preview-10-2025` | All |
 
 ### Environment Variables
 
