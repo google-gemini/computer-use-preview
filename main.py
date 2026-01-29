@@ -53,6 +53,7 @@ def main() -> int:
         "--model",
         default='gemini-2.5-computer-use-preview-10-2025',
         help="Set which main model to use.",
+        choices=['gemini-2.5-computer-use-preview-10-2025', 'gemini-3-flash-preview', 'gemini-3-pro-preview'],
     )
     args = parser.parse_args()
 
