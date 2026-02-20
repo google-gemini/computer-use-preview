@@ -68,7 +68,7 @@ class BrowserbaseComputer(PlaywrightComputer):
         )
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, _exc_type, _exc_val, _exc_tb):
         self._page.close()
 
         if self._context:
