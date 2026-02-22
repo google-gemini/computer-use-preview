@@ -14,6 +14,9 @@
 import argparse
 import os
 
+from dotenv import load_dotenv
+load_dotenv()  # .env dosyasını otomatik yükler
+
 from agent import BrowserAgent
 from computers import BrowserbaseComputer, PlaywrightComputer
 
