@@ -264,6 +264,9 @@ class BrowserAgent:
                 return "COMPLETE"
 
         if not response.candidates:
+            if response.prompt_feedback and response.prompt_feedback.block_reason.name == 'SAFETY':
+                print(response)
+                raise ValueError("Response was blocked due to safety.")
             print("Response has no candidates!")
             print(response)
             raise ValueError("Empty response")
