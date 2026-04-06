@@ -122,11 +122,7 @@ python main.py --query="Go to Google and type 'Hello World' into the search bar"
 You can choose the model to use by specifying the ```--model <model name>``` flag. Available options on Gemini Developer API and Vertex AI Client:
 
 - `gemini-2.5-computer-use-preview-10-2025`: This is the default model.
-
-Available options on Gemini Developer API only:
-
 - `gemini-3-flash-preview`: The preview version of Gemini 3 Flash.
-- `gemini-3-pro-preview`: The preview version of Gemini 3 Pro.
 
 ## Agent CLI
 
