@@ -83,6 +83,9 @@ class PlaywrightComputer(Computer):
         highlight_mouse: bool = False,
     ):
         self._initial_url = initial_url
+        self._browser = None
+        self._context = None
+        self._page = None
         self._screen_size = screen_size
         self._search_engine_url = search_engine_url
         self._highlight_mouse = highlight_mouse
@@ -100,32 +103,46 @@ class PlaywrightComputer(Computer):
     def __enter__(self):
         print("Creating session...")
         self._playwright = sync_playwright().start()
-        self._browser = self._playwright.chromium.launch(
-            args=[
-                "--disable-extensions",
-                "--disable-file-system",
-                "--disable-plugins",
-                "--disable-dev-shm-usage",
-                "--disable-background-networking",
-                "--disable-default-apps",
-                "--disable-sync",
-                # No '--no-sandbox' arg means the sandbox is on.
-            ],
-            headless=bool(os.environ.get("PLAYWRIGHT_HEADLESS", False)),
-        )
-        self._context = self._browser.new_context(
-            viewport={
-                "width": self._screen_size[0],
-                "height": self._screen_size[1],
-            }
-        )
-        self._page = self._context.new_page()
+        cdp_url = os.environ.get("CDP_URL")
+        if cdp_url:
+            self._browser = self._playwright.chromium.connect_over_cdp(cdp_url)
+            self._context = self._browser.contexts[0]
+            self._page = self._context.pages[0]
+            # Set `viewport_size` based on the existing page width and height, so all interactions are using the right dimensions.
+            self._page.set_viewport_size({
+                "width": self._page.evaluate("window.innerWidth"),
+                "height": self._page.evaluate("window.innerHeight"),
+            })
+            status_message = "Connected to remote Playwright over CDP."
+        else:
+            self._browser = self._playwright.chromium.launch(
+                args=[
+                    "--disable-extensions",
+                    "--disable-file-system",
+                    "--disable-plugins",
+                    "--disable-dev-shm-usage",
+                    "--disable-background-networking",
+                    "--disable-default-apps",
+                    "--disable-sync",
+                    # No '--no-sandbox' arg means the sandbox is on.
+                ],
+                headless=bool(os.environ.get("PLAYWRIGHT_HEADLESS", False)),
+            )
+            self._context = self._browser.new_context(
+                viewport={
+                    "width": self._screen_size[0],
+                    "height": self._screen_size[1],
+                }
+            )
+            self._page = self._context.new_page()
+            status_message = "Started local Playwright."
+
         self._page.goto(self._initial_url)
 
         self._context.on("page", self._handle_new_page)
 
         termcolor.cprint(
-            f"Started local playwright.",
+            status_message,
             color="green",
             attrs=["bold"],
         )
