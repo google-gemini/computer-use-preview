@@ -9,7 +9,7 @@ This section will guide you through setting up and running the Computer Use Prev
 **Clone the Repository**
 
 ```bash
-git clone https://github.com/google/computer-use-preview.git
+git clone https://github.com/google-gemini/computer-use-preview.git
 cd computer-use-preview
 ```
 
