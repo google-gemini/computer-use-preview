@@ -65,5 +65,51 @@ class TestMain(unittest.TestCase):
         mock_browser_agent.assert_called_once()
         mock_browser_agent.return_value.agent_loop.assert_called_once()
 
+    @patch('main.argparse.ArgumentParser')
+    @patch('main.DesktopComputer')
+    @patch('main.BrowserAgent')
+    def test_main_desktop(self, mock_browser_agent, mock_desktop_computer, mock_arg_parser):
+        mock_args = MagicMock()
+        mock_args.env = 'desktop'
+        mock_args.query = 'test_query'
+        mock_args.model = 'test_model'
+        mock_args.api_server = None
+        mock_args.api_server_key = None
+        mock_args.initial_url = 'test_url'
+        mock_args.highlight_mouse = False
+        mock_arg_parser.return_value.parse_args.return_value = mock_args
+
+        main.main()
+
+        mock_desktop_computer.assert_called_once_with(
+            screen_size=main.PLAYWRIGHT_SCREEN_SIZE,
+            initial_url='test_url'
+        )
+        mock_browser_agent.assert_called_once()
+        mock_browser_agent.return_value.agent_loop.assert_called_once()
+
+    @patch('main.argparse.ArgumentParser')
+    @patch('main.DesktopWindowsComputer')
+    @patch('main.BrowserAgent')
+    def test_main_desktop_win(self, mock_browser_agent, mock_desktop_win_computer, mock_arg_parser):
+        mock_args = MagicMock()
+        mock_args.env = 'desktop_win'
+        mock_args.query = 'test_query'
+        mock_args.model = 'test_model'
+        mock_args.api_server = None
+        mock_args.api_server_key = None
+        mock_args.initial_url = 'test_url'
+        mock_args.highlight_mouse = False
+        mock_arg_parser.return_value.parse_args.return_value = mock_args
+
+        main.main()
+
+        mock_desktop_win_computer.assert_called_once_with(
+            screen_size=main.PLAYWRIGHT_SCREEN_SIZE,
+            initial_url='test_url'
+        )
+        mock_browser_agent.assert_called_once()
+        mock_browser_agent.return_value.agent_loop.assert_called_once()
+
 if __name__ == '__main__':
     unittest.main()
