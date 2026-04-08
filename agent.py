@@ -58,7 +58,18 @@ FunctionResponseT = Union[EnvState, dict]
 def multiply_numbers(x: float, y: float) -> dict:
     """Multiplies two numbers."""
     return {"result": x * y}
-
+def wait_for_user_input(prompt_text: str) -> dict:
+    """Pauses the agent and waits for the user to press Enter in the terminal."""
+  
+    safe_prompt = "".join(ch for ch in prompt_text if ch.isprintable())
+    
+    print(f"\n" + "="*40)
+    print(f"🛑 AGENT REQUEST: {safe_prompt}")
+    print(f"="*40 + "\n")
+    
+    input("Press Enter to continue execution...")
+    
+    return {"status": "success", "message": "User confirmed action complete."}
 
 class BrowserAgent:
     def __init__(
@@ -96,7 +107,10 @@ class BrowserAgent:
             # For example:
             types.FunctionDeclaration.from_callable(
                 client=self._client, callable=multiply_numbers
-            )
+            ),
+            types.FunctionDeclaration.from_callable(
+                client=self._client, callable=wait_for_user_input
+            ),
         ]
 
         self._generate_content_config = GenerateContentConfig(
@@ -122,6 +136,7 @@ class BrowserAgent:
         """Handles the action and returns the environment state."""
         if action.name == "open_web_browser":
             return self._browser_computer.open_web_browser()
+        
         elif action.name == "click_at":
             x = self.denormalize_x(action.args["x"])
             y = self.denormalize_y(action.args["y"])
@@ -193,6 +208,8 @@ class BrowserAgent:
         # Handle the custom function declarations here.
         elif action.name == multiply_numbers.__name__:
             return multiply_numbers(x=action.args["x"], y=action.args["y"])
+        elif action.name == wait_for_user_input.__name__:
+            return wait_for_user_input(prompt_text=action.args["prompt_text"])   
         else:
             raise ValueError(f"Unsupported function: {action}")
 
@@ -349,8 +366,10 @@ class BrowserAgent:
                     )
                 )
             elif isinstance(fc_result, dict):
+                response_data = fc_result.copy()
+                response_data.update(extra_fr_fields)
                 function_responses.append(
-                    FunctionResponse(name=function_call.name, response=fc_result)
+                    FunctionResponse(name=function_call.name, response=response_data)
                 )
 
         self._contents.append(
