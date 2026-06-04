@@ -113,6 +113,9 @@ class BrowserAgent:
                 ),
                 types.Tool(function_declarations=custom_functions),
             ],
+            thinking_config=types.ThinkingConfig(
+                include_thoughts=True
+            ),
         )
 
     def handle_action(self, action: types.FunctionCall) -> FunctionResponseT:
@@ -261,6 +264,8 @@ class BrowserAgent:
                 return "COMPLETE"
 
         if not response.candidates:
+            if response.prompt_feedback and response.prompt_feedback.block_reason == types.BlockReason.SAFETY:
+                raise ValueError(f"Response was blocked due to safety. Feedback: {response.prompt_feedback}")
             print("Response has no candidates!")
             print(response)
             raise ValueError("Empty response")
