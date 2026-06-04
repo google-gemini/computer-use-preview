@@ -9,7 +9,7 @@ This section will guide you through setting up and running the Computer Use Prev
 **Clone the Repository**
 
 ```bash
-git clone https://github.com/google/computer-use-preview.git
+git clone https://github.com/google-gemini/computer-use-preview.git
 cd computer-use-preview
 ```
 
@@ -77,6 +77,16 @@ source .venv/bin/activate
 ```
 
 Replace `YOUR_PROJECT_ID` and `YOUR_LOCATION` with your actual project and location.
+
+#### C. Using a `.env` file (Recommended for local development):
+
+Copy the example environment file and fill in your values:
+
+```bash
+cp .env.example .env
+```
+
+Then open `.env` and replace the placeholder values with your actual API keys. The project will automatically load this file on startup — no need to manually export environment variables each session.
 
 ### 3. Running the Tool
 
