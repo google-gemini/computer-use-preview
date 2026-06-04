@@ -9,7 +9,7 @@ This section will guide you through setting up and running the Computer Use Prev
 **Clone the Repository**
 
 ```bash
-git clone https://github.com/google/computer-use-preview.git
+git clone https://github.com/google-gemini/computer-use-preview.git
 cd computer-use-preview
 ```
 
@@ -132,11 +132,7 @@ python main.py --query="Go to Google and type 'Hello World' into the search bar"
 You can choose the model to use by specifying the ```--model <model name>``` flag. Available options on Gemini Developer API and Vertex AI Client:
 
 - `gemini-2.5-computer-use-preview-10-2025`: This is the default model.
-
-Available options on Gemini Developer API only:
-
 - `gemini-3-flash-preview`: The preview version of Gemini 3 Flash.
-- `gemini-3-pro-preview`: The preview version of Gemini 3 Pro.
 
 ## Agent CLI
 
