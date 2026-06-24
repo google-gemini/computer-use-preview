@@ -2,7 +2,7 @@
 
 ## Quick Start
 
-This section will guide you through setting up and running the Computer Use Preview model, either the Gemini Developer API or Vertex AI. Follow these steps to get started.
+This section will guide you through setting up and running Gemini Computer Use, using either the Gemini Developer API or Vertex AI. Follow these steps to get started.
 
 ### 1. Installation
 
@@ -131,7 +131,8 @@ python main.py --query="Go to Google and type 'Hello World' into the search bar"
 
 You can choose the model to use by specifying the ```--model <model name>``` flag. Available options on Gemini Developer API and Vertex AI Client:
 
-- `gemini-2.5-computer-use-preview-10-2025`: This is the default model.
+- `gemini-3.5-flash`: This is the default model.
+- `gemini-2.5-computer-use-preview-10-2025`: An earlier computer use preview model.
 - `gemini-3-flash-preview`: The preview version of Gemini 3 Flash.
 
 ## Agent CLI
@@ -146,7 +147,7 @@ The `main.py` script is the command-line interface (CLI) for running the browser
 | `--env` | The computer use environment to use. Must be one of the following: `playwright`, or `browserbase` | No | N/A | All |
 | `--initial_url` | The initial URL to load when the browser starts. | No | https://www.google.com | All |
 | `--highlight_mouse` | If specified, the agent will attempt to highlight the mouse cursor's position in the screenshots. This is useful for visual debugging. | No | False (not highlighted) | `playwright` |
-| `--model` | The model to use. See the "Available Models" section for more information. | No | `gemini-2.5-computer-use-preview-10-2025` | All |
+| `--model` | The model to use. See the "Available Models" section for more information. | No | `gemini-3.5-flash` | All |
 
 ### Environment Variables
 

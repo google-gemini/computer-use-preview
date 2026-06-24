@@ -39,6 +39,62 @@ class Computer(abc.ABC):
 
         The 'x' and 'y' values are absolute values, scaled to the height and width of the screen.
         """
+        
+    @abc.abstractmethod
+    def double_click_at(self, x: int, y: int) -> EnvState:
+        """Double clicks at a specific x, y  coordinate on the webpage.
+
+        The 'x' and 'y' values are absolute values, scaled to the height and width of the screen.
+        """
+        
+    @abc.abstractmethod
+    def triple_click_at(self, x: int, y: int) -> EnvState:
+        """Triple clicks at a specific x, y  coordinate on the webpage.
+
+        The 'x' and 'y' values are absolute values, scaled to the height and width of the screen.
+        """
+        
+    @abc.abstractmethod
+    def middle_click_at(self, x: int, y: int) -> EnvState:
+        """Middle clicks at a specific x, y  coordinate on the webpage.
+
+        The 'x' and 'y' values are absolute values, scaled to the height and width of the screen.
+        """
+        
+    @abc.abstractmethod
+    def right_click_at(self, x: int, y: int) -> EnvState:
+        """Right clicks at a specific x, y  coordinate on the webpage.
+
+        The 'x' and 'y' values are absolute values, scaled to the height and width of the screen.
+        """
+    
+    @abc.abstractmethod
+    def mouse_down(self, x: int, y: int) -> EnvState:
+        """Mouse down at a specific x, y  coordinate on the webpage.
+
+        The 'x' and 'y' values are absolute values, scaled to the height and width of the screen.
+        """
+        
+    @abc.abstractmethod
+    def mouse_up(self, x: int, y: int) -> EnvState:
+        """Mouse up at a specific x, y  coordinate on the webpage.
+
+        The 'x' and 'y' values are absolute values, scaled to the height and width of the screen.
+        """
+        
+    @abc.abstractmethod
+    def type_text(self, text: str, press_enter: bool) -> EnvState:
+        """Type text.
+
+        set `press_enter` to True to let system automatically presses ENTER after typing.
+        """
+        
+    @abc.abstractmethod
+    def wait(self, seconds: int) -> EnvState:
+        """Waits for a duration to allow unfinished webpage processes to complete.
+
+        set `seconds` to wait for a specific duration.
+        """
 
     @abc.abstractmethod
     def hover_at(self, x: int, y: int) -> EnvState:
@@ -111,6 +167,23 @@ class Computer(abc.ABC):
     @abc.abstractmethod
     def key_combination(self, keys: list[str]) -> EnvState:
         """Presses keyboard keys and combinations, such as "control+c" or "enter"."""
+
+    @abc.abstractmethod
+    def press_key(self, key:str) -> EnvState:
+        """Presses a keyboard key."""
+
+    @abc.abstractmethod
+    def key_down(self, key:str) -> EnvState:
+        """Presses down a keyboard key."""
+
+    @abc.abstractmethod
+    def key_up(self, key: str) -> EnvState:
+        """Releases a keyboard key."""
+
+    @abc.abstractmethod
+    def take_screenshot(self) -> EnvState:
+        """Take screenshot of the current webpage."""
+
 
     @abc.abstractmethod
     def drag_and_drop(

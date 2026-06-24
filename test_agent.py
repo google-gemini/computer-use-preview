@@ -37,35 +37,35 @@ class TestBrowserAgent(unittest.TestCase):
 
     def test_handle_action_open_web_browser(self):
         action = types.FunctionCall(name="open_web_browser", args={})
-        self.agent.handle_action(action)
+        self.agent.handle_action(action, use_legacy_actions=True)
         self.mock_browser_computer.open_web_browser.assert_called_once()
 
     def test_handle_action_click_at(self):
         action = types.FunctionCall(name="click_at", args={"x": 100, "y": 200})
-        self.agent.handle_action(action)
+        self.agent.handle_action(action, use_legacy_actions=True)
         self.mock_browser_computer.click_at.assert_called_once_with(x=100, y=200)
 
     def test_handle_action_type_text_at(self):
         action = types.FunctionCall(name="type_text_at", args={"x": 100, "y": 200, "text": "hello"})
-        self.agent.handle_action(action)
+        self.agent.handle_action(action, use_legacy_actions=True)
         self.mock_browser_computer.type_text_at.assert_called_once_with(
             x=100, y=200, text="hello", press_enter=False, clear_before_typing=True
         )
 
     def test_handle_action_scroll_document(self):
         action = types.FunctionCall(name="scroll_document", args={"direction": "down"})
-        self.agent.handle_action(action)
+        self.agent.handle_action(action, use_legacy_actions=True)
         self.mock_browser_computer.scroll_document.assert_called_once_with("down")
 
     def test_handle_action_navigate(self):
         action = types.FunctionCall(name="navigate", args={"url": "https://example.com"})
-        self.agent.handle_action(action)
+        self.agent.handle_action(action, use_legacy_actions=True)
         self.mock_browser_computer.navigate.assert_called_once_with("https://example.com")
 
     def test_handle_action_unknown_function(self):
         action = types.FunctionCall(name="unknown_function", args={})
         with self.assertRaises(ValueError):
-            self.agent.handle_action(action)
+            self.agent.handle_action(action, use_legacy_actions=True)
 
     def test_denormalize_x(self):
         self.assertEqual(self.agent.denormalize_x(500), 500)
@@ -103,7 +103,7 @@ class TestBrowserAgent(unittest.TestCase):
         result = self.agent.run_one_iteration()
 
         self.assertEqual(result, "CONTINUE")
-        mock_handle_action.assert_called_once_with(function_call)
+        mock_handle_action.assert_called_once_with(function_call, False)
         self.assertEqual(len(self.agent._contents), 3)
 
 

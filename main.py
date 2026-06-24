@@ -54,7 +54,7 @@ def main() -> int:
     )
     parser.add_argument(
         "--model",
-        default='gemini-2.5-computer-use-preview-10-2025',
+        default='gemini-3.5-flash',
         help="Set which main model to use.",
     )
     args = parser.parse_args()
