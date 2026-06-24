@@ -164,9 +164,7 @@ class PlaywrightComputer(Computer):
     
     def triple_click_at(self, x: int, y: int) -> EnvState:
         self.highlight_mouse(x, y)
-        self._page.mouse.dblclick(x, y)
-        self._page.mouse.down()
-        self._page.mouse.up()
+        self._page.mouse.click(x, y, click_count=3)
         self._page.wait_for_load_state()
         return self.current_state()
     
@@ -206,7 +204,7 @@ class PlaywrightComputer(Computer):
         return self.current_state()
     
     def wait(self, seconds: int = 1) -> EnvState:
-        time.sleep(seconds)
+        self._page.wait_for_timeout(seconds * 1000)
         return self.current_state()
         
 
