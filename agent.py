@@ -36,8 +36,9 @@ LEGACY_COMPUTER_USE_MODELS = [
     "gemini-3-flash-preview",
     "gemini-3.1-pro-preview",
 ]
-PREDEFINED_COMPUTER_USE_FUNCTIONS = [
-    # Start of old predefined functions, which are used in gemini-2.5-computer-use-preview-10-2025, gemini-3-flash-preview and gemini-3.1-pro-preview.
+
+# Legacy predefined functions, which are used in gemini-2.5-computer-use-preview-10-2025, gemini-3-flash-preview and gemini-3.1-pro-preview.
+LEGACY_PREDEFINED_COMPUTER_USE_FUNCTIONS = [
     "open_web_browser",
     "click_at",
     "hover_at",
@@ -51,7 +52,10 @@ PREDEFINED_COMPUTER_USE_FUNCTIONS = [
     "navigate",
     "key_combination",
     "drag_and_drop",
-    # Start of new predefined functions, which are used in gemini-3.5-flash and future models.
+]
+
+# Predefined functions which are used in gemini-3.5-flash and future models.
+PREDEFINED_COMPUTER_USE_FUNCTIONS = [
     "click",
     "double_click",
     "triple_click",
@@ -531,7 +535,7 @@ class BrowserAgent:
                         part.function_response
                         and part.function_response.parts
                         and part.function_response.name
-                        in PREDEFINED_COMPUTER_USE_FUNCTIONS
+                        in (PREDEFINED_COMPUTER_USE_FUNCTIONS + LEGACY_PREDEFINED_COMPUTER_USE_FUNCTIONS)
                     ):
                         has_screenshot = True
                         break
@@ -545,7 +549,7 @@ class BrowserAgent:
                                 part.function_response
                                 and part.function_response.parts
                                 and part.function_response.name
-                                in PREDEFINED_COMPUTER_USE_FUNCTIONS
+                                in (PREDEFINED_COMPUTER_USE_FUNCTIONS + LEGACY_PREDEFINED_COMPUTER_USE_FUNCTIONS)
                             ):
                                 part.function_response.parts = None
 
