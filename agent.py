@@ -151,7 +151,7 @@ class BrowserAgent:
     ) -> FunctionResponseT:
         """Handles the action and returns the environment state."""
         if use_legacy_actions:
-            return self.handle_legacy_action()
+            return self.handle_legacy_action(action)
 
         if action.name == "open_web_browser":
             return self._browser_computer.open_web_browser()
