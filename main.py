@@ -14,6 +14,9 @@
 import argparse
 import os
 
+from dotenv import load_dotenv
+load_dotenv()  # Load environment variables from .env file
+
 from agent import BrowserAgent
 from computers import BrowserbaseComputer, PlaywrightComputer
 
@@ -51,7 +54,7 @@ def main() -> int:
     )
     parser.add_argument(
         "--model",
-        default='gemini-2.5-computer-use-preview-10-2025',
+        default='gemini-3.5-flash',
         help="Set which main model to use.",
     )
     args = parser.parse_args()

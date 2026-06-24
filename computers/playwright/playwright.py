@@ -167,13 +167,65 @@ class PlaywrightComputer(Computer):
     def open_web_browser(self) -> EnvState:
         return self.current_state()
 
-    def click_at(self, x: int, y: int):
+    def click_at(self, x: int, y: int) -> EnvState:
         self.highlight_mouse(x, y)
         self._page.mouse.click(x, y)
         self._page.wait_for_load_state()
         return self.current_state()
+    
+    def double_click_at(self, x: int, y: int) -> EnvState:
+        self.highlight_mouse(x, y)
+        self._page.mouse.dblclick(x, y)
+        self._page.wait_for_load_state()
+        return self.current_state()
+    
+    def triple_click_at(self, x: int, y: int) -> EnvState:
+        self.highlight_mouse(x, y)
+        self._page.mouse.click(x, y, click_count=3)
+        self._page.wait_for_load_state()
+        return self.current_state()
+    
+    def middle_click_at(self, x: int, y: int) -> EnvState:
+        self.highlight_mouse(x, y)
+        self._page.mouse.click(x, y, button="middle")
+        self._page.wait_for_load_state()
+        return self.current_state()
+    
+    def right_click_at(self, x: int, y: int) -> EnvState:
+        self.highlight_mouse(x, y)
+        self._page.mouse.click(x, y, button="right")
+        self._page.wait_for_load_state()
+        return self.current_state()
+    
+    def mouse_down(self, x: int, y: int) -> EnvState:
+        self.highlight_mouse(x, y)
+        self._page.mouse.move(x, y)
+        self._page.mouse.down()
+        self._page.wait_for_load_state()
+        return self.current_state()
+    
+    def mouse_up(self, x: int, y: int) -> EnvState:
+        self.highlight_mouse(x, y)
+        self._page.mouse.move(x, y)
+        self._page.mouse.up()
+        self._page.wait_for_load_state()
+        return self.current_state() 
+    
+    def type_text(self, text: str, press_enter: bool = False) -> EnvState:
+        self._page.keyboard.type(text)
+        self._page.wait_for_load_state()
 
-    def hover_at(self, x: int, y: int):
+        if press_enter:
+            self.key_combination(["Enter"])
+        self._page.wait_for_load_state()
+        return self.current_state()
+    
+    def wait(self, seconds: int = 1) -> EnvState:
+        self._page.wait_for_timeout(seconds * 1000)
+        return self.current_state()
+        
+
+    def hover_at(self, x: int, y: int) -> EnvState:
         self.highlight_mouse(x, y)
         self._page.mouse.move(x, y)
         self._page.wait_for_load_state()
@@ -299,6 +351,25 @@ class PlaywrightComputer(Computer):
         for key in reversed(keys[:-1]):
             self._page.keyboard.up(key)
 
+        self._page.wait_for_load_state()
+        return self.current_state()
+    
+    def press_key(self, key: str) -> EnvState:
+        return self.key_combination([key])
+    
+    def key_down(self, key: str) -> EnvState:
+        key = PLAYWRIGHT_KEY_MAP.get(key.lower(), key)
+        self._page.keyboard.down(key)
+        self._page.wait_for_load_state()
+        return self.current_state()
+        
+    def key_up(self, key: str) -> EnvState:
+        key = PLAYWRIGHT_KEY_MAP.get(key.lower(), key)
+        self._page.keyboard.up(key)
+        self._page.wait_for_load_state()
+        return self.current_state()
+    
+    def take_screenshot(self) -> EnvState:
         return self.current_state()
 
     def drag_and_drop(

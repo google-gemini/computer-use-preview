@@ -31,7 +31,14 @@ from rich.table import Table
 from computers import EnvState, Computer
 
 MAX_RECENT_TURN_WITH_SCREENSHOTS = 3
-PREDEFINED_COMPUTER_USE_FUNCTIONS = [
+LEGACY_COMPUTER_USE_MODELS = [
+    "gemini-2.5-computer-use-preview-10-2025",
+    "gemini-3-flash-preview",
+    "gemini-3.1-pro-preview",
+]
+
+# Legacy predefined functions, which are used in gemini-2.5-computer-use-preview-10-2025, gemini-3-flash-preview and gemini-3.1-pro-preview.
+LEGACY_PREDEFINED_COMPUTER_USE_FUNCTIONS = [
     "open_web_browser",
     "click_at",
     "hover_at",
@@ -45,6 +52,30 @@ PREDEFINED_COMPUTER_USE_FUNCTIONS = [
     "navigate",
     "key_combination",
     "drag_and_drop",
+]
+
+# Predefined functions which are used in gemini-3.5-flash and future models.
+PREDEFINED_COMPUTER_USE_FUNCTIONS = [
+    "click",
+    "double_click",
+    "triple_click",
+    "middle_click",
+    "right_click",
+    "mouse_down",
+    "mouse_up",
+    "move",
+    "type",
+    "drag_and_drop",
+    "wait",
+    "press_key",
+    "key_down",
+    "key_up",
+    "hotkey",
+    "take_screenshot",
+    "scroll",
+    "go_back",
+    "navigate",
+    "go_forward",
 ]
 
 
@@ -87,6 +118,9 @@ class BrowserAgent:
                 ],
             )
         ]
+        self._use_legacy_computer_use_function_call = (
+            model_name in LEGACY_COMPUTER_USE_MODELS
+        )
 
         # Exclude any predefined functions here.
         excluded_predefined_functions = []
@@ -113,13 +147,133 @@ class BrowserAgent:
                 ),
                 types.Tool(function_declarations=custom_functions),
             ],
-            thinking_config=types.ThinkingConfig(
-                include_thoughts=True
-            ),
+            thinking_config=types.ThinkingConfig(include_thoughts=True),
         )
 
-    def handle_action(self, action: types.FunctionCall) -> FunctionResponseT:
+    def handle_action(
+        self, action: types.FunctionCall, use_legacy_actions: bool
+    ) -> FunctionResponseT:
         """Handles the action and returns the environment state."""
+        if use_legacy_actions:
+            return self.handle_legacy_action(action)
+
+        if action.name == "open_web_browser":
+            return self._browser_computer.open_web_browser()
+        elif action.name == "click":
+            x = self.denormalize_x(action.args["x"])
+            y = self.denormalize_y(action.args["y"])
+            return self._browser_computer.click_at(
+                x=x,
+                y=y,
+            )
+        elif action.name == "double_click":
+            x = self.denormalize_x(action.args["x"])
+            y = self.denormalize_y(action.args["y"])
+            return self._browser_computer.double_click_at(
+                x=x,
+                y=y,
+            )
+        elif action.name == "triple_click":
+            x = self.denormalize_x(action.args["x"])
+            y = self.denormalize_y(action.args["y"])
+            return self._browser_computer.triple_click_at(
+                x=x,
+                y=y,
+            )
+        elif action.name == "middle_click":
+            x = self.denormalize_x(action.args["x"])
+            y = self.denormalize_y(action.args["y"])
+            return self._browser_computer.middle_click_at(
+                x=x,
+                y=y,
+            )
+        elif action.name == "right_click":
+            x = self.denormalize_x(action.args["x"])
+            y = self.denormalize_y(action.args["y"])
+            return self._browser_computer.right_click_at(
+                x=x,
+                y=y,
+            )
+        elif action.name == "mouse_down":
+            x = self.denormalize_x(action.args["x"])
+            y = self.denormalize_y(action.args["y"])
+            return self._browser_computer.mouse_down(
+                x=x,
+                y=y,
+            )
+        elif action.name == "mouse_up":
+            x = self.denormalize_x(action.args["x"])
+            y = self.denormalize_y(action.args["y"])
+            return self._browser_computer.mouse_up(
+                x=x,
+                y=y,
+            )
+        elif action.name == "move":
+            x = self.denormalize_x(action.args["x"])
+            y = self.denormalize_y(action.args["y"])
+            return self._browser_computer.hover_at(
+                x=x,
+                y=y,
+            )
+        elif action.name == "type":
+            press_enter = action.args.get("press_enter", False)
+            return self._browser_computer.type_text(
+                text=action.args["text"],
+                press_enter=press_enter,
+            )
+        elif action.name == "scroll":
+            x = self.denormalize_x(action.args["x"])
+            y = self.denormalize_y(action.args["y"])
+            magnitude = action.args.get("magnitude", 800)
+            direction = action.args["direction"]
+
+            if direction in ("up", "down"):
+                magnitude = self.denormalize_y(magnitude)
+            elif direction in ("left", "right"):
+                magnitude = self.denormalize_x(magnitude)
+            else:
+                raise ValueError("Unknown direction: ", direction)
+            return self._browser_computer.scroll_at(
+                x=x, y=y, direction=direction, magnitude=magnitude
+            )
+        elif action.name == "wait":
+            wait_seconds = int(action.args.get("seconds", 1))
+            return self._browser_computer.wait(wait_seconds)
+        elif action.name == "go_back":
+            return self._browser_computer.go_back()
+        elif action.name == "go_forward":
+            return self._browser_computer.go_forward()
+        elif action.name == "navigate":
+            return self._browser_computer.navigate(action.args["url"])
+        elif action.name == "hotkey":
+            return self._browser_computer.key_combination(action.args["keys"])
+        elif action.name == "press_key":
+            return self._browser_computer.press_key(action.args["key"])
+        elif action.name == "key_down":
+            return self._browser_computer.key_down(action.args["key"])
+        elif action.name == "key_up":
+            return self._browser_computer.key_up(action.args["key"])
+        elif action.name == "take_screenshot":
+            return self._browser_computer.take_screenshot()
+        elif action.name == "drag_and_drop":
+            x = self.denormalize_x(action.args["x"])
+            y = self.denormalize_y(action.args["y"])
+            destination_x = self.denormalize_x(action.args["destination_x"])
+            destination_y = self.denormalize_y(action.args["destination_y"])
+            return self._browser_computer.drag_and_drop(
+                x=x,
+                y=y,
+                destination_x=destination_x,
+                destination_y=destination_y,
+            )
+        # Handle the custom function declarations here.
+        elif action.name == multiply_numbers.__name__:
+            return multiply_numbers(x=action.args["x"], y=action.args["y"])
+        else:
+            raise ValueError(f"Unsupported function: {action}")
+
+    def handle_legacy_action(self, action: types.FunctionCall) -> FunctionResponseT:
+        """Handles the action defined in the legacy models, and returns the environment state."""
         if action.name == "open_web_browser":
             return self._browser_computer.open_web_browser()
         elif action.name == "click_at":
@@ -167,6 +321,7 @@ class BrowserAgent:
             )
         elif action.name == "wait_5_seconds":
             return self._browser_computer.wait_5_seconds()
+
         elif action.name == "go_back":
             return self._browser_computer.go_back()
         elif action.name == "go_forward":
@@ -264,6 +419,13 @@ class BrowserAgent:
                 return "COMPLETE"
 
         if not response.candidates:
+            if (
+                response.prompt_feedback
+                and response.prompt_feedback.block_reason == types.BlockReason.SAFETY
+            ):
+                raise ValueError(
+                    f"Response was blocked due to safety. Feedback: {response.prompt_feedback}"
+                )
             print("Response has no candidates!")
             print(response)
             raise ValueError("Empty response")
@@ -326,9 +488,13 @@ class BrowserAgent:
                 with console.status(
                     "Sending command to Computer...", spinner_style=None
                 ):
-                    fc_result = self.handle_action(function_call)
+                    fc_result = self.handle_action(
+                        function_call, self._use_legacy_computer_use_function_call
+                    )
             else:
-                fc_result = self.handle_action(function_call)
+                fc_result = self.handle_action(
+                    function_call, self._use_legacy_computer_use_function_call
+                )
             if isinstance(fc_result, EnvState):
                 function_responses.append(
                     FunctionResponse(
@@ -369,7 +535,7 @@ class BrowserAgent:
                         part.function_response
                         and part.function_response.parts
                         and part.function_response.name
-                        in PREDEFINED_COMPUTER_USE_FUNCTIONS
+                        in (PREDEFINED_COMPUTER_USE_FUNCTIONS + LEGACY_PREDEFINED_COMPUTER_USE_FUNCTIONS)
                     ):
                         has_screenshot = True
                         break
@@ -383,7 +549,7 @@ class BrowserAgent:
                                 part.function_response
                                 and part.function_response.parts
                                 and part.function_response.name
-                                in PREDEFINED_COMPUTER_USE_FUNCTIONS
+                                in (PREDEFINED_COMPUTER_USE_FUNCTIONS + LEGACY_PREDEFINED_COMPUTER_USE_FUNCTIONS)
                             ):
                                 part.function_response.parts = None
 
