@@ -18,6 +18,7 @@ from dotenv import load_dotenv
 load_dotenv()  # Load environment variables from .env file
 
 from agent import BrowserAgent
+from form_agent import FormAgent
 from computers import BrowserbaseComputer, PlaywrightComputer
 
 
@@ -27,12 +28,12 @@ PLAYWRIGHT_SCREEN_SIZE = (1440, 900)
 def main() -> int:
     parser = argparse.ArgumentParser(description="Run the browser agent with a query.")
     parser.add_argument(
-        "--query",
+        "--agent",
         type=str,
-        required=True,
-        help="The query for the browser agent to execute.",
+        choices=("browser", "form"),
+        default="browser",
+        help="The agent to use.",
     )
-
     parser.add_argument(
         "--env",
         type=str,
@@ -74,11 +75,18 @@ def main() -> int:
         raise ValueError("Unknown environment: ", args.env)
 
     with env as browser_computer:
-        agent = BrowserAgent(
-            browser_computer=browser_computer,
-            query=args.query,
-            model_name=args.model,
-        )
+        if args.agent == "form":
+            agent = FormAgent(
+                browser_computer=browser_computer,
+                query=args.query,
+                model_name=args.model,
+            )
+        else:
+            agent = BrowserAgent(
+                browser_computer=browser_computer,
+                query=args.query,
+                model_name=args.model,
+            )
         agent.agent_loop()
     return 0
 
