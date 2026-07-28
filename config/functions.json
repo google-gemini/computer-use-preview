@@ -1,0 +1,13 @@
+{
+  "functions": [
+    {
+      "name": "multiply_numbers",
+      "module": "custom_functions.math",
+      "attribute": "multiply_numbers",
+      "description": "Multiply two numbers and return the product.",
+      "whitelist": true,
+      "risk_note": "Safe arithmetic operation."
+    }
+  ]
+}
+
