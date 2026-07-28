@@ -49,7 +49,7 @@ class TestBrowserAgent(unittest.TestCase):
         action = types.FunctionCall(name="type_text_at", args={"x": 100, "y": 200, "text": "hello"})
         self.agent.handle_action(action, use_legacy_actions=True)
         self.mock_browser_computer.type_text_at.assert_called_once_with(
-            x=100, y=200, text="hello", press_enter=False, clear_before_typing=True
+            x=100, y=200, text="hello", press_enter=True, clear_before_typing=True
         )
 
     def test_handle_action_scroll_document(self):
