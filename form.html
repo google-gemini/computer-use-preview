@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Business Registration Form</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+
+        fieldset {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        legend {
+            font-size: 1.2em;
+            font-weight: bold;
+            padding: 0 10px;
+            color: #555;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        input[type="text"],
+        input[type="email"],
+        input[type="tel"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        textarea {
+            height: 100px;
+        }
+
+        input[type="file"] {
+            margin-top: 5px;
+        }
+
+        .submit-btn {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .submit-btn:hover {
+            background-color: #218838;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h1>Business Registration Form</h1>
+        <form action="#" method="post">
+
+            <fieldset>
+                <legend>Business Information</legend>
+                <label for="business-name">Business Name</label>
+                <input type="text" id="business-name" name="business_name" required>
+
+                <label for="business-type">Type of Business</label>
+                <select id="business-type" name="business_type" required>
+                    <option value="">Select a type</option>
+                    <option value="sole-proprietorship">Sole Proprietorship</option>
+                    <option value="partnership">Partnership</option>
+                    <option value="llc">Limited Liability Company (LLC)</option>
+                    <option value="corporation">Corporation</option>
+                    <option value="non-profit">Non-Profit</option>
+                </select>
+
+                <label for="tax-id">Business Tax ID (EIN)</label>
+                <input type="text" id="tax-id" name="tax_id" placeholder="e.g., 12-3456789" required>
+
+                <label for="business-description">Business Description</label>
+                <textarea id="business-description" name="business_description"
+                    placeholder="Briefly describe your business"></textarea>
+            </fieldset>
+
+            <fieldset>
+                <legend>Owner's Information</legend>
+                <label for="owner-name">Full Name of Owner/Primary Contact</label>
+                <input type="text" id="owner-name" name="owner_name" required>
+
+                <label for="owner-email">Email Address</label>
+                <input type="email" id="owner-email" name="owner_email" required>
+
+                <label for="owner-phone">Phone Number</label>
+                <input type="tel" id="owner-phone" name="owner_phone" required>
+            </fieldset>
+
+            <fieldset>
+                <legend>Business Address</legend>
+                <label for="address-street">Street Address</label>
+                <input type="text" id="address-street" name="address_street" required>
+
+                <label for="address-city">City</label>
+                <input type="text" id="address-city" name="address_city" required>
+
+                <label for="address-state">State</label>
+                <input type="text" id="address-state" name="address_state" required>
+
+                <label for="address-zip">ZIP Code</label>
+                <input type="text" id="address-zip" name="address_zip" required>
+            </fieldset>
+
+            <button type="submit" class="submit-btn">Register Business</button>
+
+        </form>
+    </div>
+
+</body>
+
+</html>
