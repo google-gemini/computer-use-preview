@@ -111,7 +111,7 @@ class PlaywrightComputer(Computer):
                 "--disable-sync",
                 # No '--no-sandbox' arg means the sandbox is on.
             ],
-            headless=bool(os.environ.get("PLAYWRIGHT_HEADLESS", False)),
+            headless=os.environ.get("PLAYWRIGHT_HEADLESS", "false").lower() in ["true", "1"],
         )
         self._context = self._browser.new_context(
             viewport={
