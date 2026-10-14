@@ -47,7 +47,8 @@ class TestPlaywrightHeadless(unittest.TestCase):
         mock_playwright = MagicMock()
         mock_sync_playwright.return_value.start.return_value = mock_playwright
 
-        with patch.dict(os.environ, {}, clear=True):
+        with patch.dict(os.environ):
+            os.environ.pop("PLAYWRIGHT_HEADLESS", None)
             with PlaywrightComputer(screen_size=(1024, 768)):
                 mock_playwright.chromium.launch.assert_called_once()
                 _, kwargs = mock_playwright.chromium.launch.call_args
