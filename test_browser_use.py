@@ -28,6 +28,8 @@ class TestBrowserUseComputer(unittest.TestCase):
     def setUp(self):
         self.requests = []
 
+        self.stop_status = 200
+
         def handler(request):
             self.requests.append(request)
             if request.method == 'POST':
@@ -36,7 +38,7 @@ class TestBrowserUseComputer(unittest.TestCase):
                     'cdpUrl': 'wss://cdp.example/session-1',
                     'liveUrl': 'https://live.example/session-1',
                 })
-            return httpx.Response(200, json={'id': 'session-1', 'status': 'stopped'})
+            return httpx.Response(self.stop_status, json={'id': 'session-1', 'status': 'stopped'})
 
         real_client = httpx.Client
         client_patcher = patch.object(
@@ -84,6 +86,16 @@ class TestBrowserUseComputer(unittest.TestCase):
 
         self.assertEqual([r.method for r in self.requests], ['POST', 'PATCH'])
         self.mock_playwright.stop.assert_called_once()
+
+    def test_stop_failure_does_not_hide_connect_error(self):
+        self.mock_playwright.chromium.connect_over_cdp.side_effect = RuntimeError('connect failed')
+        self.stop_status = 500
+        computer = BrowserUseComputer(screen_size=(1440, 900))
+        with self.assertRaisesRegex(RuntimeError, 'connect failed'):
+            computer.__enter__()
+
+        self.assertEqual([r.method for r in self.requests], ['POST', 'PATCH'])
+        self.assertTrue(computer._http.is_closed)
 
 
 if __name__ == '__main__':

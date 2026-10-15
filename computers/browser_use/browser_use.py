@@ -35,6 +35,7 @@ class BrowserUseComputer(PlaywrightComputer):
         self._playwright = None
         self._browser = None
         self._context = None
+        self._http = None
 
     def __enter__(self):
         print("Creating session...")
@@ -71,7 +72,11 @@ class BrowserUseComputer(PlaywrightComputer):
             self._page.goto(self._initial_url)
             self._context.on("page", self._handle_new_page)
         except BaseException:
-            self._cleanup()
+            try:
+                self._cleanup()
+            except Exception as e:
+                # Keep the original error; report the cleanup failure.
+                termcolor.cprint(f"Cleanup failed: {e}", color="red")
             raise
 
         termcolor.cprint(
@@ -93,9 +98,12 @@ class BrowserUseComputer(PlaywrightComputer):
             if self._playwright:
                 self._playwright.stop()
         finally:
-            if self._session_id:
-                self._http.patch(
-                    f"/browsers/{self._session_id}", json={"action": "stop"}
-                ).raise_for_status()
-                self._session_id = None
-            self._http.close()
+            try:
+                if self._session_id:
+                    self._http.patch(
+                        f"/browsers/{self._session_id}", json={"action": "stop"}
+                    ).raise_for_status()
+                    self._session_id = None
+            finally:
+                if self._http:
+                    self._http.close()
