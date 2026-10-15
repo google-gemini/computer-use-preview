@@ -18,7 +18,7 @@ from dotenv import load_dotenv
 load_dotenv()  # Load environment variables from .env file
 
 from agent import BrowserAgent
-from computers import BrowserbaseComputer, PlaywrightComputer
+from computers import BrowserbaseComputer, BrowserUseComputer, PlaywrightComputer
 
 
 PLAYWRIGHT_SCREEN_SIZE = (1440, 900)
@@ -36,7 +36,7 @@ def main() -> int:
     parser.add_argument(
         "--env",
         type=str,
-        choices=("playwright", "browserbase"),
+        choices=("playwright", "browserbase", "browser-use"),
         default="playwright",
         help="The computer use environment to use.",
     )
@@ -69,6 +69,11 @@ def main() -> int:
         env = BrowserbaseComputer(
             screen_size=PLAYWRIGHT_SCREEN_SIZE,
             initial_url=args.initial_url
+        )
+    elif args.env == "browser-use":
+        env = BrowserUseComputer(
+            screen_size=PLAYWRIGHT_SCREEN_SIZE,
+            initial_url=args.initial_url,
         )
     else:
         raise ValueError("Unknown environment: ", args.env)
