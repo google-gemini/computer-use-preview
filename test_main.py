@@ -65,5 +65,26 @@ class TestMain(unittest.TestCase):
         mock_browser_agent.assert_called_once()
         mock_browser_agent.return_value.agent_loop.assert_called_once()
 
+    @patch('main.argparse.ArgumentParser')
+    @patch('main.BrowserUseComputer')
+    @patch('main.BrowserAgent')
+    def test_main_browser_use(self, mock_browser_agent, mock_browser_use_computer, mock_arg_parser):
+        mock_args = MagicMock()
+        mock_args.env = 'browser-use'
+        mock_args.query = 'test_query'
+        mock_args.model = 'test_model'
+        mock_args.initial_url = 'test_url'
+        mock_args.highlight_mouse = False
+        mock_arg_parser.return_value.parse_args.return_value = mock_args
+
+        main.main()
+
+        mock_browser_use_computer.assert_called_once_with(
+            screen_size=main.PLAYWRIGHT_SCREEN_SIZE,
+            initial_url='test_url'
+        )
+        mock_browser_agent.assert_called_once()
+        mock_browser_agent.return_value.agent_loop.assert_called_once()
+
 if __name__ == '__main__':
     unittest.main()

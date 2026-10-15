@@ -104,6 +104,7 @@ You can specify a particular environment with the ```--env <environment>``` flag
 
 - `playwright`: Runs the browser locally using Playwright.
 - `browserbase`: Connects to a Browserbase instance.
+- `browser-use`: Connects to a Browser Use Cloud browser.
 
 **Local Playwright**
 
@@ -127,6 +128,14 @@ Runs the agent using Browserbase as the browser backend. Ensure the proper Brows
 python main.py --query="Go to Google and type 'Hello World' into the search bar" --env="browserbase"
 ```
 
+**Browser Use**
+
+Runs the agent in a [Browser Use Cloud](https://browser-use.com) browser, connected over CDP. Set `BROWSER_USE_API_KEY` ([get a key](https://cloud.browser-use.com/settings?tab=api-keys&new=1)). The browser is stopped when the agent exits, and a live view link is printed at start.
+
+```bash
+python main.py --query="Go to Google and type 'Hello World' into the search bar" --env="browser-use"
+```
+
 **Available Models:**
 
 You can choose the model to use by specifying the ```--model <model name>``` flag. Available options on Gemini Developer API and Vertex AI Client:
@@ -146,7 +155,7 @@ The `main.py` script is the command-line interface (CLI) for running the browser
 | Argument | Description | Required | Default | Supported Environment(s) |
 |-|-|-|-|-|
 | `--query` | The natural language query for the browser agent to execute. | Yes | N/A | All |
-| `--env` | The computer use environment to use. Must be one of the following: `playwright`, or `browserbase` | No | N/A | All |
+| `--env` | The computer use environment to use. Must be one of the following: `playwright`, `browserbase`, or `browser-use` | No | N/A | All |
 | `--initial_url` | The initial URL to load when the browser starts. | No | https://www.google.com | All |
 | `--highlight_mouse` | If specified, the agent will attempt to highlight the mouse cursor's position in the screenshots. This is useful for visual debugging. | No | False (not highlighted) | `playwright` |
 | `--model` | The model to use. See the "Available Models" section for more information. | No | `gemini-3.6-flash` | All |
@@ -158,6 +167,7 @@ The `main.py` script is the command-line interface (CLI) for running the browser
 | GEMINI_API_KEY | Your API key for the Gemini model. | Yes |
 | BROWSERBASE_API_KEY | Your API key for Browserbase. | Yes (when using the browserbase environment) |
 | BROWSERBASE_PROJECT_ID | Your Project ID for Browserbase. | Yes (when using the browserbase environment) |
+| BROWSER_USE_API_KEY | Your API key for Browser Use Cloud. | Yes (when using the browser-use environment) |
 
 ## Known Issues
 
